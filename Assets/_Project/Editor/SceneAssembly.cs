@@ -1,0 +1,185 @@
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using Basket.Core;
+using Basket.Gameplay;
+using Basket.AI;
+using Basket.Input;
+using Basket.UI;
+using Basket.Bootstrap;
+
+namespace Basket.EditorTools
+{
+    public static class SceneAssembly
+    {
+        [MenuItem("Basket/Build Vertical Slice Scene")]
+        public static void Build()
+        {
+            var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+
+            BuildCourt();
+            Transform rim = BuildRimAndBackboard();
+            BallController ball = BuildBall();
+            (PlayerMotor humanMotor, HumanInputProvider humanInput) = BuildHumanPlayer();
+            (PlayerMotor aiMotor, AIOpponentController aiController) = BuildAIOpponent();
+            PassSystem passSystem = CreateComponent<PassSystem>("PassSystem");
+            ShootingSystem shootingSystem = CreateComponent<ShootingSystem>("ShootingSystem");
+            DribbleSystem dribbleSystem = CreateComponent<DribbleSystem>("DribbleSystem");
+            MatchManager matchManager = CreateComponent<MatchManager>("MatchManager");
+            ScoreTrigger scoreTrigger = rim.gameObject.AddComponent<ScoreTrigger>();
+            CameraController cameraController = BuildCamera();
+            DebugHud debugHud = CreateComponent<DebugHud>("DebugHud");
+
+            BallConfig ballConfig = LoadOrCreateAsset<BallConfig>("Assets/_Project/Data/DefaultBallConfig.asset");
+            ShotConfig shotConfig = LoadOrCreateAsset<ShotConfig>("Assets/_Project/Data/DefaultShotConfig.asset");
+
+            // Not in the original plan text: PlayerMotor.config (on both motors) and
+            // CameraController.config are private [SerializeField] ScriptableObject
+            // references with no default instance. Left unwired, they are null in the
+            // assembled scene, and PlayerMotor.Tick()/CameraController.LateUpdate() both
+            // dereference config unconditionally every frame once play starts (Tick is
+            // called every Update by GameBootstrap for both agents; LateUpdate runs once
+            // CameraController.Configure() has set a target, which GameBootstrap.Awake()
+            // always does) -- a guaranteed NullReferenceException on frame 1, not a
+            // probabilistic one. BallController.config has the same gap but is guarded
+            // (only read while Held), so it is a latent bug rather than a guaranteed
+            // crash; still wired here for correctness, reusing the same DefaultBallConfig
+            // asset already created above. Same LoadOrCreateAsset + SerializedObject
+            // pattern already used elsewhere in this method, just completing coverage of
+            // it to every component that needs a config asset.
+            PlayerMovementConfig playerMovementConfig = LoadOrCreateAsset<PlayerMovementConfig>("Assets/_Project/Data/DefaultPlayerMovementConfig.asset");
+            CameraConfig cameraConfig = LoadOrCreateAsset<CameraConfig>("Assets/_Project/Data/DefaultCameraConfig.asset");
+
+            WireConfig(ball, "config", ballConfig);
+            WireConfig(humanMotor, "config", playerMovementConfig);
+            WireConfig(aiMotor, "config", playerMovementConfig);
+            WireConfig(cameraController, "config", cameraConfig);
+
+            var bootstrapGo = new GameObject("GameBootstrap");
+            var bootstrap = bootstrapGo.AddComponent<GameBootstrap>();
+            var so = new SerializedObject(bootstrap);
+            so.FindProperty("humanMotor").objectReferenceValue = humanMotor;
+            so.FindProperty("humanInput").objectReferenceValue = humanInput;
+            so.FindProperty("aiMotor").objectReferenceValue = aiMotor;
+            so.FindProperty("aiController").objectReferenceValue = aiController;
+            so.FindProperty("ball").objectReferenceValue = ball;
+            so.FindProperty("passSystem").objectReferenceValue = passSystem;
+            so.FindProperty("shootingSystem").objectReferenceValue = shootingSystem;
+            so.FindProperty("dribbleSystem").objectReferenceValue = dribbleSystem;
+            so.FindProperty("matchManager").objectReferenceValue = matchManager;
+            so.FindProperty("scoreTrigger").objectReferenceValue = scoreTrigger;
+            so.FindProperty("cameraController").objectReferenceValue = cameraController;
+            so.FindProperty("debugHud").objectReferenceValue = debugHud;
+            so.FindProperty("ballConfig").objectReferenceValue = ballConfig;
+            so.FindProperty("shotConfig").objectReferenceValue = shotConfig;
+            so.FindProperty("rimTarget").objectReferenceValue = rim;
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            EditorSceneManager.SaveScene(scene, "Assets/_Project/Scenes/01_VerticalSlice_HalfCourt.unity");
+            Debug.Log("Vertical slice scene built and saved.");
+        }
+
+        [MenuItem("Basket/Add Vertical Slice Scene To Build Settings")]
+        public static void AddSceneToBuildSettings()
+        {
+            const string scenePath = "Assets/_Project/Scenes/01_VerticalSlice_HalfCourt.unity";
+            var scenes = new System.Collections.Generic.List<EditorBuildSettingsScene>(EditorBuildSettings.scenes);
+            if (scenes.Exists(s => s.path == scenePath)) return;
+            scenes.Add(new EditorBuildSettingsScene(scenePath, true));
+            EditorBuildSettings.scenes = scenes.ToArray();
+        }
+
+        private static void BuildCourt()
+        {
+            GameObject floor = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            floor.name = "CourtFloor";
+            floor.transform.localScale = new Vector3(15f, 0.2f, 14f);
+            floor.transform.position = new Vector3(0f, -0.1f, 7f);
+        }
+
+        private static Transform BuildRimAndBackboard()
+        {
+            GameObject backboard = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            backboard.name = "Backboard";
+            backboard.transform.localScale = new Vector3(1.8f, 1.05f, 0.05f);
+            backboard.transform.position = new Vector3(0f, 3.05f, 13.5f);
+
+            GameObject rim = new GameObject("RimTrigger");
+            rim.transform.position = new Vector3(0f, 3.05f, 13f);
+            SphereCollider trigger = rim.AddComponent<SphereCollider>();
+            trigger.isTrigger = true;
+            trigger.radius = 0.3f;
+            rim.AddComponent<Rigidbody>().isKinematic = true;
+
+            return rim.transform;
+        }
+
+        private static BallController BuildBall()
+        {
+            GameObject ballGo = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            ballGo.name = "Ball";
+            ballGo.transform.localScale = Vector3.one * 0.24f;
+            ballGo.transform.position = new Vector3(0f, 1.1f, 3f);
+            ballGo.AddComponent<Rigidbody>();
+            return ballGo.AddComponent<BallController>();
+        }
+
+        private static (PlayerMotor, HumanInputProvider) BuildHumanPlayer()
+        {
+            GameObject go = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            go.name = "HumanPlayer";
+            go.transform.position = new Vector3(-2f, 1f, 3f);
+            Object.DestroyImmediate(go.GetComponent<CapsuleCollider>());
+            go.AddComponent<CharacterController>();
+            go.AddComponent<PlayerMarker>();
+            var motor = go.AddComponent<PlayerMotor>();
+            var input = go.AddComponent<HumanInputProvider>();
+            return (motor, input);
+        }
+
+        private static (PlayerMotor, AIOpponentController) BuildAIOpponent()
+        {
+            GameObject go = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            go.name = "AIOpponent";
+            go.transform.position = new Vector3(2f, 1f, 10f);
+            Object.DestroyImmediate(go.GetComponent<CapsuleCollider>());
+            go.AddComponent<CharacterController>();
+            go.AddComponent<PlayerMarker>();
+            var motor = go.AddComponent<PlayerMotor>();
+            var controller = go.AddComponent<AIOpponentController>();
+            return (motor, controller);
+        }
+
+        private static CameraController BuildCamera()
+        {
+            var camGo = new GameObject("MainCamera");
+            camGo.tag = "MainCamera";
+            camGo.AddComponent<Camera>();
+            return camGo.AddComponent<CameraController>();
+        }
+
+        private static T CreateComponent<T>(string goName) where T : Component
+        {
+            var go = new GameObject(goName);
+            return go.AddComponent<T>();
+        }
+
+        private static T LoadOrCreateAsset<T>(string path) where T : ScriptableObject
+        {
+            var existing = AssetDatabase.LoadAssetAtPath<T>(path);
+            if (existing != null) return existing;
+
+            var asset = ScriptableObject.CreateInstance<T>();
+            AssetDatabase.CreateAsset(asset, path);
+            AssetDatabase.SaveAssets();
+            return asset;
+        }
+
+        private static void WireConfig(Component component, string fieldName, Object configAsset)
+        {
+            var so = new SerializedObject(component);
+            so.FindProperty(fieldName).objectReferenceValue = configAsset;
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+    }
+}
