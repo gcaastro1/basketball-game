@@ -39,12 +39,14 @@ Expected: the `grep` prints nothing (no matches).
 
 **EDITMODE_TESTS** — runs all EditMode tests:
 ```bash
-"/c/Program Files/Unity/Hub/Editor/6000.6.2f1/Editor/Unity.exe" -batchmode -runTests -nographics -projectPath "D:\Projetos\basket\.worktrees\vertical-slice" -testPlatform EditMode -testResults "D:\Projetos\basket\.worktrees\vertical-slice\Logs\editmode-results.xml" -logFile "D:\Projetos\basket\.worktrees\vertical-slice\Logs\editmode.log" -quit
+"/c/Program Files/Unity/Hub/Editor/6000.6.2f1/Editor/Unity.exe" -batchmode -runTests -nographics -projectPath "D:\Projetos\basket\.worktrees\vertical-slice" -testPlatform EditMode -testResults "D:\Projetos\basket\.worktrees\vertical-slice\Logs\editmode-results.xml" -logFile "D:\Projetos\basket\.worktrees\vertical-slice\Logs\editmode.log"
 grep -o 'result="[A-Za-z]*"' "D:\Projetos\basket\.worktrees\vertical-slice\Logs\editmode-results.xml" | sort | uniq -c
 ```
 Expected: only `Passed` entries, matching the test count for that task; zero `Failed`.
 
-**PLAYMODE_TESTS** — runs all PlayMode tests (same as above with `-testPlatform PlayMode` and `playmode-results.xml`/`playmode.log`).
+> **No trailing `-quit`.** Confirmed during Task 3's review: `-runTests` combined with an explicit `-quit` races in this Unity 6000.6.2f1 setup and silently produces no results XML at all (Unity exits before the test run is written) — the implementer sees no file and has no way to get a real Pass/Fail verdict. `-runTests` already closes the Editor itself once the run completes; do not add `-quit` to either EDITMODE_TESTS or PLAYMODE_TESTS. (COMPILE_CHECK is unaffected — it doesn't use `-runTests`, and keeps its own `-quit`.) If a `-runTests` invocation ever hangs instead of exiting, that is a genuine new problem to report, not a reason to reach for `-quit` again.
+
+**PLAYMODE_TESTS** — runs all PlayMode tests (same as above, no `-quit`, with `-testPlatform PlayMode` and `playmode-results.xml`/`playmode.log`).
 
 ---
 
