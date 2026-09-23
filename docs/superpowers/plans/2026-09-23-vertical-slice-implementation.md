@@ -2579,7 +2579,20 @@ namespace Basket.Bootstrap
         private void TickAgent(IPlayerAgent agent, PlayerMotor motor, Transform self, Transform other, float dt)
         {
             motor.Tick(agent.GetMoveInput(), agent.WantsSprint(), dt);
-            dribbleSystem.Tick(agent.GetMoveInput().sqrMagnitude > 0.01f, dt);
+
+            // DribbleSystem is a single shared instance ticked from both agents' calls
+            // this method makes every frame. Gating on "am I the current holder" (like
+            // the pass/shoot calls below already do) is required, not optional: without
+            // it, the non-holder's call runs dribbleSystem.Tick with its OWN movement
+            // state every frame too, and since DribbleSystem only checks ball.CurrentState
+            // (not which agent holds it), the non-holder's call would either reset the
+            // holder's bounce offset to zero (if the non-holder is stationary) or double
+            // the bounce frequency (if both are moving) -- a real, silent bug, not
+            // hypothetical, found during Task 18's integration review.
+            if (ball.CurrentHolder == self)
+            {
+                dribbleSystem.Tick(agent.GetMoveInput().sqrMagnitude > 0.01f, dt);
+            }
 
             if (agent.WantsPass() && ball.CurrentHolder == self)
             {
