@@ -2510,6 +2510,7 @@ git commit -m "feat(ui): add DebugHud (debug-only IMGUI overlay for score/ball s
 **Files:**
 - Create: `Assets/_Project/Scripts/Bootstrap/GameBootstrap.cs`
 - Create: `Assets/_Project/Editor/SceneAssembly.cs` (editor-only, not shipped — assembles the scene once via `-executeMethod`)
+- Create: `Assets/_Project/Editor/Basket.EditorTools.asmdef` (editor-only assembly, `includePlatforms: ["Editor"]`, referencing `Basket.Core`/`Gameplay`/`AI`/`Input`/`UI`/`Bootstrap` — required for `SceneAssembly.cs` to compile and be discoverable via `-executeMethod` in this project's per-folder assembly layout; exempt from the runtime AI/UI-must-not-reference-Gameplay rule since it's tooling, not shipped game code)
 - Create: `Assets/_Project/Scenes/01_VerticalSlice_HalfCourt.unity` (produced by running `SceneAssembly`)
 - Test: `Assets/_Project/Tests/PlayMode/VerticalSliceIntegrationTests.cs`
 
@@ -2637,6 +2638,23 @@ namespace Basket.EditorTools
             BallConfig ballConfig = LoadOrCreateAsset<BallConfig>("Assets/_Project/Data/DefaultBallConfig.asset");
             ShotConfig shotConfig = LoadOrCreateAsset<ShotConfig>("Assets/_Project/Data/DefaultShotConfig.asset");
 
+            // PlayerMotor.config (on both motors) and CameraController.config are private
+            // [SerializeField] ScriptableObject references with no default instance. Left
+            // unwired, they are null in the assembled scene, and PlayerMotor.Tick()/
+            // CameraController.LateUpdate() both dereference config unconditionally every
+            // frame once play starts — a guaranteed NullReferenceException on frame 1, not
+            // a probabilistic one. BallController.config has the same gap but is guarded
+            // (only read while Held), so it's latent rather than a guaranteed crash; still
+            // wired here for correctness, reusing the DefaultBallConfig asset already
+            // created above.
+            PlayerMovementConfig playerMovementConfig = LoadOrCreateAsset<PlayerMovementConfig>("Assets/_Project/Data/DefaultPlayerMovementConfig.asset");
+            CameraConfig cameraConfig = LoadOrCreateAsset<CameraConfig>("Assets/_Project/Data/DefaultCameraConfig.asset");
+
+            WireConfig(ball, "config", ballConfig);
+            WireConfig(humanMotor, "config", playerMovementConfig);
+            WireConfig(aiMotor, "config", playerMovementConfig);
+            WireConfig(cameraController, "config", cameraConfig);
+
             var bootstrapGo = new GameObject("GameBootstrap");
             var bootstrap = bootstrapGo.AddComponent<GameBootstrap>();
             var so = new SerializedObject(bootstrap);
@@ -2746,6 +2764,13 @@ namespace Basket.EditorTools
             AssetDatabase.SaveAssets();
             return asset;
         }
+
+        private static void WireConfig(Component component, string fieldName, Object configAsset)
+        {
+            var so = new SerializedObject(component);
+            so.FindProperty(fieldName).objectReferenceValue = configAsset;
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
     }
 }
 ```
@@ -2767,6 +2792,7 @@ using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
+using Basket.Core;
 using Basket.Gameplay;
 
 public class VerticalSliceIntegrationTests
@@ -2833,7 +2859,7 @@ Record any deviation as a follow-up note in this plan file (do not silently skip
 
 ```bash
 cd "/d/Projetos/basket"
-git add Assets/_Project/Scripts/Bootstrap/GameBootstrap.cs Assets/_Project/Editor/SceneAssembly.cs Assets/_Project/Scenes/01_VerticalSlice_HalfCourt.unity Assets/_Project/Scenes/01_VerticalSlice_HalfCourt.unity.meta Assets/_Project/Data Assets/_Project/Tests/PlayMode/VerticalSliceIntegrationTests.cs ProjectSettings/EditorBuildSettings.asset
+git add Assets/_Project/Scripts/Bootstrap/GameBootstrap.cs Assets/_Project/Editor/SceneAssembly.cs Assets/_Project/Editor/Basket.EditorTools.asmdef Assets/_Project/Scenes/01_VerticalSlice_HalfCourt.unity Assets/_Project/Scenes/01_VerticalSlice_HalfCourt.unity.meta Assets/_Project/Data Assets/_Project/Tests/PlayMode/VerticalSliceIntegrationTests.cs ProjectSettings/EditorBuildSettings.asset
 git commit -m "feat: assemble Vertical Slice scene, wire GameBootstrap, add integration test"
 ```
 
