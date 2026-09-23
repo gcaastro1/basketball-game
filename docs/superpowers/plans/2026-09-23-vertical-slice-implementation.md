@@ -1177,6 +1177,14 @@ namespace Basket.Gameplay
         private void Awake()
         {
             rb = GetComponent<Rigidbody>();
+            // config may not be assigned yet when Awake fires synchronously from
+            // AddComponent (e.g. in tests that call SetConfigForTest afterwards);
+            // ApplyConfigToRigidbody re-applies once a config is actually set.
+            if (config != null) ApplyConfigToRigidbody();
+        }
+
+        private void ApplyConfigToRigidbody()
+        {
             rb.mass = config.mass;
             rb.linearDamping = config.drag;
             rb.angularDamping = config.angularDrag;
@@ -1233,6 +1241,7 @@ namespace Basket.Gameplay
         internal void SetConfigForTest(BallConfig testConfig)
         {
             config = testConfig;
+            if (rb != null) ApplyConfigToRigidbody();
         }
     }
 }
