@@ -716,7 +716,18 @@ namespace Basket.Gameplay
                 transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRot, config.turnSpeedDegrees * dt);
             }
 
-            controller.SimpleMove(velocity);
+            // CharacterController.SimpleMove(Vector3) silently re-multiplies its argument
+            // by Unity's real Time.deltaTime internally, discarding the dt this method was
+            // given and making movement depend on real frame timing instead of the caller's
+            // explicit dt. Use Move() with a pre-scaled motion vector instead, which moves by
+            // exactly the vector given, so a test driving Tick() with a fixed synthetic dt
+            // gets deterministic, real-timing-independent displacement. isGrounded needs a
+            // continuous small downward push to read true on flat ground (no floor exists
+            // in Task 5's unit test, so it free-falls slowly there instead — that's fine,
+            // only horizontal displacement is asserted).
+            Vector3 motion = velocity * dt;
+            motion.y = controller.isGrounded ? -0.05f : Physics.gravity.y * dt;
+            controller.Move(motion);
         }
 
         internal void SetConfigForTest(PlayerMovementConfig testConfig)
