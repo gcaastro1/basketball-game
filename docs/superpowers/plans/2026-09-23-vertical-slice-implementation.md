@@ -6,13 +6,13 @@
 
 **Architecture:** A Composition Root (`GameBootstrap`) wires independently-testable systems together by code, not Inspector drag-drop. Pure game logic (state machines, trajectory math, movement math) lives in plain C# classes with no `MonoBehaviour` dependency, so it is unit-testable in EditMode. `MonoBehaviour`s are thin adapters over that pure logic. Six Assembly Definitions enforce the dependency direction: `Core` (contracts only, zero references) ← `Gameplay`/`AI`/`Input`/`UI` (each references only `Core`, never each other) ← `Bootstrap` (references everything, wires it all up).
 
-**Tech Stack:** Unity 6000.6.0f1, Universal Render Pipeline, new Input System (low-level polling API, no `.inputactions` asset needed for this slice), Unity Test Framework (NUnit) for EditMode/PlayMode tests.
+**Tech Stack:** Unity 6000.6.2f1, Universal Render Pipeline, new Input System (low-level polling API, no `.inputactions` asset needed for this slice), Unity Test Framework (NUnit) for EditMode/PlayMode tests.
 
 **Spec:** [docs/superpowers/specs/2026-09-23-vertical-slice-design.md](../specs/2026-09-23-vertical-slice-design.md)
 
 ## Global Constraints
 
-- Unity Editor version: exactly `6000.6.0f1` (the only version installed; do not let the project auto-upgrade).
+- Unity Editor version: exactly `6000.6.2f1` (see the editor-version note right after this section for why it isn't `6000.6.0f1`; do not let the project auto-upgrade further).
 - Render pipeline: URP only. No HDRP, no Built-in RP assets.
 - No third-party or downloaded assets of any kind — every visual in this slice is a Unity primitive (cube/capsule/sphere) or code-generated. No character models, no music, no animations from external sources.
 - No DI framework (no VContainer/Zenject). Composition Root pattern only, per the approved spec.
@@ -26,19 +26,21 @@
 
 ## Verification Commands (reused across tasks)
 
-Define these once; every task's verification steps reference them by name. Run from a shell with the project at `D:\Projetos\basket`.
+Define these once; every task's verification steps reference them by name. Run from a shell with the project at `D:\Projetos\basket\.worktrees\vertical-slice` (this plan executes inside the `vertical-slice-implementation` git worktree, never the main checkout).
+
+> **Editor version note (superseded during Task 1):** Unity Hub silently installed `6000.6.2f1` to its default location instead of using the pre-installed `6000.6.0f1` at `D:\Unity\6000.6.0f1`. Ruling (see SDD ledger): accept `6000.6.2f1` — same `6000.6` minor line, patch releases don't break the public API this plan uses. All commands below target `C:\Program Files\Unity\Hub\Editor\6000.6.2f1\Editor\Unity.exe`.
 
 **COMPILE_CHECK** — confirms the project has zero compile errors:
 ```bash
-"/d/Unity/6000.6.0f1/Editor/Unity.exe" -batchmode -quit -nographics -projectPath "D:\Projetos\basket" -logFile "D:\Projetos\basket\Logs\compile.log"
-grep -i "error CS" "D:\Projetos\basket\Logs\compile.log"
+"/c/Program Files/Unity/Hub/Editor/6000.6.2f1/Editor/Unity.exe" -batchmode -quit -nographics -projectPath "D:\Projetos\basket\.worktrees\vertical-slice" -logFile "D:\Projetos\basket\.worktrees\vertical-slice\Logs\compile.log"
+grep -i "error CS" "D:\Projetos\basket\.worktrees\vertical-slice\Logs\compile.log"
 ```
 Expected: the `grep` prints nothing (no matches).
 
 **EDITMODE_TESTS** — runs all EditMode tests:
 ```bash
-"/d/Unity/6000.6.0f1/Editor/Unity.exe" -batchmode -runTests -nographics -projectPath "D:\Projetos\basket" -testPlatform EditMode -testResults "D:\Projetos\basket\Logs\editmode-results.xml" -logFile "D:\Projetos\basket\Logs\editmode.log" -quit
-grep -o 'result="[A-Za-z]*"' "D:\Projetos\basket\Logs\editmode-results.xml" | sort | uniq -c
+"/c/Program Files/Unity/Hub/Editor/6000.6.2f1/Editor/Unity.exe" -batchmode -runTests -nographics -projectPath "D:\Projetos\basket\.worktrees\vertical-slice" -testPlatform EditMode -testResults "D:\Projetos\basket\.worktrees\vertical-slice\Logs\editmode-results.xml" -logFile "D:\Projetos\basket\.worktrees\vertical-slice\Logs\editmode.log" -quit
+grep -o 'result="[A-Za-z]*"' "D:\Projetos\basket\.worktrees\vertical-slice\Logs\editmode-results.xml" | sort | uniq -c
 ```
 Expected: only `Passed` entries, matching the test count for that task; zero `Failed`.
 
@@ -46,31 +48,24 @@ Expected: only `Passed` entries, matching the test count for that task; zero `Fa
 
 ---
 
-### Task 1: Bootstrap Unity project (manual) + verify
+### Task 1: Bootstrap Unity project (manual) + verify — COMPLETE (done by the human partner + controller, see ledger)
 
 **Files:**
-- Create (via Unity Hub, not by hand): `Assets/`, `Packages/manifest.json`, `Packages/packages-lock.json`, `ProjectSettings/*`
-- Create: `.gitignore`
+- Created (via Unity Hub, not by hand): `Assets/`, `Packages/manifest.json`, `Packages/packages-lock.json`, `ProjectSettings/*`
+- Created: `.gitignore`
 
 **Interfaces:** none (infrastructure task).
 
-- [ ] **Step 1: Create the project in Unity Hub**
+What actually happened (kept here for the record — later tasks don't need to redo any of this):
 
-Open Unity Hub → **New Project**. Editor version: `6000.6.0f1`. Template: **Universal 3D**. Project name: `basket`. Location: `D:\Projetos` (resolves to `D:\Projetos\basket`, which already contains `docs/` and `.git/` — Hub adds `Assets/`, `Packages/`, `ProjectSettings/` alongside them without touching existing files). Click **Create** and wait for the initial import to finish.
+1. Unity Hub refused to create a project directly into `.worktrees\vertical-slice` because that folder already existed (it's the git worktree). Worked around by creating a throwaway project `vertical_slice_tmp` as a sibling folder, template **Universal 3D**, then moving its generated `Assets/`, `Packages/`, `ProjectSettings/` into `.worktrees\vertical-slice` and deleting the temp folder.
+2. Input System package (`1.20.0`) came pre-included in the Universal 3D template — no manual install needed. Active Input Handling confirmed set to allow the new Input System.
+3. `.gitignore` inside the worktree already had `.worktrees/` (added before the worktree was created); the Unity ignores below were appended to it, not written standalone. It also ignores the regenerated `.csproj`/`.sln`/`.slnx`/`.vs/` files Unity/the IDE integration produces on each open.
 
-- [ ] **Step 2: Install the Input System package**
-
-In the open Editor: **Window → Package Manager**, switch the dropdown to **Unity Registry**, search **Input System**, click **Install**. When prompted to enable the new input backends (restart required), choose **Both** if a three-way choice is offered (Input Manager (Old) / Input System Package (New) / Both), otherwise accept the restart. Let the Editor restart and finish reimporting.
-
-- [ ] **Step 3: Close the Editor**
-
-Close the Unity Editor completely. Every later task drives the project via command-line batchmode, which cannot run while the Editor holds the project lock.
-
-- [ ] **Step 4: Add `.gitignore`**
-
-Create `D:\Projetos\basket\.gitignore`:
-
+`.gitignore` (full contents as committed):
 ```gitignore
+.worktrees/
+
 /[Ll]ibrary/
 /[Tt]emp/
 /[Oo]bj/
@@ -91,24 +86,26 @@ sysinfo.txt
 *.app
 
 crashlytics-build.properties
+
+*.csproj
+*.sln
+*.slnx
+.vs/
 ```
 
-- [ ] **Step 5: Verify**
-
-Run:
+Verify:
 ```bash
-head -1 "/d/Projetos/basket/ProjectSettings/ProjectVersion.txt"
-grep "render-pipelines.universal" "/d/Projetos/basket/Packages/manifest.json"
-grep "inputsystem" "/d/Projetos/basket/Packages/manifest.json"
+head -1 "D:\Projetos\basket\.worktrees\vertical-slice\ProjectSettings\ProjectVersion.txt"
+grep "render-pipelines.universal" "D:\Projetos\basket\.worktrees\vertical-slice\Packages\manifest.json"
+grep "inputsystem" "D:\Projetos\basket\.worktrees\vertical-slice\Packages\manifest.json"
 ```
-Expected: first line is `m_EditorVersion: 6000.6.0f1`; both `grep` calls print a matching line.
+Expected: first line is `m_EditorVersion: 6000.6.2f1`; both `grep` calls print a matching line.
 
-- [ ] **Step 6: Commit**
-
+Commit:
 ```bash
-cd "/d/Projetos/basket"
+cd "/d/Projetos/basket/.worktrees/vertical-slice"
 git add .gitignore Assets Packages ProjectSettings
-git commit -m "chore: bootstrap Unity 6000.6.0f1 project with URP + Input System"
+git commit -m "chore: bootstrap Unity 6000.6.2f1 project with URP + Input System"
 ```
 
 ---
@@ -2713,8 +2710,8 @@ namespace Basket.EditorTools
 - [ ] **Step 4: Run the scene assembly**
 
 ```bash
-"/d/Unity/6000.6.0f1/Editor/Unity.exe" -batchmode -nographics -projectPath "D:\Projetos\basket" -executeMethod Basket.EditorTools.SceneAssembly.Build -logFile "D:\Projetos\basket\Logs\scene-assembly.log" -quit
-grep -i "error" "D:\Projetos\basket\Logs\scene-assembly.log"
+"/c/Program Files/Unity/Hub/Editor/6000.6.2f1/Editor/Unity.exe" -batchmode -nographics -projectPath "D:\Projetos\basket\.worktrees\vertical-slice" -executeMethod Basket.EditorTools.SceneAssembly.Build -logFile "D:\Projetos\basket\.worktrees\vertical-slice\Logs\scene-assembly.log" -quit
+grep -i "error" "D:\Projetos\basket\.worktrees\vertical-slice\Logs\scene-assembly.log"
 ```
 Expected: `grep` finds no matches; `Assets/_Project/Scenes/01_VerticalSlice_HalfCourt.unity` exists; `Assets/_Project/Data/DefaultBallConfig.asset` and `DefaultShotConfig.asset` exist.
 
@@ -2755,7 +2752,7 @@ public class VerticalSliceIntegrationTests
 
 Add the scene to Build Settings so `SceneManager.LoadSceneAsync` can find it by name:
 ```bash
-"/d/Unity/6000.6.0f1/Editor/Unity.exe" -batchmode -nographics -projectPath "D:\Projetos\basket" -executeMethod Basket.EditorTools.SceneAssembly.AddSceneToBuildSettings -logFile "D:\Projetos\basket\Logs\build-settings.log" -quit
+"/c/Program Files/Unity/Hub/Editor/6000.6.2f1/Editor/Unity.exe" -batchmode -nographics -projectPath "D:\Projetos\basket\.worktrees\vertical-slice" -executeMethod Basket.EditorTools.SceneAssembly.AddSceneToBuildSettings -logFile "D:\Projetos\basket\.worktrees\vertical-slice\Logs\build-settings.log" -quit
 ```
 
 Add this method to `SceneAssembly.cs` (append inside the `SceneAssembly` class from Step 3, then re-run Step 4 once to pick it up):
