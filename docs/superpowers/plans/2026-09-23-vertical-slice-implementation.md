@@ -724,9 +724,16 @@ namespace Basket.Gameplay
             // gets deterministic, real-timing-independent displacement. isGrounded needs a
             // continuous small downward push to read true on flat ground (no floor exists
             // in Task 5's unit test, so it free-falls slowly there instead — that's fine,
-            // only horizontal displacement is asserted).
+            // only horizontal displacement is asserted). The stick push is dt-scaled so its
+            // cumulative effect doesn't depend on frame rate. The airborne branch below is a
+            // deliberately simplified displacement-only fall (not real velocity-integrated
+            // gravity) — this slice has no jump/fall gameplay (see Global Constraints), so
+            // the player is always grounded in practice and this branch is effectively dead
+            // code; do not spend design effort on it here. If a future task actually needs
+            // real airborne physics, replace this with a persisted vertical-velocity field
+            // integrated each frame, not a bigger patch to this line.
             Vector3 motion = velocity * dt;
-            motion.y = controller.isGrounded ? -0.05f : Physics.gravity.y * dt;
+            motion.y = controller.isGrounded ? -0.05f * dt : Physics.gravity.y * dt;
             controller.Move(motion);
         }
 
