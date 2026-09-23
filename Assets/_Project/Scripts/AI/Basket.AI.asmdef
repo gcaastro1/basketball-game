@@ -1,0 +1,14 @@
+{
+    "name": "Basket.AI",
+    "rootNamespace": "Basket.AI",
+    "references": ["Basket.Core"],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
