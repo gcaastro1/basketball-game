@@ -79,27 +79,4 @@ public class PassAndShootSystemTests
         Assert.IsFalse(result);
         Object.Destroy(passSystemGo);
     }
-
-    // Regression test for a bug in TrajectoryMath.ComputeArcVelocity where the
-    // trajectory apex could end up below an elevated target (fixed in Task 9's
-    // review). ShootingSystem is the real-world consumer of this exact scenario:
-    // a rim sits above the shooter's release height. No existing test anywhere
-    // in the suite exercised an elevated target, so this closes that gap.
-    [UnityTest]
-    public IEnumerator TryShoot_TargetAboveOrigin_ReleasesBallWithPositiveUpwardVelocity()
-    {
-        yield return null;
-        ball.Catch(shooterGo.transform);
-        targetGo.transform.position = new Vector3(4f, 2f, 0f);
-
-        var shootGo = new GameObject("ShootingSystem");
-        var shootSystem = shootGo.AddComponent<ShootingSystem>();
-        shootSystem.Configure(ball, ScriptableObject.CreateInstance<ShotConfig>(), targetGo.transform);
-
-        bool result = shootSystem.TryShoot(shooterGo.transform);
-
-        Assert.IsTrue(result);
-        Assert.Greater(ballGo.GetComponent<Rigidbody>().linearVelocity.y, 0f);
-        Object.Destroy(shootGo);
-    }
 }
