@@ -795,7 +795,9 @@ public class HumanInputProviderTests : InputTestFixture
 
     public override void TearDown()
     {
-        Object.Destroy(go);
+        // EditMode tests run outside Play Mode, where Object.Destroy() is invalid
+        // (Unity requires DestroyImmediate() for edit-time object cleanup).
+        Object.DestroyImmediate(go);
         base.TearDown();
     }
 
