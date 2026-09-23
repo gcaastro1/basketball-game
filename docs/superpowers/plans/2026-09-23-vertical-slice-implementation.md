@@ -1577,7 +1577,10 @@ namespace Basket.Gameplay
         private BallController ball;
         private ShotConfig config;
         private Transform rimTarget;
-        private readonly Random rng = new();
+        // Fully qualified: with both `using System;` and `using UnityEngine;` in
+        // scope, bare `Random` is ambiguous between System.Random and
+        // UnityEngine.Random and fails to compile.
+        private readonly System.Random rng = new();
 
         public void Configure(BallController ballController, ShotConfig shotConfig, Transform rim)
         {
