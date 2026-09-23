@@ -11,8 +11,17 @@ namespace Basket.Gameplay
             Vector3 displacementXZ = new Vector3(displacement.x, 0f, displacement.z);
             float peakHeight = Mathf.Max(apexHeight, 0.01f);
 
-            float timeUp = Mathf.Sqrt(2f * peakHeight / g);
-            float timeDown = Mathf.Sqrt(2f * Mathf.Max(peakHeight - displacement.y, 0.01f) / g);
+            // Apex sits peakHeight above whichever of origin/target is higher, so the
+            // trajectory is guaranteed to still be rising until it clears both endpoints.
+            // (An earlier version measured peakHeight from origin only, which silently
+            // produced a below-target apex — and a physically broken landing — whenever
+            // the target sat more than apexHeight above the origin, e.g. a shot arc to a
+            // rim well above the shooter's release height.)
+            float apexAboveOrigin = peakHeight + Mathf.Max(0f, displacement.y);
+            float apexAboveTarget = apexAboveOrigin - displacement.y;
+
+            float timeUp = Mathf.Sqrt(2f * apexAboveOrigin / g);
+            float timeDown = Mathf.Sqrt(2f * apexAboveTarget / g);
             float totalTime = timeUp + timeDown;
 
             Vector3 velocityXZ = displacementXZ / totalTime;
