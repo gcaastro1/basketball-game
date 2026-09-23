@@ -25,3 +25,6 @@ crashlytics-build.properties
 *.sln
 *.slnx
 .vs/
+.vscode/
+
+TestResults-*.xml
