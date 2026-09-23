@@ -124,6 +124,7 @@ git commit -m "chore: bootstrap Unity 6000.6.0f1 project with URP + Input System
 - Create: `Assets/_Project/Scripts/Bootstrap/Basket.Bootstrap.asmdef`
 - Create: `Assets/_Project/Tests/EditMode/Basket.Tests.EditMode.asmdef`
 - Create: `Assets/_Project/Tests/PlayMode/Basket.Tests.PlayMode.asmdef`
+- Create: `Assets/_Project/Scripts/Gameplay/AssemblyInfo.cs`
 - Create: `Assets/_Project/Data/.gitkeep`, `Assets/_Project/Prefabs/.gitkeep`, `Assets/_Project/Art/.gitkeep`, `Assets/_Project/Scenes/.gitkeep`
 
 **Interfaces:** none — this task only establishes assembly boundaries.
@@ -306,20 +307,32 @@ git commit -m "chore: bootstrap Unity 6000.6.0f1 project with URP + Input System
 }
 ```
 
-- [ ] **Step 9: Create empty placeholder folders**
+- [ ] **Step 9: Allow the test assemblies to call `Basket.Gameplay`'s test-only `internal` hooks**
+
+Several later tasks (5, 8, 10, 11, 14, 15, 16) add an `internal` method on a `Basket.Gameplay` `MonoBehaviour`/class purely so a `PlayMode`/`EditMode` test can inject a test double (e.g. `PlayerMotor.SetConfigForTest`). `internal` is visible only within the declaring assembly by default — `Basket.Tests.PlayMode`/`Basket.Tests.EditMode` are separate assemblies and cannot see it unless `Basket.Gameplay` explicitly grants them access via `InternalsVisibleTo`. Add that grant now so every later task compiles without revisiting this file.
+
+`Assets/_Project/Scripts/Gameplay/AssemblyInfo.cs`:
+```csharp
+using System.Runtime.CompilerServices;
+
+[assembly: InternalsVisibleTo("Basket.Tests.EditMode")]
+[assembly: InternalsVisibleTo("Basket.Tests.PlayMode")]
+```
+
+- [ ] **Step 10: Create empty placeholder folders**
 
 Create empty files `Assets/_Project/Data/.gitkeep`, `Assets/_Project/Prefabs/.gitkeep`, `Assets/_Project/Art/.gitkeep`, `Assets/_Project/Scenes/.gitkeep` (Unity does not track empty folders; these keep them in git).
 
-- [ ] **Step 10: Verify — run COMPILE_CHECK**
+- [ ] **Step 11: Verify — run COMPILE_CHECK**
 
-Expected: no `error CS` output. This also makes Unity import all 8 new `.asmdef` files and generate their `.meta` companions.
+Expected: no `error CS` output. This also makes Unity import all 8 new `.asmdef` files (plus `AssemblyInfo.cs`) and generate their `.meta` companions.
 
-- [ ] **Step 11: Commit**
+- [ ] **Step 12: Commit**
 
 ```bash
 cd "/d/Projetos/basket"
 git add Assets/_Project
-git commit -m "chore: establish assembly boundaries (Core/Gameplay/AI/Input/UI/Bootstrap)"
+git commit -m "chore: establish assembly boundaries (Core/Gameplay/AI/Input/UI/Bootstrap) + test InternalsVisibleTo"
 ```
 
 ---
@@ -1119,9 +1132,17 @@ namespace Basket.Gameplay
     {
         [SerializeField] private BallConfig config;
 
+        // A freshly-released ball starts touching the releasing player's own collider
+        // (the hand socket sits inside their capsule). Without this grace window,
+        // OnCollisionEnter would immediately re-catch the ball to the same player,
+        // silently nullifying every pass and shot.
+        private const float SelfCatchGraceSeconds = 0.25f;
+
         private Rigidbody rb;
         private readonly BallPossessionStateMachine stateMachine = new();
         private Vector3 heldLocalOffset;
+        private Transform lastReleasedBy;
+        private float lastReleaseTime = float.NegativeInfinity;
 
         public BallState CurrentState => stateMachine.CurrentState;
         public Vector3 Position => transform.position;
@@ -1154,6 +1175,8 @@ namespace Basket.Gameplay
         {
             if (stateMachine.CurrentState != BallState.Held) return;
             stateMachine.TryTransition(releaseState);
+            lastReleasedBy = CurrentHolder;
+            lastReleaseTime = Time.time;
             CurrentHolder = null;
             rb.isKinematic = false;
             rb.linearVelocity = velocity;
@@ -1181,6 +1204,7 @@ namespace Basket.Gameplay
         private void OnCollisionEnter(Collision collision)
         {
             if (stateMachine.CurrentState != BallState.Free) return;
+            if (collision.transform == lastReleasedBy && Time.time - lastReleaseTime < SelfCatchGraceSeconds) return;
             if (collision.transform.TryGetComponent<PlayerMarker>(out _))
             {
                 Catch(collision.transform);
@@ -2781,3 +2805,4 @@ git commit -m "feat: assemble Vertical Slice scene, wire GameBootstrap, add inte
 - **Placeholder scan:** no TBD/TODO remain; every step has real, complete code.
 - **Type consistency:** `BallController.Release(BallState releaseState, Vector3 velocity)` signature is identical across Tasks 8, 10, 14. `AIPerception` constructor order (`self, opponent, ball, opponentHasBall, selfHasBall`) is identical across Tasks 3, 12, 13, 18. `Configure(...)` method names/signatures match between each producer task and `GameBootstrap`'s usage in Task 18.
 - **Assembly rule spot-check:** `Basket.AI` (Tasks 12, 13) never references `Basket.Gameplay` — `AIOpponentController` only touches `Core` types (`AIPerception`, `AIState`, `IAIController`). `Basket.UI` (Task 17) only references `Core` (`IMatchState`, `IBallStateReadOnly`, `IAIController`), never `Basket.Gameplay` directly — `GameBootstrap` (which does reference everything) is the one that hands `DebugHud` its concrete instances through those interfaces.
+- **Preflight fixes applied before execution (see SDD ledger for the ruling record):** (1) every `SetConfigForTest`/`StartLivePlayForTest` test hook added in Tasks 5, 8, 10, 11, 14, 15, 16 is `internal` to `Basket.Gameplay`, which `Basket.Tests.EditMode`/`Basket.Tests.PlayMode` cannot see without an explicit grant — Task 2 now creates `AssemblyInfo.cs` with `[assembly: InternalsVisibleTo(...)]` for both test assemblies so every later task compiles as written. (2) `BallController.OnCollisionEnter` (Task 8) would otherwise re-catch a just-released ball to the same player before it clears their own collider, silently nullifying every pass/shot — a `lastReleasedBy`/`SelfCatchGraceSeconds` guard was added to `Release`/`OnCollisionEnter`.
