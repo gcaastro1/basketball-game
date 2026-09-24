@@ -62,4 +62,29 @@ public class BallControllerTests
 
         Assert.IsTrue(fired);
     }
+
+    [UnityTest]
+    public IEnumerator TryCatchNearby_PlayerWithinRadius_CatchesBall()
+    {
+        yield return null;
+        holderGo.transform.position = ballGo.transform.position; // well within default catchRadius (1.0)
+
+        bool caught = ball.TryCatchNearby(holderGo.transform);
+
+        Assert.IsTrue(caught);
+        Assert.AreEqual(BallState.Held, ball.CurrentState);
+        Assert.AreEqual(holderGo.transform, ball.CurrentHolder);
+    }
+
+    [UnityTest]
+    public IEnumerator TryCatchNearby_PlayerOutsideRadius_DoesNotCatch()
+    {
+        yield return null;
+        holderGo.transform.position = ballGo.transform.position + Vector3.forward * 10f; // far outside default catchRadius (1.0)
+
+        bool caught = ball.TryCatchNearby(holderGo.transform);
+
+        Assert.IsFalse(caught);
+        Assert.AreEqual(BallState.Free, ball.CurrentState);
+    }
 }

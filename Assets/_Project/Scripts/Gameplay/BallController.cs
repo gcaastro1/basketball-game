@@ -96,6 +96,24 @@ namespace Basket.Gameplay
             }
         }
 
+        // CharacterController does not reliably fire OnCollisionEnter on the other party's
+        // Rigidbody when it walks into it -- PhysX's character-controller sweep runs through
+        // a different collision path than normal Rigidbody-vs-Rigidbody/Collider contacts, and
+        // in practice a player can stand directly on a loose ball without OnCollisionEnter ever
+        // firing (confirmed during manual playtesting: the AI walked onto a free ball and it
+        // was never picked up). This proximity check is the reliable pickup path for any
+        // CharacterController-driven player; OnCollisionEnter above is left in place as a
+        // harmless secondary path for a fast-moving pass/shot that happens to land on someone.
+        public bool TryCatchNearby(Transform player)
+        {
+            if (stateMachine.CurrentState != BallState.Free) return false;
+            if (player == lastReleasedBy && Time.time - lastReleaseTime < SelfCatchGraceSeconds) return false;
+            if (Vector3.Distance(transform.position, player.position) > config.catchRadius) return false;
+
+            Catch(player);
+            return true;
+        }
+
         internal void SetConfigForTest(BallConfig testConfig)
         {
             config = testConfig;

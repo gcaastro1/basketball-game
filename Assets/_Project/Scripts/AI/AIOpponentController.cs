@@ -5,9 +5,21 @@ namespace Basket.AI
 {
     public class AIOpponentController : MonoBehaviour, IAIController
     {
+        // The AI shoots immediately on gaining possession regardless of distance from
+        // the rim (no positioning/dribble-to-basket logic yet -- see the brief for
+        // this task). Without a cooldown, a shot taken right under the backboard has a
+        // short-enough flight that the AI's own Chase state re-catches its own
+        // rebound and re-shoots the very next possible frame, producing a rapid
+        // catch-shoot loop that looks broken (found during manual playtesting, once
+        // ball pickup itself started working reliably). This cooldown doesn't fix the
+        // underlying "no positioning" simplification -- it just keeps the loop from
+        // being instantaneous.
+        private const float ShotCooldownSeconds = 1.5f;
+
         private readonly OpponentAIStateMachine fsm = new();
         private Vector2 currentMoveInput;
         private bool selfHasBall;
+        private float lastShotAttemptTime = float.NegativeInfinity;
 
         public AIState CurrentState => fsm.CurrentState;
 
@@ -36,6 +48,14 @@ namespace Basket.AI
         public bool WantsSprint() => fsm.CurrentState == AIState.Chase;
         public bool WantsDribbleAction() => false;
         public bool WantsPass() => false;
-        public bool WantsShoot() => selfHasBall;
+
+        public bool WantsShoot()
+        {
+            if (!selfHasBall) return false;
+            if (Time.time - lastShotAttemptTime < ShotCooldownSeconds) return false;
+
+            lastShotAttemptTime = Time.time;
+            return true;
+        }
     }
 }

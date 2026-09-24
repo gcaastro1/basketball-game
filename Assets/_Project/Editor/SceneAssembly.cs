@@ -18,6 +18,7 @@ namespace Basket.EditorTools
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
             BuildCourt();
+            BuildCourtWalls();
             Transform rim = BuildRimAndBackboard();
             BallController ball = BuildBall();
             (PlayerMotor humanMotor, HumanInputProvider humanInput) = BuildHumanPlayer();
@@ -96,6 +97,30 @@ namespace Basket.EditorTools
             floor.name = "CourtFloor";
             floor.transform.localScale = new Vector3(15f, 0.2f, 14f);
             floor.transform.position = new Vector3(0f, -0.1f, 7f);
+        }
+
+        // Invisible boundary colliders around the court's flat floor (x: -7.5..7.5,
+        // z: 0..14). Found missing during manual playtesting: with no walls, a player
+        // can simply walk off the edge into empty space with no way back.
+        private static void BuildCourtWalls()
+        {
+            const float halfWidth = 7.5f;
+            const float depth = 14f;
+            const float wallHeight = 3f;
+            const float wallThickness = 0.5f;
+
+            CreateWall("WallWest", new Vector3(-halfWidth - wallThickness / 2f, wallHeight / 2f, depth / 2f), new Vector3(wallThickness, wallHeight, depth + wallThickness * 2f));
+            CreateWall("WallEast", new Vector3(halfWidth + wallThickness / 2f, wallHeight / 2f, depth / 2f), new Vector3(wallThickness, wallHeight, depth + wallThickness * 2f));
+            CreateWall("WallSouth", new Vector3(0f, wallHeight / 2f, -wallThickness / 2f), new Vector3(halfWidth * 2f, wallHeight, wallThickness));
+            CreateWall("WallNorth", new Vector3(0f, wallHeight / 2f, depth + wallThickness / 2f), new Vector3(halfWidth * 2f, wallHeight, wallThickness));
+        }
+
+        private static void CreateWall(string name, Vector3 position, Vector3 size)
+        {
+            var go = new GameObject(name);
+            go.transform.position = position;
+            var collider = go.AddComponent<BoxCollider>();
+            collider.size = size;
         }
 
         private static Transform BuildRimAndBackboard()

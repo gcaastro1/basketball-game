@@ -41,4 +41,20 @@ public class AIOpponentControllerTests
         Assert.IsTrue(ai.WantsShoot());
         Object.Destroy(go);
     }
+
+    [UnityTest]
+    public IEnumerator WantsShoot_CalledAgainImmediately_ReturnsFalseDuringCooldown()
+    {
+        var go = new GameObject("AI");
+        var ai = go.AddComponent<AIOpponentController>();
+        yield return null;
+
+        var perception = new AIPerception(Vector3.zero, Vector3.zero, Vector3.zero, opponentHasBall: false, selfHasBall: true);
+        ai.Tick(perception);
+
+        Assert.IsTrue(ai.WantsShoot(), "first call should want to shoot");
+        Assert.IsFalse(ai.WantsShoot(), "immediate second call should be suppressed by the shot cooldown");
+
+        Object.Destroy(go);
+    }
 }

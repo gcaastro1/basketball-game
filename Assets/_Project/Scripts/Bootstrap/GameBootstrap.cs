@@ -50,6 +50,12 @@ namespace Basket.Bootstrap
 
             TickAgent(humanInput, humanMotor, humanMotor.transform, aiMotor.transform, dt);
             TickAgent(aiController, aiMotor, aiMotor.transform, humanMotor.transform, dt);
+
+            // Reliable pickup path for a loose ball -- see the comment on
+            // BallController.TryCatchNearby for why this can't be left to
+            // OnCollisionEnter alone when a CharacterController is involved.
+            ball.TryCatchNearby(humanMotor.transform);
+            ball.TryCatchNearby(aiMotor.transform);
         }
 
         private void TickAgent(IPlayerAgent agent, PlayerMotor motor, Transform self, Transform other, float dt)
