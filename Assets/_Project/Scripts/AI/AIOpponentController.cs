@@ -14,7 +14,14 @@ namespace Basket.AI
         // ball pickup itself started working reliably). This cooldown doesn't fix the
         // underlying "no positioning" simplification -- it just keeps the loop from
         // being instantaneous.
-        private const float ShotCooldownSeconds = 1.5f;
+        //
+        // First attempt used 1.5s and it did NOT actually help: a close-range shot's
+        // own flight time (apex-height-driven, not distance-driven -- see
+        // TrajectoryMath) is itself around 1.7-2s, so the cooldown had always already
+        // expired by the time the ball came back down and got re-caught. It never
+        // once blocked a real re-shoot. 4s is comfortably longer than that natural
+        // cycle, so it actually enforces a pause.
+        private const float ShotCooldownSeconds = 4f;
 
         private readonly OpponentAIStateMachine fsm = new();
         private Vector2 currentMoveInput;
