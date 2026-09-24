@@ -51,6 +51,7 @@ namespace Basket.EditorTools
             CameraConfig cameraConfig = LoadOrCreateAsset<CameraConfig>("Assets/_Project/Data/DefaultCameraConfig.asset");
 
             WireConfig(ball, "config", ballConfig);
+            ApplyBallPhysicsMaterial(ball, ballConfig);
             WireConfig(humanMotor, "config", playerMovementConfig);
             WireConfig(aiMotor, "config", playerMovementConfig);
             WireConfig(cameraController, "config", cameraConfig);
@@ -180,6 +181,16 @@ namespace Basket.EditorTools
             var so = new SerializedObject(component);
             so.FindProperty(fieldName).objectReferenceValue = configAsset;
             so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static void ApplyBallPhysicsMaterial(BallController ball, BallConfig config)
+        {
+            var material = new PhysicsMaterial("BallPhysics")
+            {
+                bounciness = config.bounciness,
+                bounceCombine = PhysicsMaterialCombine.Maximum
+            };
+            ball.GetComponent<SphereCollider>().material = material;
         }
     }
 }

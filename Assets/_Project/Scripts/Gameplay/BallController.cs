@@ -75,7 +75,7 @@ namespace Basket.Gameplay
 
         public void NotifyScored()
         {
-            OnScored?.Invoke(CurrentHolder);
+            OnScored?.Invoke(lastReleasedBy);
         }
 
         private void LateUpdate()

@@ -9,5 +9,6 @@ namespace Basket.Gameplay
         public float drag = 0.05f;
         public float angularDrag = 0.3f;
         public float handHeightOffset = 1.1f;
+        public float bounciness = 0.75f;
     }
 }

@@ -22,7 +22,7 @@ namespace Basket.Gameplay
         {
             if (ball.CurrentState != BallState.Held || ball.CurrentHolder != shooter) return false;
 
-            Vector3 origin = shooter.position + Vector3.up * 1.6f;
+            Vector3 origin = ball.Position;
             Vector3 velocity = TrajectoryMath.ComputeArcVelocity(origin, rimTarget.position, config.arcHeight, Physics.gravity.y);
             velocity += ShotMath.ComputeMissOffset(config.baseAccuracyRadius, config.defaultShooterRating, rng);
 

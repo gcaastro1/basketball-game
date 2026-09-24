@@ -22,10 +22,10 @@ public class DribbleSystemTests
         var dribble = dribbleGo.AddComponent<DribbleSystem>();
         dribble.Configure(ball);
 
-        dribble.Tick(isMoving: true, dt: 0.1f);
+        dribble.Tick(isMoving: true, dt: 0.2273f);
         yield return null;
 
-        Assert.LessOrEqual(ball.transform.position.y, holderGo.transform.position.y + 1.1f);
+        Assert.Less(ball.transform.position.y, holderGo.transform.position.y + 1.1f - 0.1f);
 
         Object.Destroy(ballGo);
         Object.Destroy(holderGo);
