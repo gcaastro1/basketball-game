@@ -37,6 +37,15 @@ namespace Basket.AI
             currentMoveInput = ComputeMoveInput(fsm.CurrentState, perception);
         }
 
+        // ContestShot's target is the opponent's exact position. Closing all the way
+        // to it makes the two CharacterControllers visually overlap/clip into each
+        // other -- found during manual playtesting. Every other state's target is
+        // either already a fair distance away in normal play (Chase/Guard) or is the
+        // AI's own position (Idle), so only ContestShot needs a wider stop distance
+        // than the default "arrived" threshold.
+        private const float DefaultArrivalDistance = 0.2f;
+        private const float ContestStandoffDistance = 1.3f;
+
         private static Vector2 ComputeMoveInput(AIState state, AIPerception p)
         {
             Vector3 targetPos = state switch
@@ -46,9 +55,11 @@ namespace Basket.AI
                 AIState.ContestShot => p.OpponentPosition,
                 _ => p.SelfPosition
             };
+            float arrivalDistance = state == AIState.ContestShot ? ContestStandoffDistance : DefaultArrivalDistance;
+
             Vector3 toTarget = targetPos - p.SelfPosition;
             toTarget.y = 0f;
-            return toTarget.sqrMagnitude < 0.04f ? Vector2.zero : new Vector2(toTarget.x, toTarget.z).normalized;
+            return toTarget.magnitude < arrivalDistance ? Vector2.zero : new Vector2(toTarget.x, toTarget.z).normalized;
         }
 
         public Vector2 GetMoveInput() => currentMoveInput;
