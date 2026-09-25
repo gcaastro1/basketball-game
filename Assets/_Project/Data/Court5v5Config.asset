@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: de94faf776a64d999d0985d15ed011c7, type: 3}
+  m_Name: Court5v5Config
+  m_EditorClassIdentifier: Basket.Gameplay::Basket.Gameplay.CourtConfig
+  width: 15
+  depth: 28
+  fullCourt: 1
+  centerCircleRadius: 1.8
+  wallHeight: 3
+  rimCenter: {x: 0, y: 3.05, z: 26.425}
+  rimRadius: 0.2286
+  rimTubeRadius: 0.01
+  rimSegments: 16
+  backboardCenter: {x: 0, y: 3.425, z: 26.8}
+  backboardSize: {x: 1.8, y: 1.05, z: 0.05}
+  checkBallSpot: {x: 0, y: 0, z: 19.35}
+  defenderGap: 1.5
+  supportPlayerSpreadDegrees: 45
+  underBasketInboundDistance: 1.2
+  freeThrowDistance: 4.2

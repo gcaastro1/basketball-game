@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67e31d50b8da4a8cac69c515d92db07f, type: 3}
+  m_Name: DupeOverflowToken
+  m_EditorClassIdentifier: Basket.Meta::Basket.Meta.ItemDefinition
+  itemId: dupe_overflow_token
+  displayName: Overflow Token (placeholder)
+  kind: 1
+  description: 'Given for a copy of a character with every dupe.'
+  xpValue: 0
+  maxStack: 0

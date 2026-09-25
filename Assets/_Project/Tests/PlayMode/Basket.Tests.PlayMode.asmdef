@@ -3,10 +3,12 @@
     "rootNamespace": "Basket.Tests.PlayMode",
     "references": [
         "Basket.Core",
+        "Basket.Characters",
         "Basket.Gameplay",
         "Basket.AI",
         "Basket.Input",
         "Basket.Bootstrap",
+        "Basket.Presentation",
         "Unity.InputSystem",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
@@ -15,9 +17,13 @@
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": true,
-    "precompiledReferences": ["nunit.framework.dll"],
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
     "autoReferenced": true,
-    "defineConstraints": ["UNITY_INCLUDE_TESTS"],
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
     "versionDefines": [],
     "noEngineReferences": false
 }

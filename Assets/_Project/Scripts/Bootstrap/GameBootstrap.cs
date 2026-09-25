@@ -1,89 +1,174 @@
+using System.Collections.Generic;
 using UnityEngine;
 using Basket.Core;
+using Basket.Characters;
 using Basket.Gameplay;
 using Basket.AI;
 using Basket.Input;
+using Basket.Presentation;
 using Basket.UI;
 
 namespace Basket.Bootstrap
 {
+    // Composition root only: builds the arena, spawns the roster from MatchSetup, picks a
+    // controller per slot, wires systems together, then forwards Update to the
+    // simulation. No gameplay logic lives here.
+    // Any config left unassigned falls back to that config's code defaults, so the scene
+    // stays valid even before the assets are wired.
     public class GameBootstrap : MonoBehaviour
     {
-        [SerializeField] private PlayerMotor humanMotor;
-        [SerializeField] private HumanInputProvider humanInput;
-        [SerializeField] private PlayerMotor aiMotor;
-        [SerializeField] private AIOpponentController aiController;
-        [SerializeField] private BallController ball;
-        [SerializeField] private PassSystem passSystem;
-        [SerializeField] private ShootingSystem shootingSystem;
-        [SerializeField] private DribbleSystem dribbleSystem;
-        [SerializeField] private MatchManager matchManager;
-        [SerializeField] private ScoreTrigger scoreTrigger;
-        [SerializeField] private CameraController cameraController;
-        [SerializeField] private DebugHud debugHud;
+        private static readonly Color HomeColor = new Color(0.2f, 0.4f, 0.9f);
+        private static readonly Color AwayColor = new Color(0.9f, 0.25f, 0.2f);
+        private static readonly Color HumanMarker = new Color(1f, 0.9f, 0.1f);
+        private static readonly Color AIMarker = new Color(0.15f, 0.15f, 0.15f);
+
+        [SerializeField] private MatchSetup matchSetup;
+        [SerializeField] private MatchRules matchRules;
+        [SerializeField] private CourtConfig courtConfig;
         [SerializeField] private BallConfig ballConfig;
         [SerializeField] private ShotConfig shotConfig;
-        [SerializeField] private Transform rimTarget;
+        [SerializeField] private DefenseConfig defenseConfig;
+        [SerializeField] private PlayerMovementConfig movementConfig;
+        [SerializeField] private CameraConfig cameraConfig;
+        [SerializeField] private AIConfig aiConfig;
+        [SerializeField] private ProgressionConfig progressionConfig;
+        [SerializeField] private AttributeTuning attributeTuning;
+
+        public MatchSimulation Simulation { get; private set; }
+        private readonly List<System.IDisposable> disposables = new List<System.IDisposable>();
 
         private void Awake()
         {
-            matchManager.Configure(ball);
-            scoreTrigger.Configure(ball);
-            passSystem.Configure(ball, ballConfig);
-            shootingSystem.Configure(ball, shotConfig, rimTarget);
-            dribbleSystem.Configure(ball);
-            cameraController.Configure(humanMotor.transform);
-            debugHud.Configure(matchManager.State, ball, aiController);
+            EnsureConfigs();
+
+            Arena arena = PlaceholderArenaBuilder.Build(courtConfig, ballConfig, matchRules.threePointRadius);
+
+            // One brain per team coordinates its AI players (and the human's AI teammates).
+            var rng = new System.Random();
+            var brains = new Dictionary<TeamId, TeamBrain>
+            {
+                [TeamId.Home] = new TeamBrain(TeamId.Home, matchSetup.slots.Count, aiConfig, rng: rng),
+                [TeamId.Away] = new TeamBrain(TeamId.Away, matchSetup.slots.Count, aiConfig, rng: rng),
+            };
+            var players = new List<PlayerEntity>();
+            var controllers = new List<IAgentController>();
+            var aiControllers = new List<IAIController>();
+            PlayerEntity cameraTarget = null;
+
+            for (int i = 0; i < matchSetup.slots.Count; i++)
+            {
+                MatchSetup.PlayerSlot slot = matchSetup.slots[i];
+                bool human = slot.control == AgentControlType.Human;
+                string label = slot.character != null ? slot.character.archetype : slot.control.ToString();
+                PlayerEntity player = PlaceholderPlayerFactory.Create(
+                    $"{slot.team}_{i}_{label}", slot.team, movementConfig,
+                    slot.team == TeamId.Home ? HomeColor : AwayColor, human ? HumanMarker : AIMarker);
+                ApplyCharacter(player, slot);
+                players.Add(player);
+
+                if (human)
+                {
+                    var input = new HumanInputProvider();
+                    disposables.Add(input);
+                    controllers.Add(input);
+                    if (cameraTarget == null) cameraTarget = player;
+                }
+                else
+                {
+                    // A lone player (1v1) plays without a team brain.
+                    TeamBrain brain = CountTeam(slot.team) > 1 ? brains[slot.team] : null;
+                    var ai = new AIAgentController(aiConfig, rng, brain, player.Tendencies);
+                    controllers.Add(ai);
+                    aiControllers.Add(ai);
+                }
+            }
+
+            Simulation = new MatchSimulation(players, controllers, arena.Ball, arena.Hoop,
+                courtConfig, matchRules, ballConfig, shotConfig, defenseConfig, rng, attributeTuning, arena.SecondHoop);
+
+            // Character models (Etapa 6): presentation only, attached once the simulation exists.
+            for (int i = 0; i < players.Count; i++)
+            {
+                MatchSetup.PlayerSlot slot = matchSetup.slots[i];
+                if (slot.character == null || slot.character.visual == null) continue;
+                bool human = slot.control == AgentControlType.Human;
+                Color ring = human ? HumanMarker : (slot.team == TeamId.Home ? HomeColor : AwayColor);
+                CharacterVisual.Attach(players[i], Simulation, slot.character.visual, ring);
+            }
+
+            if (cameraTarget == null && players.Count > 0) cameraTarget = players[0];
+            BuildCamera(cameraTarget != null ? cameraTarget.transform : arena.Ball.transform);
+
+            var hud = new GameObject("DebugHud").AddComponent<DebugHud>();
+            hud.Configure(Simulation.Match.State, arena.Ball, aiControllers, Simulation, Simulation.Stats);
+
+            Simulation.Begin();
+        }
+
+        // Character definition + slot progression -> attributes, abilities, AI tendencies.
+        private void ApplyCharacter(PlayerEntity player, MatchSetup.PlayerSlot slot)
+        {
+            if (slot.character == null) return;
+            var instance = new CharacterInstance(slot.character.characterId, Mathf.Max(1, slot.level), slot.limitBreak, slot.dupes);
+            AttributeSet attributes = CharacterStatsCalculator.Compute(slot.character, instance, progressionConfig);
+            var abilities = new PlayerAbilities(attributes,
+                CharacterStatsCalculator.UnlockedAbilities(slot.character, instance),
+                CharacterStatsCalculator.AbilityLevel(instance, progressionConfig),
+                CharacterStatsCalculator.CooldownMultiplier(instance, progressionConfig));
+            player.SetCharacter(slot.character.displayName, attributes, abilities, slot.character.aiTendencies);
+        }
+
+        private int CountTeam(TeamId team)
+        {
+            int n = 0;
+            foreach (var s in matchSetup.slots) if (s.team == team) n++;
+            return n;
         }
 
         private void Update()
         {
-            float dt = Time.deltaTime;
-
-            var perception = new AIPerception(
-                selfPosition: aiMotor.transform.position,
-                opponentPosition: humanMotor.transform.position,
-                ballPosition: ball.Position,
-                opponentHasBall: ball.CurrentHolder == humanMotor.transform,
-                selfHasBall: ball.CurrentHolder == aiMotor.transform);
-            aiController.Tick(perception);
-
-            TickAgent(humanInput, humanMotor, humanMotor.transform, aiMotor.transform, dt);
-            TickAgent(aiController, aiMotor, aiMotor.transform, humanMotor.transform, dt);
-
-            // Reliable pickup path for a loose ball -- see the comment on
-            // BallController.TryCatchNearby for why this can't be left to
-            // OnCollisionEnter alone when a CharacterController is involved.
-            ball.TryCatchNearby(humanMotor.transform);
-            ball.TryCatchNearby(aiMotor.transform);
+            Simulation?.Tick(Time.deltaTime);
         }
 
-        private void TickAgent(IPlayerAgent agent, PlayerMotor motor, Transform self, Transform other, float dt)
+        private void OnDestroy()
         {
-            motor.Tick(agent.GetMoveInput(), agent.WantsSprint(), dt);
-
-            // DribbleSystem is a single shared instance ticked from both agents' calls this
-            // method makes every frame. Gating on "am I the current holder" (like the
-            // pass/shoot calls below already do) is required, not optional: without it, the
-            // non-holder's call runs dribbleSystem.Tick with its OWN movement state every
-            // frame too, and since DribbleSystem only checks ball.CurrentState (not which
-            // agent holds it), the non-holder's call would either reset the holder's bounce
-            // offset to zero (if the non-holder is stationary) or double the bounce
-            // frequency (if both are moving) -- a real, silent bug, found during Task 18's
-            // integration review.
-            if (ball.CurrentHolder == self)
-            {
-                dribbleSystem.Tick(agent.GetMoveInput().sqrMagnitude > 0.01f, dt);
-            }
-
-            if (agent.WantsPass() && ball.CurrentHolder == self)
-            {
-                passSystem.TryPass(self, other);
-            }
-            if (agent.WantsShoot() && ball.CurrentHolder == self)
-            {
-                shootingSystem.TryShoot(self);
-            }
+            Simulation?.Dispose();
+            foreach (var d in disposables) d.Dispose();
+            disposables.Clear();
         }
+
+        private void BuildCamera(Transform target)
+        {
+            Camera cam = Camera.main;
+            if (cam == null)
+            {
+                var camGo = new GameObject("MainCamera") { tag = "MainCamera" };
+                cam = camGo.AddComponent<Camera>();
+                camGo.AddComponent<AudioListener>();
+            }
+            if (!cam.TryGetComponent<CameraController>(out var controller))
+            {
+                controller = cam.gameObject.AddComponent<CameraController>();
+            }
+            controller.Configure(target, cameraConfig);
+        }
+
+        private void EnsureConfigs()
+        {
+            matchSetup = OrDefault(matchSetup);
+            matchRules = OrDefault(matchRules);
+            courtConfig = OrDefault(courtConfig);
+            ballConfig = OrDefault(ballConfig);
+            shotConfig = OrDefault(shotConfig);
+            defenseConfig = OrDefault(defenseConfig);
+            movementConfig = OrDefault(movementConfig);
+            cameraConfig = OrDefault(cameraConfig);
+            aiConfig = OrDefault(aiConfig);
+            progressionConfig = OrDefault(progressionConfig);
+            attributeTuning = OrDefault(attributeTuning);
+        }
+
+        private static T OrDefault<T>(T asset) where T : ScriptableObject =>
+            asset != null ? asset : ScriptableObject.CreateInstance<T>();
     }
 }

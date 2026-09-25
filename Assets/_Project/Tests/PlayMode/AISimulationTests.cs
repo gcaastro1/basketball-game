@@ -1,0 +1,86 @@
+using System.Collections;
+using System.Collections.Generic;
+using NUnit.Framework;
+using UnityEngine;
+using UnityEngine.TestTools;
+using Basket.AI;
+using Basket.Core;
+using Basket.Gameplay;
+
+// Headless AI-vs-AI 3v3 at accelerated time: the AI has to actually play basketball
+// (move the ball, shoot, rebound, score) without getting stuck. The box score is logged
+// for balancing.
+public class AISimulationTests
+{
+    // Two minutes: the required rates are per minute; over 60 s alone, shot counts ranged
+    // 4-14 across CI runs around a mean of ~9, so an 8-per-minute bar failed on noise.
+    private const float SimulatedSeconds = 120f;
+    private const float TimeScale = 4f;
+    private const float Minutes = SimulatedSeconds / 60f;
+
+    [UnityTest]
+    public IEnumerator AIvsAI_3v3_PlaysBasketball()
+    {
+        using var match = new TestMatch();
+        // Real accuracy (the helper zeroes it for deterministic tests) and 3x3-style rules.
+        var defaults = ScriptableObject.CreateInstance<ShotConfig>();
+        match.ShotConfig.jumpShotBaseError = defaults.jumpShotBaseError;
+        match.ShotConfig.jumpShotErrorPerMeter = defaults.jumpShotErrorPerMeter;
+        match.ShotConfig.layupBaseError = defaults.layupBaseError;
+        match.ShotConfig.freeThrowBaseError = defaults.freeThrowBaseError;
+        match.Rules.pointsInsideArc = 1;
+        match.Rules.pointsBeyondArc = 2;
+        // Shooting fouls as in the FIBA 3x3 preset (1 / 2 free throws). The defaults are the
+        // 5v5 ones (2 / 3): every foul on a 3x3 "two" went to three free throws, ~10 s each,
+        // which ate over half of a 120 s run in CI.
+        match.Rules.shootingFoulFreeThrowsInsideArc = 1;
+        match.Rules.shootingFoulFreeThrowsBeyondArc = 2;
+        match.Rules.winningScore = 0;
+        match.Rules.useShotClock = true;
+        match.Rules.clearBallOnChangeOfPossession = true;
+        match.Rules.afterMadeBasket = RestartKind.UnderBasket;
+
+        var config = ScriptableObject.CreateInstance<AIConfig>();
+        var rng = new System.Random(7);
+        var home = new TeamBrain(TeamId.Home, 6, config, rng: rng);
+        var away = new TeamBrain(TeamId.Away, 6, config, rng: rng);
+        var teams = new List<TeamId>();
+        var controllers = new List<IAgentController>();
+        for (int i = 0; i < 6; i++)
+        {
+            TeamId team = i < 3 ? TeamId.Home : TeamId.Away;
+            teams.Add(team);
+            controllers.Add(new AIAgentController(config, rng, team == TeamId.Home ? home : away));
+        }
+        match.Start(teams, controllers);
+
+        float previousScale = Time.timeScale;
+        Time.timeScale = TimeScale;
+        try
+        {
+            yield return match.RunUntil(() => false, SimulatedSeconds);
+        }
+        finally
+        {
+            Time.timeScale = previousScale;
+        }
+
+        TeamStats h = match.Sim.Stats.Get(TeamId.Home);
+        TeamStats a = match.Sim.Stats.Get(TeamId.Away);
+        Debug.Log($"AI vs AI {SimulatedSeconds}s: HOME {match.Sim.Match.State.ScoreHome} - {match.Sim.Match.State.ScoreAway} AWAY\nHOME {h}\nAWAY {a}\n{match.ShotSummary()}\n{string.Join("\n", match.Timeline)}");
+
+        int shots = h.FieldGoalsAttempted + a.FieldGoalsAttempted;
+        int passes = h.Passes + a.Passes;
+        int rebounds = h.OffensiveRebounds + h.DefensiveRebounds + a.OffensiveRebounds + a.DefensiveRebounds;
+        int points = match.Sim.Match.State.ScoreHome + match.Sim.Match.State.ScoreAway;
+
+        // Same per-minute bars as ever: 8 shots, 4 passes, 2 rebounds.
+        Assert.GreaterOrEqual(shots, 8 * Minutes, "the AI takes shots");
+        Assert.GreaterOrEqual(passes, 4 * Minutes, "the AI moves the ball");
+        Assert.GreaterOrEqual(rebounds, 2 * Minutes, "missed shots are rebounded");
+        Assert.Greater(points, 0, "somebody scores");
+        Assert.Less(h.Turnovers + a.Turnovers, shots, "fewer turnovers than shots");
+        Assert.Greater(h.FieldGoalsAttempted, 0, "both teams get shots up");
+        Assert.Greater(a.FieldGoalsAttempted, 0, "both teams get shots up");
+    }
+}
