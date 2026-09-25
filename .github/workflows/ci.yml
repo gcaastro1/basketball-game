@@ -25,6 +25,10 @@ jobs:
   # (see docs/ci.md). Skipped with a warning while they are not set.
   unity-tests:
     runs-on: ubuntu-latest
+    # unity-test-runner publishes results as a check run.
+    permissions:
+      contents: read
+      checks: write
     env:
       UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
       UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
