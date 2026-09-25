@@ -20,8 +20,10 @@ de troca.
 | D-012 | Faltas por chance em situações de contato (reach-in, contato na soltura) | **Provisória** |
 | D-013 | Marcação homem-a-homem fixa por reinício; só o mais próximo persegue bola solta | **Provisória** (até a IA tática, Etapa 4) |
 | D-014 | IA em três camadas: estratégia do time → TeamBrain (ordens) → controlador por jogador (utility com a bola) | Aceita |
+| D-015 | Atributos: enum fixo (só acrescenta), efeito "centrado" no neutro 70, faixas em `AttributeTuning` | Aceita |
+| D-016 | Personagens em assembly próprio (`Basket.Characters`), dados em SO, instância = dado de save | Aceita |
 | P-001 | Modo B (controle do time) | **Pendente** — ponto de encaixe pronto: `ITeamStrategy` (e `IAgentController`) |
-| P-002 | Semântica dos Limit Breaks (o que o "4º LB" no nível 60 destrava) | **Pendente** (antes da Etapa 5) |
+| P-002 | Semântica dos Limit Breaks | **Provisória**: 4 LBs (20→40, 40→50, 50→60, "Awakening" no 60 sem novo teto), tudo em `DefaultProgressionConfig` |
 
 ---
 
@@ -142,3 +144,23 @@ Sem `TeamBrain` (1v1) o controlador joga sozinho como antes. O time do humano ta
 **Modo B (P-001) continua pendente**, mas não bloqueia: qualquer das opções entra como
 `ITeamStrategy` (técnico que chama jogadas) e/ou `IAgentController` (trocar o jogador
 controlado), sem mexer no restante.
+
+## D-015 — Atributos
+
+26 atributos do briefing num `enum` com números fixos (novo atributo = novo valor no fim;
+nunca reordenar). Cada atributo tem efeito real no gameplay ou na IA (tabela em
+`docs/etapas/etapa-5-personagens.md`). Os efeitos são **centrados no valor neutro (70)**: um
+jogador com 70 em tudo — ou sem personagem — joga exatamente como os valores base dos configs;
+acima/abaixo, multiplicadores vão até os extremos definidos em `AttributeTuning` (0 e 99).
+Isso mantém os configs de gameplay como "o jogador médio" e deixa o balanceamento de
+personagens independente.
+
+## D-016 — Personagens
+
+`Basket.Characters` depende só de Core: `CharacterDefinition` (dados estáticos: atributos base,
+crescimento, habilidades com LB de desbloqueio, tendências de IA), `ProgressionConfig` (XP,
+tetos, Limit Breaks, 6 dupes), `CharacterInstance` (o que o jogador possui: nível, XP, LB, dupes
+— é o dado que o save guardará na Etapa 8). Habilidades: framework data-driven
+(passiva sempre/condicional, ativa com cooldown/duração, efeitos em atributos e no arremesso,
+nível pela progressão). Personagens e habilidades de exemplo são **placeholders** — nomes,
+raridades e o conjunto definitivo de habilidades continuam decisões em aberto (briefing, seção 3).

@@ -15,13 +15,37 @@ MonoBehaviour:
   slots:
   - team: 0
     control: 1
+    character: {fileID: 11400000, guid: e99b48b726ef454cb9bd8ca8cec8eba0, type: 2}
+    level: 1
+    limitBreak: 0
+    dupes: 0
   - team: 0
     control: 1
+    character: {fileID: 11400000, guid: 2d282050a5fb42e48e99afb1a8bf2623, type: 2}
+    level: 1
+    limitBreak: 0
+    dupes: 0
   - team: 0
     control: 1
+    character: {fileID: 11400000, guid: 6e4b07e5e37440b3a67c28dd7bc1d39b, type: 2}
+    level: 1
+    limitBreak: 0
+    dupes: 0
   - team: 1
     control: 1
+    character: {fileID: 11400000, guid: d304cd73eaa74ddc9bc59157802ff4cb, type: 2}
+    level: 1
+    limitBreak: 0
+    dupes: 0
   - team: 1
     control: 1
+    character: {fileID: 11400000, guid: 9afa6e72fb6841ca9c34d4496ba3b17d, type: 2}
+    level: 1
+    limitBreak: 0
+    dupes: 0
   - team: 1
     control: 1
+    character: {fileID: 11400000, guid: 20f5382d1809459baece771fdab2a726, type: 2}
+    level: 1
+    limitBreak: 0
+    dupes: 0

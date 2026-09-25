@@ -1,7 +1,14 @@
 {
     "name": "Basket.Bootstrap",
     "rootNamespace": "Basket.Bootstrap",
-    "references": ["Basket.Core", "Basket.Gameplay", "Basket.AI", "Basket.Input", "Basket.UI"],
+    "references": [
+        "Basket.Core",
+        "Basket.Characters",
+        "Basket.Gameplay",
+        "Basket.AI",
+        "Basket.Input",
+        "Basket.UI"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

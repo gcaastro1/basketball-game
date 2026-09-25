@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using Basket.Core;
+using Basket.Characters;
 
 namespace Basket.Gameplay
 {
@@ -21,6 +22,8 @@ namespace Basket.Gameplay
         private readonly BallConfig ballConfig;
         private readonly Vector3 rimCenter;
         private readonly System.Random rng;
+        private readonly AttributeTuning tuning;
+        private readonly float threePointRadius;
 
         private readonly Phase[] phase;
         private readonly ShotType[] type;
@@ -32,8 +35,11 @@ namespace Basket.Gameplay
 
         public event Action<ShotReport> OnShotTaken;
 
-        public ShotSystem(int playerCount, BallController ball, ShotConfig config, BallConfig ballConfig, Vector3 rimCenter, System.Random rng)
+        public ShotSystem(int playerCount, BallController ball, ShotConfig config, BallConfig ballConfig, Vector3 rimCenter, System.Random rng,
+            AttributeTuning tuning = null, float threePointRadius = 6.75f)
         {
+            this.tuning = tuning != null ? tuning : ScriptableObject.CreateInstance<AttributeTuning>();
+            this.threePointRadius = threePointRadius;
             this.ball = ball;
             this.config = config;
             this.ballConfig = ballConfig;
@@ -98,13 +104,15 @@ namespace Basket.Gameplay
             PlayerMotor motor = player.Motor;
             Vector3 feet = player.FeetPosition;
             float distance = FlatDistance(feet, rimCenter);
-            float reachAtApex = feet.y + player.StandingReach + motor.Config.jumpHeight;
+            float reachAtApex = feet.y + player.StandingReach + motor.JumpHeight;
             ShotType shotType = index == freeThrowShooter
                 ? ShotType.FreeThrow
                 : ShotAccuracyModel.Classify(distance, command.Sprint, reachAtApex, rimCenter.y, config);
+            // Dunking takes the Dunk attribute as well as the reach.
+            if (shotType == ShotType.Dunk && Attr(player, AttributeId.Dunk) < tuning.minDunkAttribute) shotType = ShotType.Layup;
 
             float timeToApex = motor.JumpSpeed / Mathf.Abs(Physics.gravity.y);
-            takeoffSpeedRatio[index] = motor.HorizontalVelocity.magnitude / Mathf.Max(0.01f, motor.Config.maxSpeed);
+            takeoffSpeedRatio[index] = motor.HorizontalVelocity.magnitude / Mathf.Max(0.01f, motor.MaxSpeed);
 
             bool jumped;
             if (shotType == ShotType.Dunk)
@@ -141,11 +149,25 @@ namespace Basket.Gameplay
             float distance = FlatDistance(feet, rimCenter);
             float timingError = time - apexTime[index];
             float contest = shotType == ShotType.FreeThrow ? 0f : MaxContest(index, feet, snapshot);
+            if (distance <= tuning.closeShotMaxDistance && shotType != ShotType.FreeThrow)
+            {
+                // Strong / skilled post players finish through contact.
+                float contact = Mathf.Min(player.AttributeMult(AttributeId.Strength, tuning.contactContest),
+                                          player.AttributeMult(AttributeId.PostScoring, tuning.contactContest));
+                contest = Mathf.Clamp01(contest * contact);
+            }
 
-            var input = new ShotAccuracyInput(shotType, distance, timingError, contest, takeoffSpeedRatio[index], config.defaultShooterRating);
+            float rating = player.Attributes != null
+                ? Attributes.Normalized(player.Attributes.Get(tuning.ShotAttribute(shotType, distance, threePointRadius)))
+                : config.defaultShooterRating;
+            var input = new ShotAccuracyInput(shotType, distance, timingError, contest, takeoffSpeedRatio[index], rating);
             float errorRadius = ShotAccuracyModel.ErrorRadius(input, config);
+            errorRadius *= Mathf.Lerp(1f, tuning.tiredErrorAtEmpty, tuning.Tiredness(player.Stamina));
+            ShotEffect effect = player.Abilities != null ? player.Abilities.TakeShotEffect(shotType) : ShotEffect.None;
+            errorRadius *= effect.errorMultiplier;
+
             Vector3 target = rimCenter + ShotMath.SampleDiscOffset(errorRadius, rng);
-            float arc = shotType == ShotType.Layup ? config.layupArcHeight : config.arcHeight;
+            float arc = (shotType == ShotType.Layup ? config.layupArcHeight : config.arcHeight) * effect.arcHeightMultiplier;
             Vector3 velocity = TrajectoryMath.ComputeCompensatedArcVelocity(ball.Position, target, arc,
                 Physics.gravity.y, ball.LinearDamping, Time.fixedDeltaTime);
 
@@ -169,6 +191,7 @@ namespace Basket.Gameplay
             phase[index] = Phase.None;
             Vector3 feet = player.FeetPosition;
             float contest = MaxContest(index, feet, snapshot);
+            if (player.Abilities != null) player.Abilities.TakeShotEffect(ShotType.Dunk);
             ball.ReleaseAt(BallState.Shooting, rimCenter + Vector3.up * (ball.Radius + 0.1f), Vector3.down * config.dunkBallDropSpeed, ShotType.Dunk);
             OnShotTaken?.Invoke(new ShotReport(index, ShotType.Dunk, FlatDistance(feet, rimCenter), 0f, contest, 0f));
         }
@@ -180,11 +203,19 @@ namespace Basket.Gameplay
             for (int i = 0; i < s.PlayerCount; i++)
             {
                 if (s.GetTeam(i) == team) continue;
-                max = Mathf.Max(max, ContestMath.Contest(shooterFeet, rimCenter, s.GetPosition(i), !s.IsGrounded(i),
-                    config.contestRadius, config.airborneContestBonus));
+                float c = ContestMath.Contest(shooterFeet, rimCenter, s.GetPosition(i), !s.IsGrounded(i),
+                    config.contestRadius, config.airborneContestBonus);
+                if (c <= 0f) continue;
+                // Better defenders contest harder: Interior near the rim, Perimeter away from it.
+                AttributeId skill = FlatDistance(shooterFeet, rimCenter) <= tuning.closeShotMaxDistance
+                    ? AttributeId.InteriorDefense : AttributeId.PerimeterDefense;
+                c *= AttributeTuning.Mult(s.GetAttributes(i), skill, tuning.defenderContest);
+                max = Mathf.Max(max, Mathf.Clamp01(c));
             }
             return max;
         }
+
+        private static float Attr(PlayerEntity p, AttributeId id) => p.Attributes != null ? p.Attributes.Get(id) : Attributes.Neutral;
 
         private static float FlatDistance(Vector3 a, Vector3 b)
         {

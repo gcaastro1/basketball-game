@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Basket.Core;
+using Basket.Characters;
 
 namespace Basket.Gameplay
 {
@@ -15,11 +16,22 @@ namespace Basket.Gameplay
         {
             public TeamId team;
             public AgentControlType control;
+            // Optional: null = neutral placeholder player.
+            public CharacterDefinition character;
+            // Exhibition progression for this slot (the save system provides real owned
+            // characters in Etapa 8).
+            public int level;
+            public int limitBreak;
+            public int dupes;
 
-            public PlayerSlot(TeamId team, AgentControlType control)
+            public PlayerSlot(TeamId team, AgentControlType control, CharacterDefinition character = null, int level = 1, int limitBreak = 0, int dupes = 0)
             {
                 this.team = team;
                 this.control = control;
+                this.character = character;
+                this.level = level;
+                this.limitBreak = limitBreak;
+                this.dupes = dupes;
             }
         }
 

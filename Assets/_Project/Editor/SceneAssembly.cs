@@ -3,6 +3,7 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using Basket.AI;
 using Basket.Bootstrap;
+using Basket.Characters;
 using Basket.Gameplay;
 
 namespace Basket.EditorTools
@@ -31,6 +32,8 @@ namespace Basket.EditorTools
             so.FindProperty("movementConfig").objectReferenceValue = LoadOrCreateAsset<PlayerMovementConfig>("DefaultPlayerMovementConfig");
             so.FindProperty("cameraConfig").objectReferenceValue = LoadOrCreateAsset<CameraConfig>("DefaultCameraConfig");
             so.FindProperty("aiConfig").objectReferenceValue = LoadOrCreateAsset<AIConfig>("DefaultAIConfig");
+            so.FindProperty("progressionConfig").objectReferenceValue = LoadOrCreateAsset<ProgressionConfig>("DefaultProgressionConfig");
+            so.FindProperty("attributeTuning").objectReferenceValue = LoadOrCreateAsset<AttributeTuning>("DefaultAttributeTuning");
             so.ApplyModifiedPropertiesWithoutUndo();
 
             EditorSceneManager.SaveScene(scene, ScenePath);

@@ -12,6 +12,7 @@ namespace Basket.Input
         public readonly InputAction Sprint;
         public readonly InputAction Primary;
         public readonly InputAction Secondary;
+        public readonly InputAction Ability;
 
         public BasketInputActions()
         {
@@ -36,6 +37,11 @@ namespace Basket.Input
             Secondary.AddBinding("<Keyboard>/e");
             Secondary.AddBinding("<Gamepad>/buttonSouth");
 
+            Ability = new InputAction("Ability", InputActionType.Button);
+            Ability.AddBinding("<Keyboard>/q");
+            Ability.AddBinding("<Gamepad>/rightShoulder");
+
+            Ability.Enable();
             Move.Enable();
             Sprint.Enable();
             Primary.Enable();
@@ -48,6 +54,7 @@ namespace Basket.Input
             Sprint.Dispose();
             Primary.Dispose();
             Secondary.Dispose();
+            Ability.Dispose();
         }
     }
 }

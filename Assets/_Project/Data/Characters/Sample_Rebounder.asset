@@ -1,0 +1,84 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f414015141664794b64392bd95a1acc7, type: 3}
+  m_Name: Sample_Rebounder
+  m_EditorClassIdentifier: Basket.Characters::Basket.Characters.CharacterDefinition
+  characterId: sample_rebounder
+  displayName: Sample Rebounder
+  archetype: Rebounder
+  baseAttributes:
+  - attribute: 13
+    value: 92
+  - attribute: 25
+    value: 92
+  - attribute: 5
+    value: 88
+  - attribute: 16
+    value: 90
+  - attribute: 0
+    value: 82
+  - attribute: 3
+    value: 75
+  - attribute: 4
+    value: 70
+  - attribute: 10
+    value: 82
+  - attribute: 12
+    value: 72
+  - attribute: 17
+    value: 70
+  - attribute: 1
+    value: 55
+  - attribute: 2
+    value: 35
+  - attribute: 8
+    value: 60
+  - attribute: 6
+    value: 50
+  - attribute: 7
+    value: 60
+  - attribute: 14
+    value: 62
+  - attribute: 15
+    value: 60
+  - attribute: 19
+    value: 55
+  - attribute: 18
+    value: 78
+  - attribute: 9
+    value: 50
+  - attribute: 11
+    value: 50
+  - attribute: 20
+    value: 65
+  - attribute: 21
+    value: 72
+  - attribute: 22
+    value: 60
+  - attribute: 23
+    value: 72
+  - attribute: 24
+    value: 70
+  growthPerLevel:
+  - attribute: 13
+    value: 0.15
+  - attribute: 5
+    value: 0.15
+  abilities:
+  - ability: {fileID: 11400000, guid: bc3387ff094f4ed2a28d9c9001eab2d5, type: 2}
+    unlockAtLimitBreak: 0
+  aiTendencies:
+    threePointPreference: 0.3
+    drivePreference: 1.3
+    passPreference: 1.0
+    stealAggression: 0.8
+    abilityUsage: 0.5

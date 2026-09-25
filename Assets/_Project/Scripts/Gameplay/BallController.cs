@@ -310,7 +310,11 @@ namespace Basket.Gameplay
             // above their fingertips (jumping raises them -- that is how rebounds are won).
             float heightAboveFeet = transform.position.y - entity.FeetPosition.y;
             if (heightAboveFeet > entity.StandingReach + config.catchReachMargin || heightAboveFeet < -0.2f) return false;
-            return DistanceTo(player) <= config.catchRadius;
+            // Good rebounders get to more loose balls.
+            float radius = config.catchRadius;
+            if (stateMachine.CurrentState == BallState.Free && entity.Tuning != null)
+                radius *= entity.AttributeMult(AttributeId.DefensiveRebound, entity.Tuning.reboundRadius);
+            return DistanceTo(player) <= radius;
         }
 
         // Horizontal distance for players (height is checked separately by reach).

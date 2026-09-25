@@ -1,5 +1,6 @@
 using UnityEngine;
 using Basket.Core;
+using Basket.Characters;
 
 namespace Basket.Gameplay
 {
@@ -15,6 +16,29 @@ namespace Basket.Gameplay
         public TeamId Team { get; private set; }
         public PlayerMotor Motor { get; private set; }
         public Collider BodyCollider => body;
+
+        // Character data (null = neutral placeholder player). With abilities, Attributes
+        // already includes every active ability's modifiers.
+        public IPlayerAttributes Attributes { get; private set; }
+        public PlayerAbilities Abilities { get; private set; }
+        public AITendencies Tendencies { get; private set; } = AITendencies.Neutral;
+        public string CharacterName { get; private set; }
+        public AttributeTuning Tuning { get; private set; }
+        // 0..1 tank; see AttributeTuning stamina.
+        public float Stamina { get; set; } = 1f;
+
+        public void SetCharacter(string characterName, IPlayerAttributes attributes, PlayerAbilities abilities, AITendencies tendencies)
+        {
+            CharacterName = characterName;
+            Abilities = abilities;
+            Attributes = abilities != null ? abilities : attributes;
+            Tendencies = tendencies;
+        }
+
+        public void SetTuning(AttributeTuning tuning) => Tuning = tuning;
+
+        // Multiplier from an attribute (1 for a neutral player or without tuning).
+        public float AttributeMult(AttributeId id, Vector2 range) => AttributeTuning.Mult(Attributes, id, range);
 
         private void Awake()
         {

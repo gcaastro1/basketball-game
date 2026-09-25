@@ -52,13 +52,14 @@ src() { find "$WORK/src/$1" -name '*.cs'; }
 
 build Stubs $(find "$HERE/stubs" -name '*.cs')
 build Basket.Core $(src Scripts/Core)
-build Basket.Gameplay $(refs Basket.Core) $(src Scripts/Gameplay)
+build Basket.Characters $(refs Basket.Core) $(src Scripts/Characters)
+build Basket.Gameplay $(refs Basket.Core Basket.Characters) $(src Scripts/Gameplay)
 build Basket.AI $(refs Basket.Core) $(src Scripts/AI)
 build Basket.Input $(refs Basket.Core Stubs) $(src Scripts/Input)
 build Basket.UI $(refs Basket.Core) $(src Scripts/UI)
-build Basket.Bootstrap $(refs Basket.Core Basket.Gameplay Basket.AI Basket.Input Basket.UI) $(src Scripts/Bootstrap)
-build Basket.EditorTools $(refs Stubs Basket.Core Basket.Gameplay Basket.AI Basket.Input Basket.UI Basket.Bootstrap) $(src Editor)
-build Basket.Tests.EditMode "$NUNIT" $(refs Stubs Basket.Core Basket.Gameplay Basket.AI Basket.Input) $(src Tests/EditMode)
-build Basket.Tests.PlayMode "$NUNIT" $(refs Stubs Basket.Core Basket.Gameplay Basket.AI Basket.Input Basket.Bootstrap) $(src Tests/PlayMode)
+build Basket.Bootstrap $(refs Basket.Core Basket.Characters Basket.Gameplay Basket.AI Basket.Input Basket.UI) $(src Scripts/Bootstrap)
+build Basket.EditorTools $(refs Stubs Basket.Core Basket.Characters Basket.Gameplay Basket.AI Basket.Input Basket.UI Basket.Bootstrap) $(src Editor)
+build Basket.Tests.EditMode "$NUNIT" $(refs Stubs Basket.Core Basket.Characters Basket.Gameplay Basket.AI Basket.Input) $(src Tests/EditMode)
+build Basket.Tests.PlayMode "$NUNIT" $(refs Stubs Basket.Core Basket.Characters Basket.Gameplay Basket.AI Basket.Input Basket.Bootstrap) $(src Tests/PlayMode)
 
 exit $failed

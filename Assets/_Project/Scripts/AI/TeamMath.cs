@@ -21,13 +21,24 @@ namespace Basket.AI
             return best;
         }
 
+        // Which shooting attribute a shot from this distance uses (the AI's read).
+        public static AttributeId ShotSkill(float distance, float threePointRadius)
+        {
+            if (distance <= 2.6f) return AttributeId.Layup;
+            if (distance <= 4.5f) return AttributeId.CloseShot;
+            return distance >= threePointRadius ? AttributeId.ThreePoint : AttributeId.MidRange;
+        }
+
         // Estimated value of a shot by `index` from where they stand: make chance from
-        // distance and the nearest defender, times the arc bonus.
+        // distance, the shooter's skill there and the nearest defender, times the arc bonus.
+        // The AI knows its teammates' strengths: a shooter's open three reads better than a
+        // center's.
         public static float ShotValue(MatchSnapshot s, int index, AIConfig c)
         {
             Vector3 rim = s.GetAttackingHoop(s.GetTeam(index));
             float distance = FlatDistance(s.GetPosition(index), rim);
-            float make = Mathf.Clamp01(c.qualityAtRim - c.qualityFalloffPerMeter * distance);
+            float skill = Attributes.Centered(s.GetAttribute(index, ShotSkill(distance, s.ThreePointRadius)), c.shotSkillAtZero, c.shotSkillAtMax);
+            float make = Mathf.Clamp01((c.qualityAtRim - c.qualityFalloffPerMeter * distance) * skill);
             float contest = Mathf.Clamp01(1f - NearestOpponentDistance(s, index) / c.contestReadRadius);
             float value = make * (1f - c.contestWeight * contest);
             float arcBonus = s.ArcValueRatio > 0f ? s.ArcValueRatio : c.threePointValueMultiplier;

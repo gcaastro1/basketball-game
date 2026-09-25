@@ -25,6 +25,12 @@ namespace Basket.AI
     public static class BallHandlerDecision
     {
         public static HandlerAction Decide(MatchSnapshot s, int self, TeamOrder order, float heldFor, AIConfig c)
+            => Decide(s, self, order, heldFor, c, AITendencies.Neutral);
+
+        // Tendencies (per character) and IQ attributes shape the decision: a sharpshooter
+        // likes his threes, a playmaker passes more, a slasher attacks the rim, a high
+        // Shot Selection player waits for a better look.
+        public static HandlerAction Decide(MatchSnapshot s, int self, TeamOrder order, float heldFor, AIConfig c, AITendencies t)
         {
             Vector3 rim = s.GetAttackingHoop(s.GetTeam(self));
             Vector3 rimFloor = new Vector3(rim.x, 0f, rim.z);
@@ -33,16 +39,20 @@ namespace Basket.AI
             if (distance <= c.driveFinishDistance) return new HandlerAction(HandlerActionKind.Shoot);
 
             float own = TeamMath.ShotValue(s, self, c);
+            if (distance >= s.ThreePointRadius) own *= Pref(t.threePointPreference);
             int mate = BestPassTarget(s, self, c, out float mateValue);
             bool settled = heldFor >= c.minHoldSecondsBeforeShot;
+            float threshold = c.shootQualityThreshold * Attributes.Centered(s.GetAttribute(self, AttributeId.ShotSelection), 0.8f, 1.15f);
+            float passAdvantage = c.passAdvantage / Pref(t.passPreference)
+                                  * Attributes.Centered(s.GetAttribute(self, AttributeId.PassingIQ), 1.5f, 0.6f);
 
-            if (settled && own >= c.shootQualityThreshold) return new HandlerAction(HandlerActionKind.Shoot);
-            if (settled && mate >= 0 && mateValue >= own + c.passAdvantage && mateValue >= c.passMinQuality)
+            if (settled && own >= threshold) return new HandlerAction(HandlerActionKind.Shoot);
+            if (settled && mate >= 0 && mateValue >= own + passAdvantage && mateValue >= c.passMinQuality)
                 return new HandlerAction(HandlerActionKind.Pass, s.GetPosition(mate), mate);
 
             bool screenReady = order.Kind == TeamOrderKind.Handle && order.TargetIndex >= 0;
             if (screenReady) return new HandlerAction(HandlerActionKind.Drive, order.Target);
-            if (TeamMath.DriveLaneOpen(s, self, c.driveLaneClearance)) return new HandlerAction(HandlerActionKind.Drive, rimFloor);
+            if (TeamMath.DriveLaneOpen(s, self, c.driveLaneClearance / Pref(t.drivePreference))) return new HandlerAction(HandlerActionKind.Drive, rimFloor);
 
             if (heldFor >= c.forceDecisionSeconds)
             {
@@ -51,6 +61,8 @@ namespace Basket.AI
             }
             return new HandlerAction(HandlerActionKind.Hold, s.GetPosition(self));
         }
+
+        private static float Pref(float preference) => preference > 0.01f ? preference : 1f;
 
         public static int BestPassTarget(MatchSnapshot s, int self, AIConfig c, out float value)
         {

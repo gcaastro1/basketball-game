@@ -16,9 +16,12 @@ namespace Basket.Core
         public readonly bool ShootHeld;
         public readonly bool Jump;
         public readonly bool Steal;
+        // Activate the character's active ability.
+        public readonly bool Ability;
 
-        public PlayerCommand(Vector2 move, bool sprint = false, bool pass = false, bool shootHeld = false, bool jump = false, bool steal = false)
+        public PlayerCommand(Vector2 move, bool sprint = false, bool pass = false, bool shootHeld = false, bool jump = false, bool steal = false, bool ability = false)
         {
+            Ability = ability;
             Move = move;
             Sprint = sprint;
             Pass = pass;

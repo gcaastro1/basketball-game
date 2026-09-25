@@ -15,12 +15,14 @@ namespace Basket.Gameplay
         private readonly DefenseConfig config;
         private readonly System.Random rng;
         private readonly float[] nextStealTime;
+        private readonly AttributeTuning tuning;
 
         public event Action<int> OnSteal;
         public event Action<int> OnBlock;
 
-        public DefenseSystem(int playerCount, BallController ball, DefenseConfig config, System.Random rng)
+        public DefenseSystem(int playerCount, BallController ball, DefenseConfig config, System.Random rng, AttributeTuning tuning = null)
         {
+            this.tuning = tuning != null ? tuning : ScriptableObject.CreateInstance<AttributeTuning>();
             this.ball = ball;
             this.config = config;
             this.rng = rng ?? new System.Random();
@@ -42,7 +44,9 @@ namespace Basket.Gameplay
 
             nextStealTime[stealer] = time + config.stealCooldownSeconds;
             bool handlerMoving = handler.Motor.HorizontalVelocity.sqrMagnitude > 1f;
-            float chance = config.stealBaseChance + (handlerMoving ? config.stealMovingHandlerBonus : 0f);
+            float chance = (config.stealBaseChance + (handlerMoving ? config.stealMovingHandlerBonus : 0f))
+                           * defender.AttributeMult(AttributeId.Steal, tuning.stealChance)
+                           * handler.AttributeMult(AttributeId.BallHandling, tuning.stealResistance);
             if (rng.NextDouble() >= chance) return StealOutcome.Missed;
 
             Vector3 toDefender = -d.normalized;
@@ -60,7 +64,8 @@ namespace Basket.Gameplay
             {
                 PlayerEntity p = players[i];
                 if (p.Team == shootingTeam.Value || p.Motor.IsGrounded) continue;
-                if (!BlockMath.IsWithinArms(ball.Position, p.FeetPosition, config.headHeight, p.StandingReach, config.blockRadius)) continue;
+                float radius = config.blockRadius * p.AttributeMult(AttributeId.Block, tuning.blockRadius);
+                if (!BlockMath.IsWithinArms(ball.Position, p.FeetPosition, config.headHeight, p.StandingReach, radius)) continue;
 
                 ball.KnockLoose(BlockMath.DeflectVelocity(ball.Position, p.FeetPosition, config.blockDeflectSpeed), p.Team);
                 OnBlock?.Invoke(i);

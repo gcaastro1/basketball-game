@@ -1,7 +1,10 @@
 {
     "name": "Basket.Gameplay",
     "rootNamespace": "Basket.Gameplay",
-    "references": ["Basket.Core"],
+    "references": [
+        "Basket.Core",
+        "Basket.Characters"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

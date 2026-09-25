@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Basket.Core;
+using Basket.Characters;
 using Basket.Gameplay;
 using Basket.AI;
 using Basket.Input;
@@ -29,6 +30,8 @@ namespace Basket.Bootstrap
         [SerializeField] private PlayerMovementConfig movementConfig;
         [SerializeField] private CameraConfig cameraConfig;
         [SerializeField] private AIConfig aiConfig;
+        [SerializeField] private ProgressionConfig progressionConfig;
+        [SerializeField] private AttributeTuning attributeTuning;
 
         public MatchSimulation Simulation { get; private set; }
         private readonly List<System.IDisposable> disposables = new List<System.IDisposable>();
@@ -55,9 +58,11 @@ namespace Basket.Bootstrap
             {
                 MatchSetup.PlayerSlot slot = matchSetup.slots[i];
                 bool human = slot.control == AgentControlType.Human;
+                string label = slot.character != null ? slot.character.archetype : slot.control.ToString();
                 PlayerEntity player = PlaceholderPlayerFactory.Create(
-                    $"{slot.team}_{i}_{slot.control}", slot.team, movementConfig,
+                    $"{slot.team}_{i}_{label}", slot.team, movementConfig,
                     slot.team == TeamId.Home ? HomeColor : AwayColor, human ? HumanMarker : AIMarker);
+                ApplyCharacter(player, slot);
                 players.Add(player);
 
                 if (human)
@@ -71,14 +76,14 @@ namespace Basket.Bootstrap
                 {
                     // A lone player (1v1) plays without a team brain.
                     TeamBrain brain = CountTeam(slot.team) > 1 ? brains[slot.team] : null;
-                    var ai = new AIAgentController(aiConfig, rng, brain);
+                    var ai = new AIAgentController(aiConfig, rng, brain, player.Tendencies);
                     controllers.Add(ai);
                     aiControllers.Add(ai);
                 }
             }
 
             Simulation = new MatchSimulation(players, controllers, arena.Ball, arena.Hoop,
-                courtConfig, matchRules, ballConfig, shotConfig, defenseConfig);
+                courtConfig, matchRules, ballConfig, shotConfig, defenseConfig, rng, attributeTuning);
 
             if (cameraTarget == null && players.Count > 0) cameraTarget = players[0];
             BuildCamera(cameraTarget != null ? cameraTarget.transform : arena.Ball.transform);
@@ -87,6 +92,19 @@ namespace Basket.Bootstrap
             hud.Configure(Simulation.Match.State, arena.Ball, aiControllers, Simulation, Simulation.Stats);
 
             Simulation.Begin();
+        }
+
+        // Character definition + slot progression -> attributes, abilities, AI tendencies.
+        private void ApplyCharacter(PlayerEntity player, MatchSetup.PlayerSlot slot)
+        {
+            if (slot.character == null) return;
+            var instance = new CharacterInstance(slot.character.characterId, Mathf.Max(1, slot.level), slot.limitBreak, slot.dupes);
+            AttributeSet attributes = CharacterStatsCalculator.Compute(slot.character, instance, progressionConfig);
+            var abilities = new PlayerAbilities(attributes,
+                CharacterStatsCalculator.UnlockedAbilities(slot.character, instance),
+                CharacterStatsCalculator.AbilityLevel(instance, progressionConfig),
+                CharacterStatsCalculator.CooldownMultiplier(instance, progressionConfig));
+            player.SetCharacter(slot.character.displayName, attributes, abilities, slot.character.aiTendencies);
         }
 
         private int CountTeam(TeamId team)
@@ -135,6 +153,8 @@ namespace Basket.Bootstrap
             movementConfig = OrDefault(movementConfig);
             cameraConfig = OrDefault(cameraConfig);
             aiConfig = OrDefault(aiConfig);
+            progressionConfig = OrDefault(progressionConfig);
+            attributeTuning = OrDefault(attributeTuning);
         }
 
         private static T OrDefault<T>(T asset) where T : ScriptableObject =>

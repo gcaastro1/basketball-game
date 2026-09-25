@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Basket.Core;
+using Basket.Characters;
 
 namespace Basket.Gameplay
 {
@@ -26,6 +27,9 @@ namespace Basket.Gameplay
         private readonly DefenseSystem defenseSystem;
         private readonly DribbleSystem dribbleSystem;
         private readonly MatchSnapshot snapshot;
+        private readonly AttributeTuning tuning;
+        private readonly int[] consecutiveMakes;
+        private int pendingShooter = -1;
         private float time;
         private bool awaitingRebound;
         private bool awaitingPass;
@@ -42,8 +46,11 @@ namespace Basket.Gameplay
 
         public MatchSimulation(IReadOnlyList<PlayerEntity> players, IReadOnlyList<IAgentController> controllers,
             BallController ball, HoopController hoop, CourtConfig court, MatchRules rules,
-            BallConfig ballConfig, ShotConfig shotConfig, DefenseConfig defenseConfig = null, System.Random random = null)
+            BallConfig ballConfig, ShotConfig shotConfig, DefenseConfig defenseConfig = null, System.Random random = null,
+            AttributeTuning attributeTuning = null)
         {
+            tuning = attributeTuning != null ? attributeTuning : ScriptableObject.CreateInstance<AttributeTuning>();
+            consecutiveMakes = new int[players.Count];
             if (players.Count != controllers.Count)
                 throw new ArgumentException("Every player needs exactly one controller.");
 
@@ -54,6 +61,7 @@ namespace Basket.Gameplay
                 this.players[i] = players[i];
                 this.controllers[i] = controllers[i];
                 players[i].Initialize(i, players[i].Team);
+                players[i].SetTuning(tuning);
             }
 
             this.ball = ball;
@@ -62,8 +70,8 @@ namespace Basket.Gameplay
             this.defenseConfig = defenseConfig != null ? defenseConfig : ScriptableObject.CreateInstance<DefenseConfig>();
             rng = random ?? new System.Random();
             passSystem = new PassSystem(ball, ballConfig);
-            shotSystem = new ShotSystem(players.Count, ball, shotConfig, ballConfig, hoop.RimCenter, rng);
-            defenseSystem = new DefenseSystem(players.Count, ball, this.defenseConfig, rng);
+            shotSystem = new ShotSystem(players.Count, ball, shotConfig, ballConfig, hoop.RimCenter, rng, tuning, rules.threePointRadius);
+            defenseSystem = new DefenseSystem(players.Count, ball, this.defenseConfig, rng, tuning);
             dribbleSystem = new DribbleSystem(ball, ballConfig);
 
             snapshot = new MatchSnapshot(players.Count);
@@ -143,8 +151,9 @@ namespace Basket.Gameplay
         private void ApplyCommand(int index, PlayerCommand command, bool live, bool freeThrow, float dt)
         {
             PlayerEntity player = players[index];
-            player.Motor.Tick(command.Move, command.Sprint, dt);
             bool holding = ball.CurrentHolder == player.transform;
+            UpdateCharacter(index, player, command, holding, live, dt);
+            player.Motor.Tick(command.Move, command.Sprint, dt);
 
             if (live || freeThrow) shotSystem.Tick(index, player, command, snapshot, time);
             if (shotSystem.IsShooting(index)) return;
@@ -167,8 +176,38 @@ namespace Basket.Gameplay
             if (!live) return;
 
             // Jumping with the ball without shooting would be a travel; only off-ball jumps.
-            if (command.Jump && player.Motor.IsGrounded) player.Motor.Jump();
+            if (command.Jump && player.Motor.IsGrounded && player.Motor.Jump()) player.Stamina -= tuning.jumpCost;
             if (command.Steal) TrySteal(index);
+        }
+
+        // Attributes, stamina and abilities -> this tick's motor scales and ability state.
+        private void UpdateCharacter(int index, PlayerEntity player, PlayerCommand command, bool holding, bool live, float dt)
+        {
+            bool moving = command.Move.sqrMagnitude > 0.01f;
+            float drain = command.Sprint && moving
+                ? tuning.sprintDrainPerSecond * player.AttributeMult(AttributeId.Stamina, tuning.staminaDrain)
+                : -tuning.recoveryPerSecond;
+            player.Stamina = Mathf.Clamp01(player.Stamina - drain * dt);
+
+            if (player.Abilities != null)
+            {
+                MatchState s = Match.State;
+                int diff = s.GetScore(player.Team) - s.GetScore(player.Team.Opponent());
+                player.Abilities.Tick(new AbilityContext(time, s.GameClock, diff, consecutiveMakes[index]));
+                if (live && command.Ability)
+                {
+                    AbilityDefinition used = player.Abilities.TryActivate(time);
+                    if (used != null) Raise($"ABILITY {used.displayName} by {player.name}");
+                }
+            }
+
+            float tired = Mathf.Lerp(1f, tuning.tiredSpeedAtEmpty, tuning.Tiredness(player.Stamina));
+            float handling = holding ? player.AttributeMult(AttributeId.BallHandling, tuning.handlingSpeed) : 1f;
+            player.Motor.SetScales(
+                player.AttributeMult(AttributeId.Speed, tuning.speed) * tired * handling,
+                player.AttributeMult(AttributeId.Acceleration, tuning.acceleration),
+                player.AttributeMult(AttributeId.Agility, tuning.agilityTurn),
+                player.AttributeMult(AttributeId.Vertical, tuning.verticalJump));
         }
 
         private void TrySteal(int index)
@@ -216,6 +255,11 @@ namespace Basket.Gameplay
                 if (awaitingRebound)
                 {
                     awaitingRebound = false;
+                    if (pendingShooter >= 0)
+                    {
+                        consecutiveMakes[pendingShooter] = 0; // missed
+                        pendingShooter = -1;
+                    }
                     TeamStats stats = Stats.Get(players[i].Team);
                     if (players[i].Team == reboundShooterTeam) stats.OffensiveRebounds++;
                     else stats.DefensiveRebounds++;
@@ -247,6 +291,8 @@ namespace Basket.Gameplay
             {
                 PlayerEntity p = players[i];
                 snapshot.SetPlayer(i, p.Team, p.FeetPosition, p.Motor.Velocity, p.Motor.IsGrounded);
+                snapshot.SetAttributes(i, p.Attributes);
+                snapshot.SetAbilityReady(i, p.Abilities != null && p.Abilities.CanActivate(time));
                 if (ball.CurrentHolder == p.transform) holder = i;
             }
             snapshot.SetBall(ball.Position, ball.CurrentState, holder, ball.Velocity);
@@ -277,6 +323,12 @@ namespace Basket.Gameplay
             awaitingRebound = true;
             awaitingPass = false;
             reboundShooterTeam = shooter.Team;
+            if (r.Type != ShotType.FreeThrow)
+            {
+                // Previous shot by this player that never went in breaks the streak.
+                if (pendingShooter >= 0) consecutiveMakes[pendingShooter] = 0;
+                pendingShooter = r.ShooterIndex;
+            }
 
             if (r.Type == ShotType.FreeThrow || Match.State.Phase != MatchPhase.Live) return;
             int fouler = FoulMath.ShootingContact(snapshot, r.ShooterIndex,
@@ -305,6 +357,11 @@ namespace Basket.Gameplay
         private void CountBasket(TeamId team, int points, ShotType? type)
         {
             awaitingRebound = false;
+            if (type != ShotType.FreeThrow && pendingShooter >= 0 && players[pendingShooter].Team == team)
+            {
+                consecutiveMakes[pendingShooter]++;
+                pendingShooter = -1;
+            }
             TeamStats stats = Stats.Get(team);
             if (type == ShotType.FreeThrow)
             {

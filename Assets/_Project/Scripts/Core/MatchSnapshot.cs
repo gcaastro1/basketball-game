@@ -13,6 +13,8 @@ namespace Basket.Core
         private readonly Vector3[] velocities;
         private readonly bool[] grounded;
         private readonly int[] matchups;
+        private readonly IPlayerAttributes[] attributes;
+        private readonly bool[] abilityReady;
         private readonly Vector3[] attackingHoops = new Vector3[TeamIdExtensions.TeamCount];
 
         public MatchSnapshot(int playerCount)
@@ -22,6 +24,8 @@ namespace Basket.Core
             velocities = new Vector3[playerCount];
             grounded = new bool[playerCount];
             matchups = new int[playerCount];
+            attributes = new IPlayerAttributes[playerCount];
+            abilityReady = new bool[playerCount];
             for (int i = 0; i < playerCount; i++) matchups[i] = -1;
         }
 
@@ -51,6 +55,15 @@ namespace Basket.Core
         // Opponent this player is paired with (man-to-man), or -1.
         public int GetMatchup(int index) => matchups[index];
         public void SetMatchup(int index, int opponentIndex) => matchups[index] = opponentIndex;
+
+        // Character attributes (null = neutral player). Everyone can read everyone's: the AI
+        // plays to its teammates' strengths and against its opponents'.
+        public IPlayerAttributes GetAttributes(int index) => attributes[index];
+        public void SetAttributes(int index, IPlayerAttributes value) => attributes[index] = value;
+        public float GetAttribute(int index, AttributeId id) => attributes[index] != null ? attributes[index].Get(id) : Attributes.Neutral;
+
+        public bool IsAbilityReady(int index) => abilityReady[index];
+        public void SetAbilityReady(int index, bool ready) => abilityReady[index] = ready;
 
         // Half court: both teams attack the same hoop. Full court (5v5) sets them apart.
         public Vector3 GetAttackingHoop(TeamId team) => attackingHoops[(int)team];

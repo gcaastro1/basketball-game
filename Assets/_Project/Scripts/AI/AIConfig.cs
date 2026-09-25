@@ -84,6 +84,9 @@ namespace Basket.AI
         public float contestWeight = 0.8f;
         // Used only when the rules' point values are unknown.
         public float threePointValueMultiplier = 1.5f;
+        // How much the shooter's attribute for that shot moves the estimate (x at 0 / 99).
+        public float shotSkillAtZero = 0.55f;
+        public float shotSkillAtMax = 1.3f;
         // A defender this close to the passing lane makes the pass risky.
         public float passLaneDanger = 0.9f;
 

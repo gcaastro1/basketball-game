@@ -24,9 +24,11 @@ namespace Basket.AI
         private MatchSnapshot snapshot;
         private int selfIndex = -1;
         private TeamOrder order = TeamOrder.None;
+        private readonly AITendencies tendencies;
 
-        public AIAgentController(AIConfig aiConfig = null, System.Random random = null, TeamBrain teamBrain = null)
+        public AIAgentController(AIConfig aiConfig = null, System.Random random = null, TeamBrain teamBrain = null, AITendencies? characterTendencies = null)
         {
+            tendencies = characterTendencies ?? AITendencies.Neutral;
             config = aiConfig != null ? aiConfig : ScriptableObject.CreateInstance<AIConfig>();
             fsm = new OpponentAIStateMachine(config);
             rng = random ?? new System.Random();
@@ -110,7 +112,7 @@ namespace Basket.AI
             {
                 shotInProgress = true;
                 shotStartTime = p.Time;
-                releaseOffsetSeconds = (float)(Gaussian() * config.releaseTimingJitterSeconds);
+                releaseOffsetSeconds = (float)(Gaussian() * ReleaseJitter());
                 // Sprinting into a close shot is what makes it a dunk attempt.
                 return new PlayerCommand(Vector2.zero, sprint: drivingThisPossession && !freeThrow, shootHeld: true);
             }
@@ -120,16 +122,18 @@ namespace Basket.AI
         // Team play with the ball: utility decision (shoot / pass / drive / hold).
         private PlayerCommand TeamAttack(AIPerception p)
         {
-            HandlerAction action = BallHandlerDecision.Decide(snapshot, selfIndex, order, p.Time - attackStartTime, config);
+            HandlerAction action = BallHandlerDecision.Decide(snapshot, selfIndex, order, p.Time - attackStartTime, config, tendencies);
             switch (action.Kind)
             {
                 case HandlerActionKind.Shoot:
                     if (!p.SelfGrounded) return PlayerCommand.None;
                     shotInProgress = true;
                     shotStartTime = p.Time;
-                    releaseOffsetSeconds = (float)(Gaussian() * config.releaseTimingJitterSeconds);
+                    releaseOffsetSeconds = (float)(Gaussian() * ReleaseJitter());
                     bool nearRim = FlatDistance(p.SelfPosition, p.AttackHoop) <= config.driveFinishDistance;
-                    return new PlayerCommand(Vector2.zero, sprint: nearRim, shootHeld: true);
+                    // Special abilities go with the shot they help (character tendency).
+                    bool useAbility = snapshot.IsAbilityReady(selfIndex) && rng.NextDouble() < tendencies.abilityUsage;
+                    return new PlayerCommand(Vector2.zero, sprint: nearRim, shootHeld: true, ability: useAbility);
                 case HandlerActionKind.Pass:
                     Vector3 aim = action.MoveTarget - p.SelfPosition;
                     return new PlayerCommand(new Vector2(aim.x, aim.z).normalized, pass: true);
@@ -175,6 +179,10 @@ namespace Basket.AI
             }
         }
 
+        // Offensive IQ tightens release timing around the apex.
+        private float ReleaseJitter() =>
+            config.releaseTimingJitterSeconds * (snapshot != null ? Attributes.Centered(snapshot.GetAttribute(selfIndex, AttributeId.OffensiveIQ), 1.8f, 0.4f) : 1f);
+
         // Move toward target, steering around other players when playing as a team.
         private Vector2 Steer(AIPerception p, Vector3 target, float arrival, int ignore)
         {
@@ -185,7 +193,8 @@ namespace Basket.AI
 
         private PlayerCommand Chase(AIPerception p)
         {
-            Vector3 lead = p.BallPosition + new Vector3(p.BallVelocity.x, 0f, p.BallVelocity.z) * config.reboundLeadSeconds;
+            float anticipation = snapshot != null ? Attributes.Centered(snapshot.GetAttribute(selfIndex, AttributeId.ReboundPositioning), 0.4f, 1.6f) : 1f;
+            Vector3 lead = p.BallPosition + new Vector3(p.BallVelocity.x, 0f, p.BallVelocity.z) * config.reboundLeadSeconds * anticipation;
             float ballHeight = p.BallPosition.y - p.SelfPosition.y;
             bool jump = p.SelfGrounded && p.BallVelocity.y < 0f
                         && ballHeight >= config.reboundJumpMinHeight
@@ -198,15 +207,19 @@ namespace Basket.AI
         {
             float toHandler = FlatDistance(p.SelfPosition, p.OpponentPosition);
             bool onBall = p.OpponentHasBall && p.FocusHasBall;
+            // Defensive IQ: better defenders wait for the shooter's apex instead of jumping early.
+            float trigger = config.blockTriggerVerticalSpeed
+                            * (snapshot != null ? Attributes.Centered(snapshot.GetAttribute(selfIndex, AttributeId.DefensiveIQ), 1.8f, 0.5f) : 1f);
             bool block = onBall && p.SelfGrounded && !p.OpponentGrounded
-                         && p.OpponentVelocity.y <= config.blockTriggerVerticalSpeed
+                         && p.OpponentVelocity.y <= trigger
                          && toHandler <= config.blockRange;
 
             bool steal = false;
             if (onBall && p.OpponentGrounded && toHandler <= config.stealRange && p.Time >= nextStealTime)
             {
                 steal = true;
-                nextStealTime = p.Time + config.stealIntervalSeconds * (0.5f + (float)rng.NextDouble());
+                float aggression = tendencies.stealAggression > 0.01f ? tendencies.stealAggression : 1f;
+                nextStealTime = p.Time + config.stealIntervalSeconds / aggression * (0.5f + (float)rng.NextDouble());
             }
             return new PlayerCommand(MoveToward(p.SelfPosition, target, arrival), sprint: sprint, jump: block, steal: steal);
         }

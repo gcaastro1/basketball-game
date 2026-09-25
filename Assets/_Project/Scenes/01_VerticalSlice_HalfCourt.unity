@@ -172,6 +172,8 @@ MonoBehaviour:
   movementConfig: {fileID: 11400000, guid: 70242c44193fd93478d4b555a169352d, type: 2}
   cameraConfig: {fileID: 11400000, guid: 811659fc9a838c546afcb79e395937ef, type: 2}
   aiConfig: {fileID: 11400000, guid: 372506d32ce3472198d900547f36a615, type: 2}
+  progressionConfig: {fileID: 11400000, guid: f913fe3111b74383bec8c74a94f95ff6, type: 2}
+  attributeTuning: {fileID: 11400000, guid: 2a76df5ad6354558be959e01d5e456b5, type: 2}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
