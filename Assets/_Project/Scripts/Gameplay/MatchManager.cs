@@ -70,12 +70,19 @@ namespace Basket.Gameplay
         public event Action<TeamId, int, ShotType?> OnBasketCounted;
         public event Action<FoulEvent> OnFoulCalled;
         public event Action<TeamId> OnTurnover;
+        // The match reached MatchPhase.Ended (buzzer or knockout score). Consumed by
+        // GameBootstrap to hand off from gameplay to the meta flow.
+        public event Action<MatchState> OnMatchEnded;
 
         public MatchManager(MatchRules matchRules, Vector3 rimCenter)
         {
             rules = matchRules;
             this.rimCenter = rimCenter;
             State = new MatchState(matchRules.winningScore);
+            State.OnPhaseChanged += (previousPhase, nextPhase) =>
+            {
+                if (nextPhase == MatchPhase.Ended) OnMatchEnded?.Invoke(State);
+            };
             SyncState();
         }
 
