@@ -121,7 +121,10 @@ namespace Basket.AI
             if (inRange && heldLongEnough && p.SelfGrounded)
             {
                 bool finishing = drivingThisPossession && FlatDistance(p.SelfPosition, p.AttackHoop) <= config.driveFinishDistance;
-                if (!freeThrow && !finishing && !FeetSet(p)) return PlayerCommand.None;
+                // At the buzzer there is no time to set the feet: a defender draped on the
+                // handler can keep him moving until the clock runs out (AI-vs-AI shot clock
+                // violations with no shot taken). Shooting on the move costs accuracy instead.
+                if (!freeThrow && !finishing && !urgent && !FeetSet(p)) return PlayerCommand.None;
                 shotInProgress = true;
                 shotStartTime = p.Time;
                 releaseOffsetSeconds = (float)(Gaussian() * ReleaseJitter());

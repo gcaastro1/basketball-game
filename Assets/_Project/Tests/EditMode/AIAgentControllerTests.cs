@@ -207,4 +207,15 @@ public class AIAgentControllerTests
         var p = new AIPerception(far, new Vector3(20f, 0f, 0f), far, false, true, attackHoop: Hoop, defendHoop: Hoop, time: 0f, shotClock: 1f);
         Assert.IsTrue(ai.Decide(p).ShootHeld);
     }
+
+    [Test]
+    public void ShotClockAboutToExpire_ShootsEvenWhileMoving()
+    {
+        var ai = new AIAgentController(Config());
+        Vector3 far = new Vector3(0f, 0f, 1f);
+        var moving = new Vector3(3f, 0f, 2f);
+        var p = new AIPerception(far, new Vector3(20f, 0f, 0f), far, false, true, attackHoop: Hoop, defendHoop: Hoop, time: 0f,
+            selfVelocity: moving, shotClock: 1f);
+        Assert.IsTrue(ai.Decide(p).ShootHeld);
+    }
 }

@@ -15,6 +15,10 @@ public sealed class TestMatch : IDisposable
     public readonly ShotConfig ShotConfig = ScriptableObject.CreateInstance<ShotConfig>();
     public readonly DefenseConfig DefenseConfig = ScriptableObject.CreateInstance<DefenseConfig>();
     public readonly List<string> Events = new List<string>();
+    // The same events stamped with the simulated time and the shot clock, to see where a
+    // long simulation spent its time.
+    public readonly List<string> Timeline = new List<string>();
+    public float SimulatedTime { get; private set; }
     public readonly List<ShotReport> Shots = new List<ShotReport>();
 
     public Arena Arena { get; private set; }
@@ -53,6 +57,7 @@ public sealed class TestMatch : IDisposable
         Sim = new MatchSimulation(Players, new List<IAgentController>(controllers), Arena.Ball, Arena.Hoop, Court, Rules, BallConfig, ShotConfig, DefenseConfig, new System.Random(1),
             secondHoop: Arena.SecondHoop);
         Sim.OnMatchEvent += Events.Add;
+        Sim.OnMatchEvent += e => Timeline.Add($"{SimulatedTime,6:F1}s sc {Sim.Match.State.ShotClock,4:F1} {e}");
         Sim.ShotReports.OnShotTaken += Shots.Add;
         Sim.Match.OnBasketCounted += MarkMade;
         Sim.Begin();
@@ -65,6 +70,7 @@ public sealed class TestMatch : IDisposable
         while (!condition() && elapsed < timeoutSeconds)
         {
             yield return null;
+            SimulatedTime += Time.deltaTime;
             Sim.Tick(Time.deltaTime);
             elapsed += Time.deltaTime;
         }
