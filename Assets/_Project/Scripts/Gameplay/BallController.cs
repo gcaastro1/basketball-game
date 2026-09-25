@@ -31,7 +31,6 @@ namespace Basket.Gameplay
         // found by the AI-vs-AI simulation).
         private Transform passReceiver;
         private readonly List<Collider> passIgnoredColliders = new List<Collider>();
-        private float passProtectedUntil = float.NegativeInfinity;
 
         // The release that can still score: set by Release(), cleared when the ball touches
         // the floor, is caught, or is reset. A shot that hits the rim and then drops in is
@@ -276,21 +275,25 @@ namespace Basket.Gameplay
             {
                 RestoreReleaserCollision();
             }
-            if (passIgnoredColliders.Count > 0 && Time.time >= passProtectedUntil)
+            // The protection lasts the whole pass: it ends when the pass does (caught, or
+            // loose after touching anything).
+            if (passIgnoredColliders.Count > 0 && stateMachine.CurrentState != BallState.Passing)
             {
                 EndPassProtection();
             }
         }
 
         // Called right after a pass release. Players (other than the receiver) within
-        // BallConfig.passProtectRadius of the ball cannot touch it for
-        // passReleaseGraceSeconds; later, anyone in the lane can still intercept it.
+        // BallConfig.passProtectRadius of the ball -- the passer's own defender -- cannot
+        // touch this pass: it goes over/around them. Anyone else in the lane (e.g. the
+        // receiver's defender) can still intercept it. A 0.2 s window was not enough: the
+        // AI-vs-AI log showed 8 of 10 lost passes caught by a defender 0.7-1.1 m from the
+        // passer, standing on the passing line.
         public void BeginPass(Transform receiver, IReadOnlyList<Collider> nearbyPlayers)
         {
             if (stateMachine.CurrentState != BallState.Passing) return;
             passReceiver = receiver;
             EndPassProtection();
-            passProtectedUntil = Time.time + config.passReleaseGraceSeconds;
             if (ballCollider == null || nearbyPlayers == null) return;
             for (int i = 0; i < nearbyPlayers.Count; i++)
             {
@@ -311,13 +314,11 @@ namespace Basket.Gameplay
                 }
             }
             passIgnoredColliders.Clear();
-            passProtectedUntil = float.NegativeInfinity;
         }
 
         private bool InPassProtection(Transform player)
         {
             if (stateMachine.CurrentState != BallState.Passing || player == passReceiver) return false;
-            if (Time.time >= passProtectedUntil) return false;
             foreach (Collider c in passIgnoredColliders)
             {
                 if (c != null && c.transform == player) return true;

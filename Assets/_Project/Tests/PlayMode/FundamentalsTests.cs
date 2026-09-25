@@ -89,6 +89,32 @@ public class FundamentalsTests
         Assert.AreEqual(1, match.Sim.Stats.Get(TeamId.Home).PassesCompleted);
     }
 
+    // Regression (AI-vs-AI log): a defender hugging the passer and standing on the passing
+    // line caught the pass just after the old 0.2 s protection ran out.
+    [UnityTest]
+    public IEnumerator Pass_WithDefenderOnThePassingLineNextToThePasser_ReachesTheTeammate()
+    {
+        bool passed = false;
+        match.Start(
+            (TeamId.Home, (s, self) =>
+            {
+                bool pass = !passed && s.BallHolderIndex == self && s.Phase == MatchPhase.Live && s.Time > 0.5f;
+                if (pass) passed = true;
+                return new PlayerCommand(Vector2.zero, pass: pass);
+            }),
+            (TeamId.Home, TestMatch.Idle),
+            (TeamId.Away, TestMatch.Idle));
+        Vector3 passer = match.Players[0].FeetPosition, receiver = match.Players[1].FeetPosition;
+        Vector3 lane = receiver - passer;
+        lane.y = 0f;
+        match.Players[2].TeleportFeetTo(passer + lane.normalized * 0.8f, -lane);
+
+        yield return match.RunUntil(() => passed && match.Sim.Snapshot.BallHolderIndex >= 0 && match.Sim.Snapshot.BallHolderIndex != 0, 4f);
+
+        Assert.IsTrue(passed, "the pass was thrown");
+        Assert.AreEqual(1, match.Sim.Snapshot.BallHolderIndex, string.Join("\n", match.Events));
+    }
+
     [UnityTest]
     public IEnumerator Block_DefenderJumpingInFront_DeflectsTheShot()
     {

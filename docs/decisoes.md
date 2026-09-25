@@ -23,7 +23,7 @@ de troca.
 | D-015 | Atributos: enum fixo (só acrescenta), efeito "centrado" no neutro 70, faixas em `AttributeTuning` | Aceita |
 | D-016 | Personagens em assembly próprio (`Basket.Characters`), dados em SO, instância = dado de save | Aceita |
 | D-017 | Quadra inteira = mesma simulação: `CourtConfig.fullCourt` espelha a cesta; cada `HoopController` sabe quem o ataca; regras de meia-quadra/linhas/bola ao alto são flags de `MatchRules` | Aceita |
-| D-018 | Passe "passa" pelo defensor colado ao passador (0,2 s) e só o recebedor pega com o raio cheio; interceptar exige estar na linha do passe | **Provisória** (valores) |
+| D-018 | Passe "passa" pelo defensor colado ao passador (todo o voo) e só o recebedor pega com o raio cheio; interceptar exige estar na linha do passe | **Provisória** (valores) |
 | P-001 | Modo B (controle do time) | **Pendente** — ponto de encaixe pronto: `ITeamStrategy` (e `IAgentController`) |
 | P-002 | Semântica dos Limit Breaks | **Provisória**: 4 LBs (20→40, 40→50, 50→60, "Awakening" no 60 sem novo teto), tudo em `DefaultProgressionConfig` |
 
@@ -180,11 +180,13 @@ tempos técnicos, seta de posse alternada.
 
 ## D-018 — Passe e defensor colado (provisória nos valores)
 
-A simulação IA×IA mostrou quase todos os passes virando turnover: o defensor da bola fica a
-~1,5 m do passador e a bola, ao sair da mão, já estava no raio de pegada (1 m) dele. Agora, por
-`BallConfig.passReleaseGraceSeconds` (0,2 s), jogadores a até `passProtectRadius` (1,8 m) da
-soltura não tocam na bola (o passe é lançado por cima/ao lado deles), e durante o voo quem não é
-o recebedor só pega a bola com `interceptRadius` (0,5 m) — precisa estar na linha do passe.
+A simulação IA×IA mostrou quase todos os passes virando turnover: o defensor da bola fica colado
+no passador e a bola, ao sair da mão, já estava no raio de pegada (1 m) dele. Jogadores a até
+`BallConfig.passProtectRadius` (1,8 m) da soltura (o marcador do passador) **não tocam naquele
+passe durante todo o voo** — ele vai por cima/ao lado deles. Uma janela de só 0,2 s não bastou: o
+log por passe mostrou 8 de 10 passes perdidos pegos por um defensor a 0,7–1,1 m do passador, na
+linha do passe. Durante o voo, quem não é o recebedor só pega a bola com `interceptRadius`
+(0,5 m) — interceptar exige estar na linha do passe longe do passador (ex.: o marcador do recebedor).
 
 ## D-010 (revisão) — Precisão calibrada no aro físico
 

@@ -33,10 +33,9 @@ namespace Basket.Gameplay
         public float passApexHeight = 0.6f;
         // Never lead a receiver by more than this (m).
         public float maxPassLead = 4f;
-        // Right after a pass, players this close to the ball (other than the receiver)
-        // cannot touch it for passReleaseGraceSeconds: the pass is thrown past them.
+        // Players this close to the ball when a pass is thrown (other than the receiver)
+        // cannot touch that pass: it is thrown past them.
         public float passProtectRadius = 1.8f;
-        public float passReleaseGraceSeconds = 0.2f;
         // Catch radius of a pass for anyone but its receiver (an interception needs to be
         // in the lane).
         public float interceptRadius = 0.5f;
