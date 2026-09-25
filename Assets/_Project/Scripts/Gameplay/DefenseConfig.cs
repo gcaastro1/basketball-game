@@ -17,8 +17,10 @@ namespace Basket.Gameplay
         public float stealKnockSpeed = 3f;
 
         [Header("Fouls (provisional chance-based contact model)")]
-        // A missed steal attempt is called a reach-in foul this often.
-        [Range(0f, 1f)] public float reachInFoulChance = 0.15f;
+        // A missed steal attempt is called a reach-in foul this often. 0.15 gave ~2 reach-ins
+        // per team per minute in the AI-vs-AI run (defenders reach every ~4 s), and free
+        // throws/restarts ate the game; 0.04 is ~1 per minute for both teams together.
+        [Range(0f, 1f)] public float reachInFoulChance = 0.04f;
         // Defender body within this distance of a shooter at release...
         public float shootingContactDistance = 0.8f;
         // ...who is airborne or closing in at least this fast...
