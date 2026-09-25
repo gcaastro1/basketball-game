@@ -10,5 +10,14 @@ namespace Basket.Gameplay
         public float acceleration = 30f;
         public float deceleration = 40f;
         public float turnSpeedDegrees = 720f;
+
+        [Header("Jump (future: driven by the Vertical attribute)")]
+        public float jumpHeight = 0.8f;
+        // Fraction of ground acceleration available for steering while airborne.
+        public float airControl = 0.15f;
+
+        [Header("Reach")]
+        // Fingertip height above the feet with arms raised, standing.
+        public float standingReach = 2.45f;
     }
 }

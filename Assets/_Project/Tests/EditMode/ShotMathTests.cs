@@ -1,4 +1,3 @@
-using System;
 using NUnit.Framework;
 using UnityEngine;
 using Basket.Gameplay;
@@ -6,18 +5,33 @@ using Basket.Gameplay;
 public class ShotMathTests
 {
     [Test]
-    public void ComputeMissOffset_PerfectRating_ReturnsZero()
+    public void SampleDiscOffset_ZeroRadius_ReturnsZero()
     {
-        var rng = new System.Random(42);
-        Vector3 offset = ShotMath.ComputeMissOffset(baseRadius: 0.5f, rating: 1f, rng: rng);
-        Assert.AreEqual(Vector3.zero, offset);
+        Assert.AreEqual(Vector3.zero, ShotMath.SampleDiscOffset(0f, new System.Random(42)));
     }
 
     [Test]
-    public void ComputeMissOffset_ZeroRating_StaysWithinBaseRadius()
+    public void SampleDiscOffset_StaysInsideRadiusAndHorizontal()
     {
-        var rng = new System.Random(42);
-        Vector3 offset = ShotMath.ComputeMissOffset(baseRadius: 0.5f, rating: 0f, rng: rng);
-        Assert.LessOrEqual(new Vector3(offset.x, 0f, offset.z).magnitude, 0.5f + 0.0001f);
+        var rng = new System.Random(7);
+        for (int i = 0; i < 500; i++)
+        {
+            Vector3 o = ShotMath.SampleDiscOffset(0.2f, rng);
+            Assert.AreEqual(0f, o.y);
+            Assert.LessOrEqual(o.magnitude, 0.2f + 1e-5f);
+        }
+    }
+
+    [Test]
+    public void SampleDiscOffset_IsUniformOverArea_AboutQuarterInsideHalfRadius()
+    {
+        var rng = new System.Random(3);
+        int inside = 0;
+        const int n = 4000;
+        for (int i = 0; i < n; i++)
+        {
+            if (ShotMath.SampleDiscOffset(1f, rng).magnitude < 0.5f) inside++;
+        }
+        Assert.AreEqual(0.25, inside / (double)n, 0.03);
     }
 }

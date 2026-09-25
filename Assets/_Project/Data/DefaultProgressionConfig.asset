@@ -1,0 +1,588 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 89473da08a8741b7bc68ca6087c9e948, type: 3}
+  m_Name: DefaultProgressionConfig
+  m_EditorClassIdentifier: Basket.Characters::Basket.Characters.ProgressionConfig
+  maxLevel: 60
+  startingLevel: 1
+  baseLevelCap: 20
+  xpBase: 100
+  xpExponent: 1.5
+  attributeCap: 99
+  limitBreaks:
+  - requiredLevel: 20
+    newLevelCap: 40
+    costs:
+    - itemId: limit_break_material_1
+      count: 10
+    attributeBonus:
+    - attribute: 0
+      value: 2
+    - attribute: 1
+      value: 2
+    - attribute: 2
+      value: 2
+    - attribute: 3
+      value: 2
+    - attribute: 4
+      value: 2
+    - attribute: 5
+      value: 2
+    - attribute: 6
+      value: 2
+    - attribute: 7
+      value: 2
+    - attribute: 8
+      value: 2
+    - attribute: 9
+      value: 2
+    - attribute: 10
+      value: 2
+    - attribute: 11
+      value: 2
+    - attribute: 12
+      value: 2
+    - attribute: 13
+      value: 2
+    - attribute: 14
+      value: 2
+    - attribute: 15
+      value: 2
+    - attribute: 16
+      value: 2
+    - attribute: 17
+      value: 2
+    - attribute: 18
+      value: 2
+    - attribute: 19
+      value: 2
+    - attribute: 20
+      value: 2
+    - attribute: 21
+      value: 2
+    - attribute: 22
+      value: 2
+    - attribute: 23
+      value: 2
+    - attribute: 24
+      value: 2
+    - attribute: 25
+      value: 2
+    abilityLevelBonus: 1
+  - requiredLevel: 40
+    newLevelCap: 50
+    costs:
+    - itemId: limit_break_material_2
+      count: 20
+    attributeBonus:
+    - attribute: 0
+      value: 2
+    - attribute: 1
+      value: 2
+    - attribute: 2
+      value: 2
+    - attribute: 3
+      value: 2
+    - attribute: 4
+      value: 2
+    - attribute: 5
+      value: 2
+    - attribute: 6
+      value: 2
+    - attribute: 7
+      value: 2
+    - attribute: 8
+      value: 2
+    - attribute: 9
+      value: 2
+    - attribute: 10
+      value: 2
+    - attribute: 11
+      value: 2
+    - attribute: 12
+      value: 2
+    - attribute: 13
+      value: 2
+    - attribute: 14
+      value: 2
+    - attribute: 15
+      value: 2
+    - attribute: 16
+      value: 2
+    - attribute: 17
+      value: 2
+    - attribute: 18
+      value: 2
+    - attribute: 19
+      value: 2
+    - attribute: 20
+      value: 2
+    - attribute: 21
+      value: 2
+    - attribute: 22
+      value: 2
+    - attribute: 23
+      value: 2
+    - attribute: 24
+      value: 2
+    - attribute: 25
+      value: 2
+    abilityLevelBonus: 1
+  - requiredLevel: 50
+    newLevelCap: 60
+    costs:
+    - itemId: limit_break_material_3
+      count: 30
+    attributeBonus:
+    - attribute: 0
+      value: 2
+    - attribute: 1
+      value: 2
+    - attribute: 2
+      value: 2
+    - attribute: 3
+      value: 2
+    - attribute: 4
+      value: 2
+    - attribute: 5
+      value: 2
+    - attribute: 6
+      value: 2
+    - attribute: 7
+      value: 2
+    - attribute: 8
+      value: 2
+    - attribute: 9
+      value: 2
+    - attribute: 10
+      value: 2
+    - attribute: 11
+      value: 2
+    - attribute: 12
+      value: 2
+    - attribute: 13
+      value: 2
+    - attribute: 14
+      value: 2
+    - attribute: 15
+      value: 2
+    - attribute: 16
+      value: 2
+    - attribute: 17
+      value: 2
+    - attribute: 18
+      value: 2
+    - attribute: 19
+      value: 2
+    - attribute: 20
+      value: 2
+    - attribute: 21
+      value: 2
+    - attribute: 22
+      value: 2
+    - attribute: 23
+      value: 2
+    - attribute: 24
+      value: 2
+    - attribute: 25
+      value: 2
+    abilityLevelBonus: 1
+  - requiredLevel: 60
+    newLevelCap: 60
+    costs:
+    - itemId: awakening_material
+      count: 1
+    attributeBonus:
+    - attribute: 0
+      value: 2
+    - attribute: 1
+      value: 2
+    - attribute: 2
+      value: 2
+    - attribute: 3
+      value: 2
+    - attribute: 4
+      value: 2
+    - attribute: 5
+      value: 2
+    - attribute: 6
+      value: 2
+    - attribute: 7
+      value: 2
+    - attribute: 8
+      value: 2
+    - attribute: 9
+      value: 2
+    - attribute: 10
+      value: 2
+    - attribute: 11
+      value: 2
+    - attribute: 12
+      value: 2
+    - attribute: 13
+      value: 2
+    - attribute: 14
+      value: 2
+    - attribute: 15
+      value: 2
+    - attribute: 16
+      value: 2
+    - attribute: 17
+      value: 2
+    - attribute: 18
+      value: 2
+    - attribute: 19
+      value: 2
+    - attribute: 20
+      value: 2
+    - attribute: 21
+      value: 2
+    - attribute: 22
+      value: 2
+    - attribute: 23
+      value: 2
+    - attribute: 24
+      value: 2
+    - attribute: 25
+      value: 2
+    abilityLevelBonus: 1
+  dupes:
+  - attributeBonus:
+    - attribute: 0
+      value: 1
+    - attribute: 1
+      value: 1
+    - attribute: 2
+      value: 1
+    - attribute: 3
+      value: 1
+    - attribute: 4
+      value: 1
+    - attribute: 5
+      value: 1
+    - attribute: 6
+      value: 1
+    - attribute: 7
+      value: 1
+    - attribute: 8
+      value: 1
+    - attribute: 9
+      value: 1
+    - attribute: 10
+      value: 1
+    - attribute: 11
+      value: 1
+    - attribute: 12
+      value: 1
+    - attribute: 13
+      value: 1
+    - attribute: 14
+      value: 1
+    - attribute: 15
+      value: 1
+    - attribute: 16
+      value: 1
+    - attribute: 17
+      value: 1
+    - attribute: 18
+      value: 1
+    - attribute: 19
+      value: 1
+    - attribute: 20
+      value: 1
+    - attribute: 21
+      value: 1
+    - attribute: 22
+      value: 1
+    - attribute: 23
+      value: 1
+    - attribute: 24
+      value: 1
+    - attribute: 25
+      value: 1
+    abilityLevelBonus: 0
+    cooldownMultiplier: 0.95
+  - attributeBonus:
+    - attribute: 0
+      value: 1
+    - attribute: 1
+      value: 1
+    - attribute: 2
+      value: 1
+    - attribute: 3
+      value: 1
+    - attribute: 4
+      value: 1
+    - attribute: 5
+      value: 1
+    - attribute: 6
+      value: 1
+    - attribute: 7
+      value: 1
+    - attribute: 8
+      value: 1
+    - attribute: 9
+      value: 1
+    - attribute: 10
+      value: 1
+    - attribute: 11
+      value: 1
+    - attribute: 12
+      value: 1
+    - attribute: 13
+      value: 1
+    - attribute: 14
+      value: 1
+    - attribute: 15
+      value: 1
+    - attribute: 16
+      value: 1
+    - attribute: 17
+      value: 1
+    - attribute: 18
+      value: 1
+    - attribute: 19
+      value: 1
+    - attribute: 20
+      value: 1
+    - attribute: 21
+      value: 1
+    - attribute: 22
+      value: 1
+    - attribute: 23
+      value: 1
+    - attribute: 24
+      value: 1
+    - attribute: 25
+      value: 1
+    abilityLevelBonus: 1
+    cooldownMultiplier: 0.95
+  - attributeBonus:
+    - attribute: 0
+      value: 1
+    - attribute: 1
+      value: 1
+    - attribute: 2
+      value: 1
+    - attribute: 3
+      value: 1
+    - attribute: 4
+      value: 1
+    - attribute: 5
+      value: 1
+    - attribute: 6
+      value: 1
+    - attribute: 7
+      value: 1
+    - attribute: 8
+      value: 1
+    - attribute: 9
+      value: 1
+    - attribute: 10
+      value: 1
+    - attribute: 11
+      value: 1
+    - attribute: 12
+      value: 1
+    - attribute: 13
+      value: 1
+    - attribute: 14
+      value: 1
+    - attribute: 15
+      value: 1
+    - attribute: 16
+      value: 1
+    - attribute: 17
+      value: 1
+    - attribute: 18
+      value: 1
+    - attribute: 19
+      value: 1
+    - attribute: 20
+      value: 1
+    - attribute: 21
+      value: 1
+    - attribute: 22
+      value: 1
+    - attribute: 23
+      value: 1
+    - attribute: 24
+      value: 1
+    - attribute: 25
+      value: 1
+    abilityLevelBonus: 0
+    cooldownMultiplier: 0.95
+  - attributeBonus:
+    - attribute: 0
+      value: 1
+    - attribute: 1
+      value: 1
+    - attribute: 2
+      value: 1
+    - attribute: 3
+      value: 1
+    - attribute: 4
+      value: 1
+    - attribute: 5
+      value: 1
+    - attribute: 6
+      value: 1
+    - attribute: 7
+      value: 1
+    - attribute: 8
+      value: 1
+    - attribute: 9
+      value: 1
+    - attribute: 10
+      value: 1
+    - attribute: 11
+      value: 1
+    - attribute: 12
+      value: 1
+    - attribute: 13
+      value: 1
+    - attribute: 14
+      value: 1
+    - attribute: 15
+      value: 1
+    - attribute: 16
+      value: 1
+    - attribute: 17
+      value: 1
+    - attribute: 18
+      value: 1
+    - attribute: 19
+      value: 1
+    - attribute: 20
+      value: 1
+    - attribute: 21
+      value: 1
+    - attribute: 22
+      value: 1
+    - attribute: 23
+      value: 1
+    - attribute: 24
+      value: 1
+    - attribute: 25
+      value: 1
+    abilityLevelBonus: 1
+    cooldownMultiplier: 0.95
+  - attributeBonus:
+    - attribute: 0
+      value: 1
+    - attribute: 1
+      value: 1
+    - attribute: 2
+      value: 1
+    - attribute: 3
+      value: 1
+    - attribute: 4
+      value: 1
+    - attribute: 5
+      value: 1
+    - attribute: 6
+      value: 1
+    - attribute: 7
+      value: 1
+    - attribute: 8
+      value: 1
+    - attribute: 9
+      value: 1
+    - attribute: 10
+      value: 1
+    - attribute: 11
+      value: 1
+    - attribute: 12
+      value: 1
+    - attribute: 13
+      value: 1
+    - attribute: 14
+      value: 1
+    - attribute: 15
+      value: 1
+    - attribute: 16
+      value: 1
+    - attribute: 17
+      value: 1
+    - attribute: 18
+      value: 1
+    - attribute: 19
+      value: 1
+    - attribute: 20
+      value: 1
+    - attribute: 21
+      value: 1
+    - attribute: 22
+      value: 1
+    - attribute: 23
+      value: 1
+    - attribute: 24
+      value: 1
+    - attribute: 25
+      value: 1
+    abilityLevelBonus: 0
+    cooldownMultiplier: 0.95
+  - attributeBonus:
+    - attribute: 0
+      value: 1
+    - attribute: 1
+      value: 1
+    - attribute: 2
+      value: 1
+    - attribute: 3
+      value: 1
+    - attribute: 4
+      value: 1
+    - attribute: 5
+      value: 1
+    - attribute: 6
+      value: 1
+    - attribute: 7
+      value: 1
+    - attribute: 8
+      value: 1
+    - attribute: 9
+      value: 1
+    - attribute: 10
+      value: 1
+    - attribute: 11
+      value: 1
+    - attribute: 12
+      value: 1
+    - attribute: 13
+      value: 1
+    - attribute: 14
+      value: 1
+    - attribute: 15
+      value: 1
+    - attribute: 16
+      value: 1
+    - attribute: 17
+      value: 1
+    - attribute: 18
+      value: 1
+    - attribute: 19
+      value: 1
+    - attribute: 20
+      value: 1
+    - attribute: 21
+      value: 1
+    - attribute: 22
+      value: 1
+    - attribute: 23
+      value: 1
+    - attribute: 24
+      value: 1
+    - attribute: 25
+      value: 1
+    abilityLevelBonus: 1
+    cooldownMultiplier: 0.95

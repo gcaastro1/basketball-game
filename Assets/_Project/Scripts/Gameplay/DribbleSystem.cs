@@ -3,17 +3,18 @@ using Basket.Core;
 
 namespace Basket.Gameplay
 {
-    public class DribbleSystem : MonoBehaviour
+    // Visual dribble only (placeholder): bounces the held ball while the holder moves.
+    public sealed class DribbleSystem
     {
-        [SerializeField] private float bounceHeight = 0.35f;
-        [SerializeField] private float bounceFrequency = 2.2f;
-
-        private BallController ball;
+        private readonly BallController ball;
+        private readonly BallConfig config;
         private float phase;
+        private Transform lastHolder;
 
-        public void Configure(BallController ballController)
+        public DribbleSystem(BallController ballController, BallConfig ballConfig)
         {
             ball = ballController;
+            config = ballConfig;
         }
 
         public void Tick(bool isMoving, float dt)
@@ -21,15 +22,21 @@ namespace Basket.Gameplay
             if (ball.CurrentState != BallState.Held)
             {
                 phase = 0f;
+                lastHolder = null;
                 return;
+            }
+            if (ball.CurrentHolder != lastHolder)
+            {
+                phase = 0f;
+                lastHolder = ball.CurrentHolder;
             }
             if (!isMoving)
             {
                 ball.SetHeldLocalOffset(Vector3.zero);
                 return;
             }
-            phase += dt * bounceFrequency * Mathf.PI * 2f;
-            float offsetY = DribbleMath.ComputeBounceOffsetY(phase, bounceHeight);
+            phase += dt * config.dribbleFrequency * Mathf.PI * 2f;
+            float offsetY = DribbleMath.ComputeBounceOffsetY(phase, config.dribbleBounceHeight);
             ball.SetHeldLocalOffset(Vector3.up * offsetY);
         }
     }

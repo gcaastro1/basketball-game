@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 90e35f7810a34ea5a96801cb64c0ccdb, type: 3}
+  m_Name: ItemCatalog
+  m_EditorClassIdentifier: Basket.Meta::Basket.Meta.ItemCatalog
+  items:
+  - {fileID: 11400000, guid: 7e447011021e425d94ec9a9ba1c1b540, type: 2}
+  - {fileID: 11400000, guid: efd7486a756e47beab4253179553b22a, type: 2}
+  - {fileID: 11400000, guid: b8fdf980076442d3a1d2a7405c32cb43, type: 2}
+  - {fileID: 11400000, guid: d2dea6b71d10437b9205b1e3f147ddeb, type: 2}
+  - {fileID: 11400000, guid: 0893edd453544dcdaeff225707a39d19, type: 2}
+  - {fileID: 11400000, guid: ed79f15de60a4dbcbc9dfccef7205873, type: 2}
+  - {fileID: 11400000, guid: 3c4a02683c76433bbbe6842432ed6af6, type: 2}
+  - {fileID: 11400000, guid: 2011591184bd4eb4858fc393d8e75280, type: 2}
+  - {fileID: 11400000, guid: f22f14ab00a946e492b7e305a1de34b4, type: 2}

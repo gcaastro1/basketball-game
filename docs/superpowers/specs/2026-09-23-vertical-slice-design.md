@@ -1,8 +1,8 @@
 # Vertical Slice — Basquete 3D Anime (Subprojeto 1)
 
-**Status:** Aprovado para implementação
+**Status:** Implementado. Partes da arquitetura foram substituídas na Etapa 1.5 — ver `docs/decisoes.md` (D-002, D-003, D-005) e `docs/arquitetura.md`.
 **Data:** 2026-09-23
-**Escopo:** Primeiro subprojeto de um jogo maior (ver `docs/roadmap-mestre.md`, a ser extraído do briefing original). Este documento cobre **apenas** a base jogável mínima: 1 jogador humano vs 1 adversário controlado por IA, meia quadra, fundamentos básicos de basquete.
+**Escopo:** Primeiro subprojeto de um jogo maior (ver `docs/roadmap-mestre.md` e `docs/briefing-original.md`). Este documento cobre **apenas** a base jogável mínima: 1 jogador humano vs 1 adversário controlado por IA, meia quadra, fundamentos básicos de basquete.
 
 ## 1. Objetivo
 
@@ -20,7 +20,7 @@ Produzir a menor versão jogável do basquete que responda "sim" às perguntas d
 
 | Decisão | Escolha | Por quê |
 |---|---|---|
-| Unity | 6000.6.0f1 (única versão instalada na máquina) | Evita gerenciar múltiplas versões antes de haver motivo. |
+| Unity | 6000.6.2f1 (versão instalada na máquina) | Evita gerenciar múltiplas versões antes de haver motivo. |
 | Render Pipeline | URP | Melhor controle de shaders estilizados (toon/cel-shading) para estética anime + melhor performance em console futuro, vs HDRP mais pesado e menos direcionado a estilização. |
 | Multiplayer | Nenhum ainda — 1 humano vs 1 IA, local, mesma máquina | Valida o core de gameplay antes de qualquer decisão de rede/autoridade de estado, que é cara de mudar depois. |
 | Plataforma de desenvolvimento | PC (Windows) | Console vira meta de otimização em fase de polish, não trava decisões de input/render agora. |

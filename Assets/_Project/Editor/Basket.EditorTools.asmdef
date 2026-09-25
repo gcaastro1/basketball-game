@@ -1,8 +1,18 @@
 {
     "name": "Basket.EditorTools",
     "rootNamespace": "Basket.EditorTools",
-    "references": ["Basket.Core", "Basket.Gameplay", "Basket.AI", "Basket.Input", "Basket.UI", "Basket.Bootstrap"],
-    "includePlatforms": ["Editor"],
+    "references": [
+        "Basket.Core",
+        "Basket.Characters",
+        "Basket.Gameplay",
+        "Basket.AI",
+        "Basket.Input",
+        "Basket.UI",
+        "Basket.Bootstrap"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,

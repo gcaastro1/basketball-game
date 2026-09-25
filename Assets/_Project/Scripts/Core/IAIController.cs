@@ -1,8 +1,7 @@
 namespace Basket.Core
 {
-    public interface IAIController : IPlayerAgent
+    public interface IAIController : IAgentController
     {
         AIState CurrentState { get; }
-        void Tick(AIPerception perception);
     }
 }

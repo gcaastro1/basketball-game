@@ -1,0 +1,85 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f414015141664794b64392bd95a1acc7, type: 3}
+  m_Name: Sample_Playmaker
+  m_EditorClassIdentifier: Basket.Characters::Basket.Characters.CharacterDefinition
+  characterId: sample_playmaker
+  displayName: Sample Playmaker
+  archetype: Playmaker
+  baseAttributes:
+  - attribute: 7
+    value: 92
+  - attribute: 6
+    value: 92
+  - attribute: 22
+    value: 92
+  - attribute: 20
+    value: 88
+  - attribute: 1
+    value: 75
+  - attribute: 2
+    value: 72
+  - attribute: 0
+    value: 70
+  - attribute: 3
+    value: 78
+  - attribute: 4
+    value: 40
+  - attribute: 5
+    value: 45
+  - attribute: 8
+    value: 82
+  - attribute: 14
+    value: 85
+  - attribute: 15
+    value: 86
+  - attribute: 19
+    value: 88
+  - attribute: 17
+    value: 60
+  - attribute: 16
+    value: 50
+  - attribute: 18
+    value: 80
+  - attribute: 9
+    value: 68
+  - attribute: 10
+    value: 45
+  - attribute: 11
+    value: 72
+  - attribute: 12
+    value: 35
+  - attribute: 13
+    value: 50
+  - attribute: 21
+    value: 70
+  - attribute: 23
+    value: 80
+  - attribute: 24
+    value: 65
+  - attribute: 25
+    value: 50
+  growthPerLevel:
+  - attribute: 7
+    value: 0.15
+  - attribute: 6
+    value: 0.15
+  abilities:
+  - ability: {fileID: 11400000, guid: bc3387ff094f4ed2a28d9c9001eab2d5, type: 2}
+    unlockAtLimitBreak: 0
+  aiTendencies:
+    threePointPreference: 1.0
+    drivePreference: 1.1
+    passPreference: 1.7
+    stealAggression: 1.1
+    abilityUsage: 0.5
+  visual: {fileID: 11400000, guid: ac158575cc594dfb8f9b3472c8a28306, type: 2}

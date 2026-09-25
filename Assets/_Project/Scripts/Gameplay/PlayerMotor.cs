@@ -5,56 +5,123 @@ namespace Basket.Gameplay
     [RequireComponent(typeof(CharacterController))]
     public class PlayerMotor : MonoBehaviour
     {
+        // While grounded, every Move() pushes this far down so CharacterController keeps
+        // reporting ground contact. It is a distance, not a speed: a dt-scaled push becomes
+        // sub-millimetre at high frame rates and ground contact then flickers every frame
+        // (found in CI, where batchmode frames are tiny).
+        private const float GroundSnapDistance = 0.05f;
+
         [SerializeField] private PlayerMovementConfig config;
 
         private CharacterController controller;
-        private Vector3 velocity;
+        private Vector3 horizontalVelocity;
+        private float verticalVelocity;
+        private bool grounded;
+        private float speedScale = 1f;
+        private float accelerationScale = 1f;
+        private float turnScale = 1f;
+        private float jumpHeightScale = 1f;
 
-        public Vector3 Velocity => velocity;
+        public PlayerMovementConfig Config => config;
+        public bool IsGrounded => grounded;
+        public Vector3 HorizontalVelocity => horizontalVelocity;
+        // Includes vertical velocity while airborne.
+        public Vector3 Velocity => horizontalVelocity + Vector3.up * (grounded ? 0f : verticalVelocity);
+        public float JumpHeight => config.jumpHeight * jumpHeightScale;
+        public float JumpSpeed => Mathf.Sqrt(2f * Mathf.Abs(Physics.gravity.y) * JumpHeight);
+        public float MaxSpeed => config.maxSpeed * speedScale;
+
+        // Per-player multipliers from attributes / stamina (1 = config values).
+        public void SetScales(float speed, float acceleration, float turn, float jumpHeight)
+        {
+            speedScale = speed;
+            accelerationScale = acceleration;
+            turnScale = turn;
+            jumpHeightScale = jumpHeight;
+        }
 
         private void Awake()
         {
             controller = GetComponent<CharacterController>();
+            // Default 1 mm threshold silently drops small per-frame moves at high frame rates.
+            controller.minMoveDistance = 0f;
+        }
+
+        public void Configure(PlayerMovementConfig movementConfig)
+        {
+            config = movementConfig;
         }
 
         public void Tick(Vector2 moveInput, bool sprint, float dt)
         {
             Vector3 desiredDir = new Vector3(moveInput.x, 0f, moveInput.y);
-            float speed = config.maxSpeed * (sprint ? config.sprintMultiplier : 1f);
-            velocity = PlayerMotorMath.ComputeVelocity(velocity, desiredDir, speed, config.acceleration, config.deceleration, dt);
+            float speed = MaxSpeed * (sprint ? config.sprintMultiplier : 1f);
+            float acceleration = config.acceleration * accelerationScale;
 
-            if (velocity.sqrMagnitude > 0.0001f)
+            if (grounded)
             {
-                Quaternion targetRot = Quaternion.LookRotation(velocity.normalized, Vector3.up);
-                transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRot, config.turnSpeedDegrees * dt);
+                horizontalVelocity = PlayerMotorMath.ComputeVelocity(horizontalVelocity, desiredDir, speed, acceleration, config.deceleration, dt);
+            }
+            else if (desiredDir.sqrMagnitude > 0.0001f)
+            {
+                // Airborne: momentum is kept; input only steers a little.
+                horizontalVelocity = PlayerMotorMath.ComputeVelocity(horizontalVelocity, desiredDir, speed, acceleration * config.airControl, 0f, dt);
             }
 
-            // CharacterController.SimpleMove(Vector3) silently re-multiplies its argument
-            // by Unity's real Time.deltaTime internally, discarding the dt this method was
-            // given and making movement depend on real frame timing instead of the caller's
-            // explicit dt. Use Move() with a pre-scaled motion vector instead, which moves by
-            // exactly the vector given, so a test driving Tick() with a fixed synthetic dt
-            // gets deterministic, real-timing-independent displacement. isGrounded needs a
-            // continuous small downward push to read true on flat ground (no floor exists
-            // in Task 5's unit test, so it free-falls slowly there instead — that's fine,
-            // only horizontal displacement is asserted).
-            // The stick push is dt-scaled so its cumulative effect doesn't depend on
-            // frame rate. The airborne branch below is a deliberately simplified
-            // displacement-only fall (not real velocity-integrated gravity) — this
-            // slice has no jump/fall gameplay (see Global Constraints), so the
-            // player is always grounded in practice and this branch is effectively
-            // dead code; do not spend design effort on it here. If a future task
-            // actually needs real airborne physics, replace this with a persisted
-            // vertical-velocity field integrated each frame, not a bigger patch to
-            // this line.
-            Vector3 motion = velocity * dt;
-            motion.y = controller.isGrounded ? -0.05f * dt : Physics.gravity.y * dt;
-            controller.Move(motion);
+            if (horizontalVelocity.sqrMagnitude > 0.0001f)
+            {
+                Quaternion targetRot = Quaternion.LookRotation(horizontalVelocity.normalized, Vector3.up);
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRot, config.turnSpeedDegrees * turnScale * dt);
+            }
+
+            // Move() (not SimpleMove) so displacement uses exactly the dt given: tests that
+            // drive Tick() with a synthetic dt get deterministic results.
+            Vector3 motion = horizontalVelocity * dt;
+            if (grounded && verticalVelocity <= 0f)
+            {
+                verticalVelocity = 0f;
+                motion.y = -GroundSnapDistance;
+            }
+            else
+            {
+                verticalVelocity += Physics.gravity.y * dt;
+                motion.y = verticalVelocity * dt;
+            }
+
+            CollisionFlags flags = controller.Move(motion);
+            bool hitGround = (flags & CollisionFlags.Below) != 0;
+            if ((flags & CollisionFlags.Above) != 0 && verticalVelocity > 0f) verticalVelocity = 0f;
+
+            grounded = hitGround && verticalVelocity <= 0f;
+            if (grounded) verticalVelocity = 0f;
         }
 
-        internal void SetConfigForTest(PlayerMovementConfig testConfig)
+        public bool Jump() => Jump(horizontalVelocity);
+
+        // Jump with an explicit horizontal takeoff velocity (e.g. a dunk lunge).
+        public bool Jump(Vector3 takeoffHorizontalVelocity)
         {
-            config = testConfig;
+            if (!grounded) return false;
+            takeoffHorizontalVelocity.y = 0f;
+            horizontalVelocity = takeoffHorizontalVelocity;
+            verticalVelocity = JumpSpeed;
+            grounded = false;
+            return true;
         }
+
+        // Moving a CharacterController's transform directly is overwritten by its internal
+        // state on the next Move(); it has to be disabled while repositioning.
+        public void Teleport(Vector3 position, Quaternion rotation)
+        {
+            bool wasEnabled = controller.enabled;
+            controller.enabled = false;
+            transform.SetPositionAndRotation(position, rotation);
+            controller.enabled = wasEnabled;
+            horizontalVelocity = Vector3.zero;
+            verticalVelocity = 0f;
+            grounded = true;
+        }
+
+        internal void SetConfigForTest(PlayerMovementConfig testConfig) => Configure(testConfig);
     }
 }

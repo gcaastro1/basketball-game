@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3391c0b590334f539990724b14357c62, type: 3}
+  m_Name: DefaultAIConfig
+  m_EditorClassIdentifier: Basket.AI::Basket.AI.AIConfig
+  contestDistance: 2.5
+  contestStandoff: 1.1
+  guardDistance: 1.5
+  blockRange: 1.6
+  blockTriggerVerticalSpeed: 2
+  stealRange: 1.2
+  stealIntervalSeconds: 4
+  shootRange: 5.5
+  driveChance: 0.4
+  driveFinishDistance: 1.8
+  minHoldSecondsBeforeShot: 0.5
+  releaseTimingJitterSeconds: 0.06
+  setFeetSpeed: 1
+  shotClockUrgencySeconds: 2.5
+  clearMargin: 0.8
+  reboundJumpMinHeight: 2.3
+  reboundJumpRange: 1.2
+  reboundLeadSeconds: 0.3
+  arrivalDistance: 0.2
+  sprintWhenChasing: 1

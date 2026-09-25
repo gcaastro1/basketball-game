@@ -12,6 +12,12 @@ namespace Basket.Gameplay
             target = followTarget;
         }
 
+        public void Configure(Transform followTarget, CameraConfig cameraConfig)
+        {
+            config = cameraConfig;
+            target = followTarget;
+        }
+
         private void LateUpdate()
         {
             if (target == null) return;

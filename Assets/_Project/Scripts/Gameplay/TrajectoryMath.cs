@@ -29,5 +29,77 @@ namespace Basket.Gameplay
 
             return velocityXZ + Vector3.up * velocityY;
         }
+
+        // Flight time of the analytic arc (same apex rule as ComputeArcVelocity).
+        public static float EstimateFlightTime(Vector3 origin, Vector3 target, float apexHeight, float gravity)
+        {
+            float g = Mathf.Abs(gravity);
+            float dy = target.y - origin.y;
+            float apexAboveOrigin = Mathf.Max(apexHeight, 0.01f) + Mathf.Max(0f, dy);
+            return Mathf.Sqrt(2f * apexAboveOrigin / g) + Mathf.Sqrt(2f * (apexAboveOrigin - dy) / g);
+        }
+
+        // The analytic arc above assumes continuous, drag-free motion. The physics engine
+        // integrates in fixed steps and applies linear damping, which on a ~2 s shot lands
+        // the ball tens of centimetres short -- enough to hit the front rim every time.
+        // This corrects the launch velocity against the same discrete integrator so the
+        // ball's descending path crosses the target height at the target.
+        public static Vector3 ComputeCompensatedArcVelocity(Vector3 origin, Vector3 target, float apexHeight, float gravity,
+            float linearDamping, float fixedDeltaTime)
+        {
+            Vector3 velocity = ComputeArcVelocity(origin, target, apexHeight, gravity);
+            if (fixedDeltaTime <= 0f) return velocity;
+
+            Vector3 desiredXZ = new Vector3(target.x - origin.x, 0f, target.z - origin.z);
+            for (int attempt = 0; attempt < 10; attempt++)
+            {
+                if (!TrySimulateDescendingCrossing(origin, velocity, target.y, gravity, linearDamping, fixedDeltaTime, out Vector3 crossing, out _))
+                {
+                    // Damping cost the apex too much height: launch a bit higher and retry.
+                    velocity.y *= 1.05f;
+                    continue;
+                }
+
+                // Damping scales every velocity component equally and gravity only acts on
+                // y, so horizontal travel at the (y-determined) crossing time is linear in
+                // the horizontal launch speed: one proportional correction is exact.
+                Vector3 achievedXZ = new Vector3(crossing.x - origin.x, 0f, crossing.z - origin.z);
+                if (achievedXZ.sqrMagnitude > 1e-8f && desiredXZ.sqrMagnitude > 1e-8f)
+                {
+                    float scale = desiredXZ.magnitude / achievedXZ.magnitude;
+                    velocity.x *= scale;
+                    velocity.z *= scale;
+                }
+                return velocity;
+            }
+            return velocity;
+        }
+
+        // Mirrors the engine's per-step order: gravity, then linear damping, then position.
+        public static bool TrySimulateDescendingCrossing(Vector3 origin, Vector3 velocity, float targetHeight, float gravity,
+            float linearDamping, float dt, out Vector3 crossing, out float time)
+        {
+            Vector3 pos = origin;
+            Vector3 vel = velocity;
+            float dampFactor = Mathf.Max(0f, 1f - linearDamping * dt);
+            int maxSteps = Mathf.CeilToInt(10f / dt);
+            for (int step = 1; step <= maxSteps; step++)
+            {
+                vel.y += gravity * dt;
+                vel *= dampFactor;
+                Vector3 next = pos + vel * dt;
+                if (vel.y < 0f && pos.y >= targetHeight && next.y < targetHeight)
+                {
+                    float f = (pos.y - targetHeight) / (pos.y - next.y);
+                    crossing = Vector3.Lerp(pos, next, f);
+                    time = (step - 1 + f) * dt;
+                    return true;
+                }
+                pos = next;
+            }
+            crossing = pos;
+            time = maxSteps * dt;
+            return false;
+        }
     }
 }
