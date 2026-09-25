@@ -5,7 +5,7 @@ using UnityEngine.TestTools;
 using Basket.Core;
 using Basket.Gameplay;
 
-public class PassAndShootSystemTests
+public class PassSystemTests
 {
     private GameObject ballGo, shooterGo, targetGo;
     private BallController ball;
@@ -46,20 +46,6 @@ public class PassAndShootSystemTests
         Assert.AreEqual(BallState.Passing, ball.CurrentState);
         Vector3 v = ballGo.GetComponent<Rigidbody>().linearVelocity;
         Assert.Greater(v.x, 0f, "heads toward the target");
-    }
-
-    [UnityTest]
-    public IEnumerator TryShoot_WhileHolding_ReleasesBallTowardRim()
-    {
-        yield return null;
-        ball.Catch(shooterGo.transform);
-        var shootSystem = new ShootingSystem(ball, ScriptableObject.CreateInstance<ShotConfig>(), targetGo.transform.position + Vector3.up * 3f);
-
-        bool result = shootSystem.TryShoot(shooterGo.transform);
-
-        Assert.IsTrue(result);
-        Assert.AreEqual(BallState.Shooting, ball.CurrentState);
-        Assert.Greater(ballGo.GetComponent<Rigidbody>().linearVelocity.y, 0f);
     }
 
     [UnityTest]

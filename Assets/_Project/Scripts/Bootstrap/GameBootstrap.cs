@@ -25,11 +25,13 @@ namespace Basket.Bootstrap
         [SerializeField] private CourtConfig courtConfig;
         [SerializeField] private BallConfig ballConfig;
         [SerializeField] private ShotConfig shotConfig;
+        [SerializeField] private DefenseConfig defenseConfig;
         [SerializeField] private PlayerMovementConfig movementConfig;
         [SerializeField] private CameraConfig cameraConfig;
         [SerializeField] private AIConfig aiConfig;
 
         public MatchSimulation Simulation { get; private set; }
+        private readonly List<System.IDisposable> disposables = new List<System.IDisposable>();
 
         private void Awake()
         {
@@ -53,7 +55,9 @@ namespace Basket.Bootstrap
 
                 if (human)
                 {
-                    controllers.Add(new HumanInputProvider());
+                    var input = new HumanInputProvider();
+                    disposables.Add(input);
+                    controllers.Add(input);
                     if (cameraTarget == null) cameraTarget = player;
                 }
                 else
@@ -65,13 +69,13 @@ namespace Basket.Bootstrap
             }
 
             Simulation = new MatchSimulation(players, controllers, arena.Ball, arena.Hoop,
-                courtConfig, matchRules, ballConfig, shotConfig);
+                courtConfig, matchRules, ballConfig, shotConfig, defenseConfig);
 
             if (cameraTarget == null && players.Count > 0) cameraTarget = players[0];
             BuildCamera(cameraTarget != null ? cameraTarget.transform : arena.Ball.transform);
 
             var hud = new GameObject("DebugHud").AddComponent<DebugHud>();
-            hud.Configure(Simulation.Match.State, arena.Ball, aiControllers);
+            hud.Configure(Simulation.Match.State, arena.Ball, aiControllers, Simulation);
 
             Simulation.Begin();
         }
@@ -84,6 +88,8 @@ namespace Basket.Bootstrap
         private void OnDestroy()
         {
             Simulation?.Dispose();
+            foreach (var d in disposables) d.Dispose();
+            disposables.Clear();
         }
 
         private void BuildCamera(Transform target)
@@ -109,6 +115,7 @@ namespace Basket.Bootstrap
             courtConfig = OrDefault(courtConfig);
             ballConfig = OrDefault(ballConfig);
             shotConfig = OrDefault(shotConfig);
+            defenseConfig = OrDefault(defenseConfig);
             movementConfig = OrDefault(movementConfig);
             cameraConfig = OrDefault(cameraConfig);
             aiConfig = OrDefault(aiConfig);

@@ -11,14 +11,20 @@ namespace Basket.Core
         public readonly Vector2 Move;
         public readonly bool Sprint;
         public readonly bool Pass;
-        public readonly bool Shoot;
+        // Level, not edge: going true starts a shot (the player jumps), going false
+        // releases it. Release timing relative to the jump apex affects accuracy.
+        public readonly bool ShootHeld;
+        public readonly bool Jump;
+        public readonly bool Steal;
 
-        public PlayerCommand(Vector2 move, bool sprint = false, bool pass = false, bool shoot = false)
+        public PlayerCommand(Vector2 move, bool sprint = false, bool pass = false, bool shootHeld = false, bool jump = false, bool steal = false)
         {
             Move = move;
             Sprint = sprint;
             Pass = pass;
-            Shoot = shoot;
+            ShootHeld = shootHeld;
+            Jump = jump;
+            Steal = steal;
         }
 
         public static PlayerCommand None => default;

@@ -7,14 +7,22 @@ public class AIAgentControllerTests
 {
     private static readonly Vector3 Hoop = new Vector3(0f, 3.05f, 13.1f);
 
-    private static AIPerception WithBall(Vector3 self, float time) =>
-        new AIPerception(self, Vector3.zero, self, opponentHasBall: false, selfHasBall: true,
-            teammateHasBall: false, attackHoop: Hoop, defendHoop: Hoop, time: time);
+    private static AIConfig Config(float driveChance = 0f, float jitter = 0f)
+    {
+        var c = ScriptableObject.CreateInstance<AIConfig>();
+        c.driveChance = driveChance;
+        c.releaseTimingJitterSeconds = jitter;
+        return c;
+    }
+
+    private static AIPerception WithBall(Vector3 self, float time, bool grounded = true, float vy = 0f) =>
+        new AIPerception(self, new Vector3(20f, 0f, 0f), self, opponentHasBall: false, selfHasBall: true,
+            attackHoop: Hoop, defendHoop: Hoop, time: time, selfVelocity: new Vector3(0f, vy, 0f), selfGrounded: grounded);
 
     [Test]
     public void LooseBall_ChasesBall()
     {
-        var ai = new AIAgentController();
+        var ai = new AIAgentController(Config());
         var cmd = ai.Decide(new AIPerception(Vector3.zero, new Vector3(-5f, 0f, 0f), new Vector3(3f, 0f, 0f), false, false));
 
         Assert.AreEqual(AIState.Chase, ai.CurrentState);
@@ -25,32 +33,84 @@ public class AIAgentControllerTests
     [Test]
     public void WithBall_FarFromHoop_DrivesTowardHoopWithoutShooting()
     {
-        var ai = new AIAgentController();
-        var cmd = ai.Decide(WithBall(new Vector3(0f, 0f, 1f), time: 0f));
-        cmd = ai.Decide(WithBall(new Vector3(0f, 0f, 1f), time: 5f));
+        var ai = new AIAgentController(Config());
+        ai.Decide(WithBall(new Vector3(0f, 0f, 1f), time: 0f));
+        var cmd = ai.Decide(WithBall(new Vector3(0f, 0f, 1f), time: 5f));
 
         Assert.AreEqual(AIState.Attack, ai.CurrentState);
         Assert.Greater(cmd.Move.y, 0f);
-        Assert.IsFalse(cmd.Shoot);
+        Assert.IsFalse(cmd.ShootHeld);
     }
 
     [Test]
-    public void WithBall_InRange_ShootsOnlyAfterMinimumHold()
+    public void JumpShot_HoldsUntilApexThenReleases()
     {
-        var config = ScriptableObject.CreateInstance<AIConfig>();
+        var config = Config();
         var ai = new AIAgentController(config);
         Vector3 inRange = new Vector3(0f, 0f, Hoop.z - config.shootRange + 0.5f);
 
-        Assert.IsFalse(ai.Decide(WithBall(inRange, time: 10f)).Shoot, "just caught: must hold first");
-        Assert.IsTrue(ai.Decide(WithBall(inRange, time: 10f + config.minHoldSecondsBeforeShot)).Shoot);
+        Assert.IsFalse(ai.Decide(WithBall(inRange, 10f)).ShootHeld, "just caught: must hold first");
+        Assert.IsTrue(ai.Decide(WithBall(inRange, 10.6f)).ShootHeld, "starts the shot");
+        Assert.IsTrue(ai.Decide(WithBall(inRange, 10.7f, grounded: false, vy: 2f)).ShootHeld, "still rising");
+        Assert.IsFalse(ai.Decide(WithBall(inRange, 10.9f, grounded: false, vy: -0.01f)).ShootHeld, "released at the apex");
+    }
+
+    [Test]
+    public void Drive_SprintsToTheRimBeforeShooting()
+    {
+        var config = Config(driveChance: 1f);
+        var ai = new AIAgentController(config);
+        Vector3 jumperRange = new Vector3(0f, 0f, Hoop.z - config.shootRange + 0.5f);
+
+        ai.Decide(WithBall(jumperRange, 0f));
+        var cmd = ai.Decide(WithBall(jumperRange, 1f));
+        Assert.IsFalse(cmd.ShootHeld, "a drive does not settle for the jumper");
+        Assert.IsTrue(cmd.Sprint);
+
+        Vector3 atRim = new Vector3(0f, 0f, Hoop.z - config.driveFinishDistance + 0.2f);
+        cmd = ai.Decide(WithBall(atRim, 1.5f));
+        Assert.IsTrue(cmd.ShootHeld);
+        Assert.IsTrue(cmd.Sprint, "sprinting into the finish (dunk attempt)");
+    }
+
+    [Test]
+    public void Defender_JumpsToBlockAShooterNearTheApex()
+    {
+        var ai = new AIAgentController(Config());
+        var p = new AIPerception(Vector3.zero, new Vector3(0f, 0f, 1f), Vector3.zero, opponentHasBall: true, selfHasBall: false,
+            attackHoop: Hoop, defendHoop: Hoop, opponentVelocity: new Vector3(0f, 1f, 0f), opponentGrounded: false);
+
+        Assert.IsTrue(ai.Decide(p).Jump);
+    }
+
+    [Test]
+    public void Defender_DoesNotJumpAtAGroundedHandler_ButReachesForTheBall()
+    {
+        var ai = new AIAgentController(Config());
+        var p = new AIPerception(Vector3.zero, new Vector3(0f, 0f, 1f), Vector3.zero, opponentHasBall: true, selfHasBall: false,
+            attackHoop: Hoop, defendHoop: Hoop, time: 5f);
+
+        var cmd = ai.Decide(p);
+        Assert.IsFalse(cmd.Jump);
+        Assert.IsTrue(cmd.Steal);
+        Assert.IsFalse(ai.Decide(p).Steal, "waits before reaching again");
+    }
+
+    [Test]
+    public void Rebound_JumpsForAHighDescendingBallOverhead()
+    {
+        var ai = new AIAgentController(Config());
+        var p = new AIPerception(Vector3.zero, new Vector3(5f, 0f, 0f), new Vector3(0.3f, 2.8f, 0f), false, false,
+            ballVelocity: new Vector3(0f, -2f, 0f), ballState: BallState.Free);
+
+        Assert.IsTrue(ai.Decide(p).Jump);
     }
 
     [Test]
     public void Guard_StandsBetweenManAndHoop()
     {
-        var ai = new AIAgentController();
+        var ai = new AIAgentController(Config());
         Vector3 man = new Vector3(0f, 0f, 5f);
-        // Self is beside the man, far enough not to contest.
         var p = new AIPerception(new Vector3(6f, 0f, 5f), man, man, opponentHasBall: true, selfHasBall: false,
             attackHoop: Hoop, defendHoop: Hoop);
 
@@ -71,7 +131,7 @@ public class AIAgentControllerTests
         s.SetAttackingHoop(TeamId.Away, Hoop);
         s.SetBall(new Vector3(0f, 1f, 2f), BallState.Held, 1);
 
-        var ai = new AIAgentController();
+        var ai = new AIAgentController(Config());
         ai.Decide(s, 0);
 
         Assert.AreEqual(AIState.ContestShot, ai.CurrentState);

@@ -5,12 +5,23 @@ namespace Basket.Gameplay
     [RequireComponent(typeof(CharacterController))]
     public class PlayerMotor : MonoBehaviour
     {
+        // Small constant downward speed while grounded so CharacterController keeps
+        // reporting ground contact on flat floors.
+        private const float GroundStickSpeed = 1f;
+
         [SerializeField] private PlayerMovementConfig config;
 
         private CharacterController controller;
-        private Vector3 velocity;
+        private Vector3 horizontalVelocity;
+        private float verticalVelocity;
+        private bool grounded;
 
-        public Vector3 Velocity => velocity;
+        public PlayerMovementConfig Config => config;
+        public bool IsGrounded => grounded;
+        public Vector3 HorizontalVelocity => horizontalVelocity;
+        // Includes vertical velocity while airborne.
+        public Vector3 Velocity => horizontalVelocity + Vector3.up * (grounded ? 0f : verticalVelocity);
+        public float JumpSpeed => Mathf.Sqrt(2f * Mathf.Abs(Physics.gravity.y) * config.jumpHeight);
 
         private void Awake()
         {
@@ -26,35 +37,47 @@ namespace Basket.Gameplay
         {
             Vector3 desiredDir = new Vector3(moveInput.x, 0f, moveInput.y);
             float speed = config.maxSpeed * (sprint ? config.sprintMultiplier : 1f);
-            velocity = PlayerMotorMath.ComputeVelocity(velocity, desiredDir, speed, config.acceleration, config.deceleration, dt);
 
-            if (velocity.sqrMagnitude > 0.0001f)
+            if (grounded)
             {
-                Quaternion targetRot = Quaternion.LookRotation(velocity.normalized, Vector3.up);
+                horizontalVelocity = PlayerMotorMath.ComputeVelocity(horizontalVelocity, desiredDir, speed, config.acceleration, config.deceleration, dt);
+            }
+            else if (desiredDir.sqrMagnitude > 0.0001f)
+            {
+                // Airborne: momentum is kept; input only steers a little.
+                horizontalVelocity = PlayerMotorMath.ComputeVelocity(horizontalVelocity, desiredDir, speed, config.acceleration * config.airControl, 0f, dt);
+            }
+
+            if (horizontalVelocity.sqrMagnitude > 0.0001f)
+            {
+                Quaternion targetRot = Quaternion.LookRotation(horizontalVelocity.normalized, Vector3.up);
                 transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRot, config.turnSpeedDegrees * dt);
             }
 
-            // CharacterController.SimpleMove(Vector3) silently re-multiplies its argument
-            // by Unity's real Time.deltaTime internally, discarding the dt this method was
-            // given and making movement depend on real frame timing instead of the caller's
-            // explicit dt. Use Move() with a pre-scaled motion vector instead, which moves by
-            // exactly the vector given, so a test driving Tick() with a fixed synthetic dt
-            // gets deterministic, real-timing-independent displacement. isGrounded needs a
-            // continuous small downward push to read true on flat ground (no floor exists
-            // in Task 5's unit test, so it free-falls slowly there instead — that's fine,
-            // only horizontal displacement is asserted).
-            // The stick push is dt-scaled so its cumulative effect doesn't depend on
-            // frame rate. The airborne branch below is a deliberately simplified
-            // displacement-only fall (not real velocity-integrated gravity) — this
-            // slice has no jump/fall gameplay (see Global Constraints), so the
-            // player is always grounded in practice and this branch is effectively
-            // dead code; do not spend design effort on it here. If a future task
-            // actually needs real airborne physics, replace this with a persisted
-            // vertical-velocity field integrated each frame, not a bigger patch to
-            // this line.
-            Vector3 motion = velocity * dt;
-            motion.y = controller.isGrounded ? -0.05f * dt : Physics.gravity.y * dt;
-            controller.Move(motion);
+            // Move() (not SimpleMove) so displacement uses exactly the dt given: tests that
+            // drive Tick() with a synthetic dt get deterministic results.
+            if (grounded && verticalVelocity <= 0f) verticalVelocity = -GroundStickSpeed;
+            else verticalVelocity += Physics.gravity.y * dt;
+
+            CollisionFlags flags = controller.Move((horizontalVelocity + Vector3.up * verticalVelocity) * dt);
+            bool hitGround = (flags & CollisionFlags.Below) != 0;
+            if ((flags & CollisionFlags.Above) != 0 && verticalVelocity > 0f) verticalVelocity = 0f;
+
+            grounded = hitGround && verticalVelocity <= 0f;
+            if (grounded) verticalVelocity = 0f;
+        }
+
+        public bool Jump() => Jump(horizontalVelocity);
+
+        // Jump with an explicit horizontal takeoff velocity (e.g. a dunk lunge).
+        public bool Jump(Vector3 takeoffHorizontalVelocity)
+        {
+            if (!grounded) return false;
+            takeoffHorizontalVelocity.y = 0f;
+            horizontalVelocity = takeoffHorizontalVelocity;
+            verticalVelocity = JumpSpeed;
+            grounded = false;
+            return true;
         }
 
         // Moving a CharacterController's transform directly is overwritten by its internal
@@ -65,7 +88,9 @@ namespace Basket.Gameplay
             controller.enabled = false;
             transform.SetPositionAndRotation(position, rotation);
             controller.enabled = wasEnabled;
-            velocity = Vector3.zero;
+            horizontalVelocity = Vector3.zero;
+            verticalVelocity = 0f;
+            grounded = true;
         }
 
         internal void SetConfigForTest(PlayerMovementConfig testConfig) => Configure(testConfig);

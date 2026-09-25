@@ -27,6 +27,7 @@ namespace Basket.EditorTools
             so.FindProperty("courtConfig").objectReferenceValue = LoadOrCreateAsset<CourtConfig>("DefaultCourtConfig");
             so.FindProperty("ballConfig").objectReferenceValue = LoadOrCreateAsset<BallConfig>("DefaultBallConfig");
             so.FindProperty("shotConfig").objectReferenceValue = LoadOrCreateAsset<ShotConfig>("DefaultShotConfig");
+            so.FindProperty("defenseConfig").objectReferenceValue = LoadOrCreateAsset<DefenseConfig>("DefaultDefenseConfig");
             so.FindProperty("movementConfig").objectReferenceValue = LoadOrCreateAsset<PlayerMovementConfig>("DefaultPlayerMovementConfig");
             so.FindProperty("cameraConfig").objectReferenceValue = LoadOrCreateAsset<CameraConfig>("DefaultCameraConfig");
             so.FindProperty("aiConfig").objectReferenceValue = LoadOrCreateAsset<AIConfig>("DefaultAIConfig");

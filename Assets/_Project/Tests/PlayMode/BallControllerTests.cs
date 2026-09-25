@@ -145,4 +145,36 @@ public class BallControllerTests
         Assert.IsFalse(caught);
         Assert.AreEqual(BallState.Free, ball.CurrentState);
     }
+
+    [UnityTest]
+    public IEnumerator Player_CanOnlyCatchBallsWithinReach()
+    {
+        PlayerEntity player = PlaceholderPlayerFactory.Create("Rebounder", TeamId.Home,
+            ScriptableObject.CreateInstance<PlayerMovementConfig>(), Color.gray, Color.yellow);
+        yield return null;
+        Vector3 feet = player.FeetPosition;
+        ballGo.GetComponent<Rigidbody>().isKinematic = true; // hold the ball in place for the check
+
+        ballGo.transform.position = feet + new Vector3(0.3f, 2.9f, 0f);
+        Assert.IsFalse(ball.CanBeCaughtBy(player.transform), "above standing reach");
+
+        ballGo.transform.position = feet + new Vector3(0.3f, 2.0f, 0f);
+        Assert.IsTrue(ball.CanBeCaughtBy(player.transform));
+
+        Object.Destroy(player.gameObject);
+    }
+
+    [UnityTest]
+    public IEnumerator KnockLoose_FromHeld_FreesBallAndBlocksImmediateRegrab()
+    {
+        yield return null;
+        ball.Catch(holderGo.transform);
+        ball.KnockLoose(Vector3.right, TeamId.Away);
+
+        Assert.AreEqual(BallState.Free, ball.CurrentState);
+        Assert.IsNull(ball.CurrentHolder);
+        Assert.AreEqual(TeamId.Away, ball.LastTouchTeam);
+        holderGo.transform.position = ballGo.transform.position;
+        Assert.IsFalse(ball.TryCatchNearby(holderGo.transform), "previous holder is in the grace period");
+    }
 }

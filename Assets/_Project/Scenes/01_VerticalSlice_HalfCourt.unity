@@ -168,6 +168,7 @@ MonoBehaviour:
   courtConfig: {fileID: 11400000, guid: 423257621d424b828c82903506c16e58, type: 2}
   ballConfig: {fileID: 11400000, guid: a6c6cb0c31247b745b5fb31f5cd29c02, type: 2}
   shotConfig: {fileID: 11400000, guid: 74ba7e43135dbc74a9cefa283d58ef54, type: 2}
+  defenseConfig: {fileID: 11400000, guid: 66899ae0f9814261b324f9e8a7c991cc, type: 2}
   movementConfig: {fileID: 11400000, guid: 70242c44193fd93478d4b555a169352d, type: 2}
   cameraConfig: {fileID: 11400000, guid: 811659fc9a838c546afcb79e395937ef, type: 2}
   aiConfig: {fileID: 11400000, guid: 372506d32ce3472198d900547f36a615, type: 2}

@@ -14,6 +14,8 @@ de troca.
 | D-006 | Layers físicas `Player`, `Ball`, `Court`, `Hoop` (8–11) | Aceita |
 | D-007 | CI em dois níveis: type-check sem Unity + GameCI com Unity | Aceita |
 | D-008 | Tripo3D Bridge fica no manifest local; só o CI o remove | Aceita |
+| D-009 | Botões contextuais (com bola: arremesso/passe; sem bola: pulo/roubo) + buffer de 0,15 s | Aceita |
+| D-010 | Precisão = raio de erro de mira (m) no plano do aro, com multiplicadores independentes | **Provisória** (valores) |
 | P-001 | Modo B (controle do time) | **Pendente** (antes da Etapa 4) |
 | P-002 | Semântica dos Limit Breaks (o que o "4º LB" no nível 60 destrava) | **Pendente** (antes da Etapa 5) |
 
@@ -83,3 +85,20 @@ defensor encostando num arremesso o "pegava".
 O package aponta para `file:D:/Downloads/...` (máquina do desenvolvedor) e é usado para importar
 modelos. Continua no `manifest.json`. O job de CI remove essa dependência **apenas na cópia do
 runner**; nenhum código do projeto depende dela.
+
+## D-009 — Input contextual
+
+Dois botões de ação cobrem o que o jogador precisa em cada situação (padrão do gênero):
+com a bola, *Primary* = arremesso (segurar/soltar) e *Secondary* = passe; sem a bola,
+*Primary* = pulo (bloqueio/rebote) e *Secondary* = roubo. Ações definidas em código
+(`BasketInputActions`), remapeáveis em runtime. Um aperto fica "guardado" 0,15 s
+(`InputBuffer`), e o buffer é descartado quando o contexto muda (um roubo não vira passe).
+
+## D-010 — Modelo de precisão (provisório nos valores)
+
+O arremesso não sorteia "cesta/erro". Ele sorteia **para onde a bola é mirada**: um ponto
+num disco no plano do aro, com raio = base(tipo, distância) × timing × contest × movimento ×
+rating. A física decide o resto (aro, tabela, rebote). Vantagens: resultados visualmente
+coerentes, cada fator testável isoladamente, e o `rating` vira atributo de personagem na
+Etapa 5 sem mudar a fórmula. Os números em `DefaultShotConfig` são estimativas iniciais; o
+HUD mostra o relatório de cada arremesso para calibrar.

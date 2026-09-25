@@ -13,9 +13,19 @@ MonoBehaviour:
   m_Name: DefaultAIConfig
   m_EditorClassIdentifier: Basket.AI::Basket.AI.AIConfig
   contestDistance: 2.5
-  contestStandoff: 1.3
+  contestStandoff: 1.1
   guardDistance: 1.5
+  blockRange: 1.6
+  blockTriggerVerticalSpeed: 2
+  stealRange: 1.2
+  stealIntervalSeconds: 2.5
   shootRange: 5.5
+  driveChance: 0.4
+  driveFinishDistance: 1.8
   minHoldSecondsBeforeShot: 0.5
+  releaseTimingJitterSeconds: 0.06
+  reboundJumpMinHeight: 2.3
+  reboundJumpRange: 1.2
+  reboundLeadSeconds: 0.3
   arrivalDistance: 0.2
   sprintWhenChasing: 1

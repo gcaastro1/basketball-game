@@ -9,7 +9,7 @@ namespace Basket.Gameplay
     // snapshot -> each controller decides a PlayerCommand -> commands are applied through
     // the motor and ball systems -> loose-ball pickup -> rules tick.
     // Owns no Unity lifecycle; whoever composes the match calls Tick(dt).
-    public sealed class MatchSimulation : IDisposable
+    public sealed class MatchSimulation : IDisposable, IMatchEventFeed
     {
         private const float CourtEdgeMargin = 0.5f;
 
@@ -18,7 +18,8 @@ namespace Basket.Gameplay
         private readonly BallController ball;
         private readonly CourtConfig court;
         private readonly PassSystem passSystem;
-        private readonly ShootingSystem shootingSystem;
+        private readonly ShotSystem shotSystem;
+        private readonly DefenseSystem defenseSystem;
         private readonly DribbleSystem dribbleSystem;
         private readonly MatchSnapshot snapshot;
         private float time;
@@ -27,10 +28,12 @@ namespace Basket.Gameplay
         public MatchSnapshot Snapshot => snapshot;
         public IReadOnlyList<PlayerEntity> Players => players;
         public BallController Ball => ball;
+        public IShotReportSource ShotReports => shotSystem;
+        public event Action<string> OnMatchEvent;
 
         public MatchSimulation(IReadOnlyList<PlayerEntity> players, IReadOnlyList<IAgentController> controllers,
             BallController ball, HoopController hoop, CourtConfig court, MatchRules rules,
-            BallConfig ballConfig, ShotConfig shotConfig, System.Random random = null)
+            BallConfig ballConfig, ShotConfig shotConfig, DefenseConfig defenseConfig = null, System.Random random = null)
         {
             if (players.Count != controllers.Count)
                 throw new ArgumentException("Every player needs exactly one controller.");
@@ -47,8 +50,14 @@ namespace Basket.Gameplay
             this.ball = ball;
             this.court = court;
             passSystem = new PassSystem(ball, ballConfig);
-            shootingSystem = new ShootingSystem(ball, shotConfig, hoop.RimCenter, random);
+            random ??= new System.Random();
+            if (defenseConfig == null) defenseConfig = ScriptableObject.CreateInstance<DefenseConfig>();
+            shotSystem = new ShotSystem(players.Count, ball, shotConfig, ballConfig, hoop.RimCenter, random);
+            defenseSystem = new DefenseSystem(players.Count, ball, defenseConfig, random);
             dribbleSystem = new DribbleSystem(ball, ballConfig);
+            shotSystem.OnShotTaken += ReportShot;
+            defenseSystem.OnSteal += i => Raise($"STEAL by {this.players[i].name}");
+            defenseSystem.OnBlock += i => Raise($"BLOCK by {this.players[i].name}");
 
             snapshot = new MatchSnapshot(players.Count);
             // Half court: both teams attack the single hoop.
@@ -77,6 +86,7 @@ namespace Basket.Gameplay
 
             if (live)
             {
+                defenseSystem.CheckBlocks(players, ball.LastTouchTeam);
                 CatchLooseBall();
                 if (ball.CurrentState != BallState.Held && IsOutOfPlay(ball.Position))
                 {
@@ -90,19 +100,28 @@ namespace Basket.Gameplay
         {
             PlayerEntity player = players[index];
             player.Motor.Tick(command.Move, command.Sprint, dt);
+            bool holding = ball.CurrentHolder == player.transform;
 
-            if (ball.CurrentHolder != player.transform) return;
-            dribbleSystem.Tick(command.Move.sqrMagnitude > 0.01f, dt);
+            if (live) shotSystem.Tick(index, player, command, snapshot, time);
+            if (shotSystem.IsShooting(index)) return;
 
-            if (!live) return;
-            if (command.Shoot)
+            if (holding)
             {
-                shootingSystem.TryShoot(player.transform);
+                dribbleSystem.Tick(command.Move.sqrMagnitude > 0.01f, dt);
+                if (live && command.Pass)
+                {
+                    int target = PassTargeting.SelectTarget(snapshot, index, command.Move);
+                    if (target >= 0) passSystem.TryPass(player.transform, players[target].transform);
+                }
+                return;
             }
-            else if (command.Pass)
+
+            // Jumping with the ball without shooting would be a travel; only off-ball jumps.
+            if (command.Jump && player.Motor.IsGrounded) player.Motor.Jump();
+            if (live && command.Steal)
             {
-                int target = PassTargeting.SelectTarget(snapshot, index, command.Move);
-                if (target >= 0) passSystem.TryPass(player.transform, players[target].transform);
+                int holder = snapshot.BallHolderIndex;
+                defenseSystem.TrySteal(index, players, holder >= 0 && shotSystem.IsShooting(holder), time);
             }
         }
 
@@ -139,10 +158,10 @@ namespace Basket.Gameplay
             for (int i = 0; i < players.Length; i++)
             {
                 PlayerEntity p = players[i];
-                snapshot.SetPlayer(i, p.Team, p.FeetPosition, p.Motor.Velocity);
+                snapshot.SetPlayer(i, p.Team, p.FeetPosition, p.Motor.Velocity, p.Motor.IsGrounded);
                 if (ball.CurrentHolder == p.transform) holder = i;
             }
-            snapshot.SetBall(ball.Position, ball.CurrentState, holder);
+            snapshot.SetBall(ball.Position, ball.CurrentState, holder, ball.Velocity);
             snapshot.SetMatch(Match.State.Phase, time);
         }
 
@@ -182,12 +201,24 @@ namespace Basket.Gameplay
                 defense[k].TeleportFeetTo(spot, offenseSpots[k] - spot);
             }
 
+            shotSystem.ResetAll();
             ball.ResetToHolder(offense[0].transform);
         }
+
+        private void ReportShot(ShotReport r)
+        {
+            string timing = r.Type != ShotType.JumpShot ? "auto"
+                : Mathf.Abs(r.TimingError) <= 0.05f ? "PERFECT"
+                : r.TimingError < 0f ? $"early {-r.TimingError:0.00}s" : $"late {r.TimingError:0.00}s";
+            Raise($"{r.Type} by {players[r.ShooterIndex].name}: {r.Distance:0.0} m, {timing}, contest {r.Contest:0.00}, error {r.ErrorRadius:0.00} m");
+        }
+
+        private void Raise(string message) => OnMatchEvent?.Invoke(message);
 
         public void Dispose()
         {
             ball.OnScored -= Match.HandleScore;
+            shotSystem.OnShotTaken -= ReportShot;
             Match.OnPossessionRestart -= SetUpPossession;
         }
     }

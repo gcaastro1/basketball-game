@@ -22,6 +22,8 @@ namespace Basket.Gameplay
 
         [Header("Catching")]
         public float catchRadius = 1.0f;
+        // Ball can be caught up to this far above a player's reach (hand size).
+        public float catchReachMargin = 0.15f;
 
         [Header("Dribble")]
         public float dribbleBounceHeight = 0.85f;

@@ -40,6 +40,9 @@ namespace Basket.Gameplay
         // Team of the last player to hold/release the ball; null if never touched by a PlayerEntity.
         public TeamId? LastTouchTeam { get; private set; }
         public bool HasLiveRelease => releaseLive;
+        public Vector3 Velocity => rb != null && !rb.isKinematic ? rb.linearVelocity : Vector3.zero;
+        // Time.time of the last release or knock-loose.
+        public float LastReleaseTime => lastReleaseTime;
         public float Radius => ballCollider is SphereCollider sphere ? sphere.radius * MaxAbsScale() : 0.12f;
 
         public event Action<BallState, BallState> OnStateChanged
@@ -151,6 +154,46 @@ namespace Basket.Gameplay
             rb.linearVelocity = velocity;
         }
 
+        // Release from an explicit position (e.g. a dunk puts the ball above the rim).
+        public void ReleaseAt(BallState releaseState, Vector3 position, Vector3 velocity)
+        {
+            if (stateMachine.CurrentState != BallState.Held) return;
+            Release(releaseState, velocity);
+            transform.position = position;
+            rb.position = position;
+        }
+
+        // Steal / block: the ball is knocked away and becomes a loose ball. It cannot score
+        // from this touch, and whoever last had it cannot re-grab it for the grace period.
+        public void KnockLoose(Vector3 velocity, TeamId? touchedBy)
+        {
+            Transform previous = CurrentHolder != null ? CurrentHolder : lastReleasedBy;
+            PlayerEntity previousEntity = holderEntity;
+
+            stateMachine.ForceState(BallState.Free);
+            CurrentHolder = null;
+            holderEntity = null;
+            releaseLive = false;
+            heldLocalOffset = Vector3.zero;
+            lastReleasedBy = previous;
+            lastReleaseTime = Time.time;
+            if (touchedBy.HasValue) LastTouchTeam = touchedBy;
+
+            RestoreReleaserCollision();
+            if (ballCollider != null)
+            {
+                ballCollider.enabled = true;
+                if (previousEntity != null && previousEntity.BodyCollider != null)
+                {
+                    ignoredReleaserCollider = previousEntity.BodyCollider;
+                    Physics.IgnoreCollision(ballCollider, ignoredReleaserCollider, true);
+                }
+            }
+            rb.isKinematic = false;
+            SetFlightPhysics();
+            rb.linearVelocity = velocity;
+        }
+
         public void SetHeldLocalOffset(Vector3 offset)
         {
             heldLocalOffset = offset;
@@ -252,15 +295,27 @@ namespace Basket.Gameplay
         {
             if (!IsCatchable) return false;
             if (InSelfCatchGrace(player)) return false;
+            if (!player.TryGetComponent<PlayerEntity>(out var entity))
+            {
+                return Vector3.Distance(transform.position, player.position) <= config.catchRadius;
+            }
+            // A PlayerEntity must be able to reach the ball: horizontally close, and not
+            // above their fingertips (jumping raises them -- that is how rebounds are won).
+            float heightAboveFeet = transform.position.y - entity.FeetPosition.y;
+            if (heightAboveFeet > entity.StandingReach + config.catchReachMargin || heightAboveFeet < -0.2f) return false;
             return DistanceTo(player) <= config.catchRadius;
         }
 
+        // Horizontal distance for players (height is checked separately by reach).
         public float DistanceTo(Transform player)
         {
-            Vector3 anchor = player.TryGetComponent<PlayerEntity>(out var entity)
-                ? entity.FeetPosition + Vector3.up * config.holdHeightAboveFeet
-                : player.position;
-            return Vector3.Distance(transform.position, anchor);
+            if (player.TryGetComponent<PlayerEntity>(out var entity))
+            {
+                Vector3 d = transform.position - entity.FeetPosition;
+                d.y = 0f;
+                return d.magnitude;
+            }
+            return Vector3.Distance(transform.position, player.position);
         }
 
         private float MaxAbsScale()

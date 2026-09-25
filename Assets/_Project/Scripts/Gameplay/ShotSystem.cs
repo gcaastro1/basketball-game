@@ -1,0 +1,188 @@
+using System;
+using UnityEngine;
+using Basket.Core;
+
+namespace Basket.Gameplay
+{
+    // Shooting, layups and dunks for every player.
+    // Press shoot (while holding the ball on the ground) -> the player jumps with the ball
+    // raised; a jump shot releases when the button is let go (best at the jump apex);
+    // layups and dunks finish automatically at the apex. Landing with the ball forces a
+    // (very late) release.
+    public sealed class ShotSystem : IShotReportSource
+    {
+        private enum Phase { None, Rising }
+
+        // Ignore "landed" for a moment after takeoff (the controller may still report ground).
+        private const float MinAirTime = 0.1f;
+
+        private readonly BallController ball;
+        private readonly ShotConfig config;
+        private readonly BallConfig ballConfig;
+        private readonly Vector3 rimCenter;
+        private readonly System.Random rng;
+
+        private readonly Phase[] phase;
+        private readonly ShotType[] type;
+        private readonly float[] startTime;
+        private readonly float[] apexTime;
+        private readonly float[] takeoffSpeedRatio;
+        private readonly bool[] previousHeld;
+
+        public event Action<ShotReport> OnShotTaken;
+
+        public ShotSystem(int playerCount, BallController ball, ShotConfig config, BallConfig ballConfig, Vector3 rimCenter, System.Random rng)
+        {
+            this.ball = ball;
+            this.config = config;
+            this.ballConfig = ballConfig;
+            this.rimCenter = rimCenter;
+            this.rng = rng ?? new System.Random();
+            phase = new Phase[playerCount];
+            type = new ShotType[playerCount];
+            startTime = new float[playerCount];
+            apexTime = new float[playerCount];
+            takeoffSpeedRatio = new float[playerCount];
+            previousHeld = new bool[playerCount];
+        }
+
+        public bool IsShooting(int index) => phase[index] != Phase.None;
+
+        public void ResetAll()
+        {
+            for (int i = 0; i < phase.Length; i++) phase[i] = Phase.None;
+        }
+
+        public void Tick(int index, PlayerEntity player, PlayerCommand command, MatchSnapshot snapshot, float time)
+        {
+            bool pressed = command.ShootHeld && !previousHeld[index];
+            previousHeld[index] = command.ShootHeld;
+            bool holding = ball.CurrentState == BallState.Held && ball.CurrentHolder == player.transform;
+
+            if (phase[index] == Phase.None)
+            {
+                if (holding && pressed && player.Motor.IsGrounded) Begin(index, player, command, time);
+                return;
+            }
+            if (!holding)
+            {
+                phase[index] = Phase.None;
+                return;
+            }
+
+            ball.SetHeldLocalOffset(Vector3.up * (config.shotPocketHeight - ballConfig.holdHeightAboveFeet));
+
+            bool landed = player.Motor.IsGrounded && time - startTime[index] > MinAirTime;
+            bool atApex = player.Motor.Velocity.y <= 0f;
+            switch (type[index])
+            {
+                case ShotType.JumpShot:
+                    if (!command.ShootHeld || landed) Release(index, player, snapshot, time);
+                    break;
+                case ShotType.Layup:
+                    if (atApex || landed) Release(index, player, snapshot, time);
+                    break;
+                case ShotType.Dunk:
+                    if (atApex || landed) FinishDunk(index, player, snapshot, time);
+                    break;
+            }
+        }
+
+        private void Begin(int index, PlayerEntity player, PlayerCommand command, float time)
+        {
+            PlayerMotor motor = player.Motor;
+            Vector3 feet = player.FeetPosition;
+            float distance = FlatDistance(feet, rimCenter);
+            float reachAtApex = feet.y + player.StandingReach + motor.Config.jumpHeight;
+            ShotType shotType = ShotAccuracyModel.Classify(distance, command.Sprint, reachAtApex, rimCenter.y, config);
+
+            float timeToApex = motor.JumpSpeed / Mathf.Abs(Physics.gravity.y);
+            takeoffSpeedRatio[index] = motor.HorizontalVelocity.magnitude / Mathf.Max(0.01f, motor.Config.maxSpeed);
+
+            bool jumped;
+            if (shotType == ShotType.Dunk)
+            {
+                // Lunge so the raised hand arrives near the rim at the apex.
+                Vector3 toRim = new Vector3(rimCenter.x - feet.x, 0f, rimCenter.z - feet.z);
+                float lungeDistance = Mathf.Max(0f, toRim.magnitude - config.dunkFinishReach * 0.3f);
+                Vector3 lunge = toRim.sqrMagnitude > 0.0001f
+                    ? toRim.normalized * Mathf.Min(config.maxDunkLungeSpeed, lungeDistance / timeToApex)
+                    : Vector3.zero;
+                jumped = motor.Jump(lunge);
+            }
+            else if (shotType == ShotType.JumpShot)
+            {
+                // A jump shot goes (mostly) straight up; a layup keeps the drive's momentum.
+                jumped = motor.Jump(motor.HorizontalVelocity * 0.3f);
+            }
+            else
+            {
+                jumped = motor.Jump();
+            }
+            if (!jumped) return;
+
+            phase[index] = Phase.Rising;
+            type[index] = shotType;
+            startTime[index] = time;
+            apexTime[index] = time + timeToApex;
+        }
+
+        private void Release(int index, PlayerEntity player, MatchSnapshot snapshot, float time)
+        {
+            ShotType shotType = type[index] == ShotType.Dunk ? ShotType.Layup : type[index];
+            Vector3 feet = player.FeetPosition;
+            float distance = FlatDistance(feet, rimCenter);
+            float timingError = time - apexTime[index];
+            float contest = MaxContest(index, feet, snapshot);
+
+            var input = new ShotAccuracyInput(shotType, distance, timingError, contest, takeoffSpeedRatio[index], config.defaultShooterRating);
+            float errorRadius = ShotAccuracyModel.ErrorRadius(input, config);
+            Vector3 target = rimCenter + ShotMath.SampleDiscOffset(errorRadius, rng);
+            float arc = shotType == ShotType.Layup ? config.layupArcHeight : config.arcHeight;
+            Vector3 velocity = TrajectoryMath.ComputeCompensatedArcVelocity(ball.Position, target, arc,
+                Physics.gravity.y, ball.LinearDamping, Time.fixedDeltaTime);
+
+            phase[index] = Phase.None;
+            ball.Release(BallState.Shooting, velocity);
+            OnShotTaken?.Invoke(new ShotReport(index, shotType, distance, timingError, contest, errorRadius));
+        }
+
+        private void FinishDunk(int index, PlayerEntity player, MatchSnapshot snapshot, float time)
+        {
+            Vector3 hand = player.ReachPoint;
+            bool canFinish = FlatDistance(hand, rimCenter) <= config.dunkFinishReach
+                             && hand.y >= rimCenter.y + config.dunkReachClearance;
+            if (!canFinish)
+            {
+                // Could not get to the rim: turns into a layup attempt.
+                Release(index, player, snapshot, time);
+                return;
+            }
+
+            phase[index] = Phase.None;
+            Vector3 feet = player.FeetPosition;
+            float contest = MaxContest(index, feet, snapshot);
+            ball.ReleaseAt(BallState.Shooting, rimCenter + Vector3.up * (ball.Radius + 0.1f), Vector3.down * config.dunkBallDropSpeed);
+            OnShotTaken?.Invoke(new ShotReport(index, ShotType.Dunk, FlatDistance(feet, rimCenter), 0f, contest, 0f));
+        }
+
+        private float MaxContest(int shooter, Vector3 shooterFeet, MatchSnapshot s)
+        {
+            TeamId team = s.GetTeam(shooter);
+            float max = 0f;
+            for (int i = 0; i < s.PlayerCount; i++)
+            {
+                if (s.GetTeam(i) == team) continue;
+                max = Mathf.Max(max, ContestMath.Contest(shooterFeet, rimCenter, s.GetPosition(i), !s.IsGrounded(i),
+                    config.contestRadius, config.airborneContestBonus));
+            }
+            return max;
+        }
+
+        private static float FlatDistance(Vector3 a, Vector3 b)
+        {
+            float dx = a.x - b.x, dz = a.z - b.z;
+            return Mathf.Sqrt(dx * dx + dz * dz);
+        }
+    }
+}

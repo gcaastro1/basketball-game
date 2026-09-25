@@ -28,6 +28,10 @@ namespace Basket.Gameplay
             Team = team;
         }
 
+        // Fingertip height with arms raised (moves with the player while jumping).
+        public float StandingReach => Motor != null && Motor.Config != null ? Motor.Config.standingReach : 2.4f;
+        public Vector3 ReachPoint => FeetPosition + Vector3.up * StandingReach;
+
         public Vector3 FeetPosition => body != null
             ? transform.position + body.center + Vector3.down * (body.height * 0.5f)
             : transform.position;

@@ -13,5 +13,23 @@ MonoBehaviour:
   m_Name: DefaultShotConfig
   m_EditorClassIdentifier: Basket.Gameplay::Basket.Gameplay.ShotConfig
   arcHeight: 3.5
-  baseAccuracyRadius: 0.35
+  layupArcHeight: 0.9
+  layupRange: 2.6
+  dunkRange: 2.2
+  dunkReachClearance: 0.1
+  dunkFinishReach: 0.9
+  maxDunkLungeSpeed: 6
+  dunkBallDropSpeed: 4
+  shotPocketHeight: 2.1
+  perfectReleaseWindow: 0.05
+  jumpShotBaseError: 0.09
+  jumpShotErrorPerMeter: 0.014
+  layupBaseError: 0.06
+  timingPenaltyPerSecond: 3
+  contestPenalty: 1
+  movePenalty: 0.5
+  contestRadius: 2
+  airborneContestBonus: 0.3
   defaultShooterRating: 0.75
+  ratingErrorScaleAtZero: 1.4
+  ratingErrorScaleAtOne: 0.6

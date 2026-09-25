@@ -17,3 +17,6 @@ MonoBehaviour:
   acceleration: 30
   deceleration: 40
   turnSpeedDegrees: 720
+  jumpHeight: 0.8
+  airControl: 0.15
+  standingReach: 2.45

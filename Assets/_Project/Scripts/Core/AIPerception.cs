@@ -16,9 +16,17 @@ namespace Basket.Core
         public readonly Vector3 AttackHoop;
         public readonly Vector3 DefendHoop;
         public readonly float Time;
+        public readonly Vector3 SelfVelocity;
+        public readonly bool SelfGrounded;
+        public readonly Vector3 OpponentVelocity;
+        public readonly bool OpponentGrounded;
+        public readonly Vector3 BallVelocity;
+        public readonly BallState BallState;
 
         public AIPerception(Vector3 selfPosition, Vector3 opponentPosition, Vector3 ballPosition, bool opponentHasBall, bool selfHasBall,
-            bool teammateHasBall = false, Vector3 attackHoop = default, Vector3 defendHoop = default, float time = 0f)
+            bool teammateHasBall = false, Vector3 attackHoop = default, Vector3 defendHoop = default, float time = 0f,
+            Vector3 selfVelocity = default, bool selfGrounded = true, Vector3 opponentVelocity = default, bool opponentGrounded = true,
+            Vector3 ballVelocity = default, BallState ballState = BallState.Free)
         {
             SelfPosition = selfPosition;
             OpponentPosition = opponentPosition;
@@ -29,6 +37,12 @@ namespace Basket.Core
             AttackHoop = attackHoop;
             DefendHoop = defendHoop;
             Time = time;
+            SelfVelocity = selfVelocity;
+            SelfGrounded = selfGrounded;
+            OpponentVelocity = opponentVelocity;
+            OpponentGrounded = opponentGrounded;
+            BallVelocity = ballVelocity;
+            BallState = ballState;
         }
 
         public static AIPerception FromSnapshot(MatchSnapshot s, int selfIndex)
@@ -43,9 +57,12 @@ namespace Basket.Core
 
             int focus = opponentHas ? holder : s.FindNearestOpponent(selfIndex);
             Vector3 focusPos = focus >= 0 ? s.GetPosition(focus) : selfPos;
+            Vector3 focusVel = focus >= 0 ? s.GetVelocity(focus) : Vector3.zero;
+            bool focusGrounded = focus < 0 || s.IsGrounded(focus);
 
             return new AIPerception(selfPos, focusPos, s.BallPosition, opponentHas, selfHas, teammateHas,
-                s.GetAttackingHoop(selfTeam), s.GetDefendedHoop(selfTeam), s.Time);
+                s.GetAttackingHoop(selfTeam), s.GetDefendedHoop(selfTeam), s.Time,
+                s.GetVelocity(selfIndex), s.IsGrounded(selfIndex), focusVel, focusGrounded, s.BallVelocity, s.BallState);
         }
     }
 }

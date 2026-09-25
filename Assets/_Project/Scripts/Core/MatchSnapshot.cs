@@ -11,6 +11,7 @@ namespace Basket.Core
         private readonly TeamId[] teams;
         private readonly Vector3[] positions;
         private readonly Vector3[] velocities;
+        private readonly bool[] grounded;
         private readonly Vector3[] attackingHoops = new Vector3[TeamIdExtensions.TeamCount];
 
         public MatchSnapshot(int playerCount)
@@ -18,10 +19,12 @@ namespace Basket.Core
             teams = new TeamId[playerCount];
             positions = new Vector3[playerCount];
             velocities = new Vector3[playerCount];
+            grounded = new bool[playerCount];
         }
 
         public int PlayerCount => teams.Length;
         public Vector3 BallPosition { get; private set; }
+        public Vector3 BallVelocity { get; private set; }
         public BallState BallState { get; private set; }
         // -1 when nobody holds the ball.
         public int BallHolderIndex { get; private set; } = -1;
@@ -30,7 +33,9 @@ namespace Basket.Core
 
         public TeamId GetTeam(int index) => teams[index];
         public Vector3 GetPosition(int index) => positions[index];
+        // Includes vertical velocity while jumping.
         public Vector3 GetVelocity(int index) => velocities[index];
+        public bool IsGrounded(int index) => grounded[index];
 
         // Half court: both teams attack the same hoop. Full court (5v5) sets them apart.
         public Vector3 GetAttackingHoop(TeamId team) => attackingHoops[(int)team];
@@ -38,16 +43,18 @@ namespace Basket.Core
 
         public TeamId? TeamInPossession => BallHolderIndex >= 0 ? teams[BallHolderIndex] : (TeamId?)null;
 
-        public void SetPlayer(int index, TeamId team, Vector3 position, Vector3 velocity)
+        public void SetPlayer(int index, TeamId team, Vector3 position, Vector3 velocity, bool isGrounded = true)
         {
             teams[index] = team;
             positions[index] = position;
             velocities[index] = velocity;
+            grounded[index] = isGrounded;
         }
 
-        public void SetBall(Vector3 position, BallState state, int holderIndex)
+        public void SetBall(Vector3 position, BallState state, int holderIndex, Vector3 velocity = default)
         {
             BallPosition = position;
+            BallVelocity = velocity;
             BallState = state;
             BallHolderIndex = holderIndex;
         }
