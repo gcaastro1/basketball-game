@@ -33,14 +33,17 @@ namespace Basket.AI
         // distance, the shooter's skill there and the nearest defender, times the arc bonus.
         // The AI knows its teammates' strengths: a shooter's open three reads better than a
         // center's.
+        // How contested a shot from here would be, by the AI's own read (0 open .. 1 draped).
+        public static float ContestRead(MatchSnapshot s, int index, AIConfig c) =>
+            Mathf.Clamp01(1f - NearestOpponentDistance(s, index) / c.contestReadRadius);
+
         public static float ShotValue(MatchSnapshot s, int index, AIConfig c)
         {
             Vector3 rim = s.GetAttackingHoop(s.GetTeam(index));
             float distance = FlatDistance(s.GetPosition(index), rim);
             float skill = Attributes.Centered(s.GetAttribute(index, ShotSkill(distance, s.ThreePointRadius)), c.shotSkillAtZero, c.shotSkillAtMax);
             float make = Mathf.Clamp01((c.qualityAtRim - c.qualityFalloffPerMeter * distance) * skill);
-            float contest = Mathf.Clamp01(1f - NearestOpponentDistance(s, index) / c.contestReadRadius);
-            float value = make * (1f - c.contestWeight * contest);
+            float value = make * (1f - c.contestWeight * ContestRead(s, index, c));
             float arcBonus = s.ArcValueRatio > 0f ? s.ArcValueRatio : c.threePointValueMultiplier;
             return distance >= s.ThreePointRadius ? value * arcBonus : value;
         }

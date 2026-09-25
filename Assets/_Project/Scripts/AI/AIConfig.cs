@@ -90,6 +90,9 @@ namespace Basket.AI
         // After holding this long, take the best available option.
         public float forceDecisionSeconds = 3f;
         public float minForcedQuality = 0.3f;
+        // ...and only when the AI's contest read is at most this; otherwise it passes or
+        // attacks the rim instead of forcing a smothered jumper.
+        public float forcedShotMaxContest = 0.4f;
 
         [Header("Team: shot quality estimate (the AI's own read, not the real model)")]
         public float qualityAtRim = 0.8f;

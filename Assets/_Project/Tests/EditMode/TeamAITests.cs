@@ -281,6 +281,20 @@ public class TeamAITests
     }
 
     [Test]
+    public void Handler_HeldTooLong_WithADefenderDraped_AttacksInsteadOfForcingTheJumper()
+    {
+        var pos = Standard();
+        // Holder beyond the arc with their defender a step away; teammates smothered too.
+        for (int i = 3; i < 6; i++) pos[i] = pos[i - 3] + new Vector3(0f, 0f, 0.6f);
+        var s = ThreeOnThree(pos, holder: 0);
+        Assume.That(TeamMath.ContestRead(s, 0, config), Is.GreaterThan(config.forcedShotMaxContest));
+
+        HandlerAction a = BallHandlerDecision.Decide(s, 0, TeamOrder.None, config.forceDecisionSeconds + 0.1f, config);
+        Assert.AreNotEqual(HandlerActionKind.Shoot, a.Kind);
+        Assert.AreNotEqual(HandlerActionKind.Hold, a.Kind);
+    }
+
+    [Test]
     public void AutoStrategy_FollowsWeights()
     {
         config.spacingPlayWeight = 0f;

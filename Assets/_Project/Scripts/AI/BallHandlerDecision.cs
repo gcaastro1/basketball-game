@@ -69,8 +69,14 @@ namespace Basket.AI
 
             if (heldFor >= c.forceDecisionSeconds)
             {
-                if (own >= c.minForcedQuality || mate < 0) return new HandlerAction(HandlerActionKind.Shoot);
-                return new HandlerAction(HandlerActionKind.Pass, s.GetPosition(mate), mate);
+                // Held too long: take the shot only if it is not smothered; otherwise move the
+                // ball to a better look, or attack the rim. (Forcing a draped jumper -- a three
+                // "worth" 0.37 in 3x3 with the defender a step away, then blocked -- was the
+                // AI-vs-AI run's main source of misses. The shot-clock buzzer is handled apart.)
+                if (own >= c.minForcedQuality && TeamMath.ContestRead(s, self, c) <= c.forcedShotMaxContest)
+                    return new HandlerAction(HandlerActionKind.Shoot);
+                if (mate >= 0 && mateValue > own) return new HandlerAction(HandlerActionKind.Pass, s.GetPosition(mate), mate);
+                return new HandlerAction(HandlerActionKind.Drive, rimFloor);
             }
             return new HandlerAction(HandlerActionKind.Hold, s.GetPosition(self));
         }
