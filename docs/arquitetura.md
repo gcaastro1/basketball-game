@@ -1,4 +1,4 @@
-# Arquitetura (estado após a Etapa 1.5)
+# Arquitetura (estado após a Etapa 8)
 
 ## Assemblies e dependências
 

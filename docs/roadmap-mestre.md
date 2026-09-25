@@ -14,8 +14,9 @@ conflitavam). Origem: `docs/auditoria/2026-09-25-auditoria-e-avaliacao.md`, seç
 | 5 Personagens | Definição/instância, atributos 0–99 + curvas, habilidades data-driven, níveis/LB/dupes | Arquétipos jogam diferente (medido) | ✅ (CI verde) — plano: `docs/etapas/etapa-5-personagens.md` |
 | 6 Animação | Rig Humanoid, Animator/blend trees, sockets/IK de mão e bola | Placeholders trocados sem mudar gameplay (`CharacterVisualTests`) | ✅ (CI verde: modelo 1,68 m no chão, mãos na bola, gameplay idêntico) — plano: `docs/etapas/etapa-6-animacao.md` |
 | 7 5v5 | Quadra inteira, transição, inbound, backcourt, IA de 5 | Partida 5v5 completa (`FullCourtTests`, cena `02_FullCourt_5v5`) | ✅ (CI verde) — plano: `docs/etapas/etapa-7-5v5.md` |
-| 8 Meta | Inventário, save versionado, economia, Gacha atrás de `IEconomyService` | Testes de pity/taxas com seed (`GachaTests`, `SaveSystemTests`) | ✅ código / ⏳ CI — plano: `docs/etapas/etapa-8-meta.md` |
+| 8 Meta | Inventário, save versionado, economia, Gacha atrás de `IEconomyService` | Testes de pity/taxas com seed (`GachaTests`, `SaveSystemTests`) | ✅ (CI verde: 243 EditMode + 52 PlayMode) — plano: `docs/etapas/etapa-8-meta.md` |
 | 9 História | Capítulos/diálogos/partidas-objetivo data-driven | Capítulo de teste | — |
 | 10 Polish | VFX anime, câmera cinemática, UI final, áudio, otimização | — | — |
 
 Decisões: `docs/decisoes.md`. Arquitetura: `docs/arquitetura.md`.
+Próximas tarefas: `docs/proximos-passos.md`. Guia para sessões do Claude: `CLAUDE.md`.
