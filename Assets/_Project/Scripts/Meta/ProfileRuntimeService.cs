@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Basket.Characters;
+using Basket.Core;
 
 namespace Basket.Meta
 {
@@ -63,6 +65,22 @@ namespace Basket.Meta
                 if (definition != null) owned.Add(definition);
             }
             return owned.Count >= requiredCount ? owned : null;
+        }
+
+        // Aplica a recompensa da partida (itens, personagens, xp aos que jogaram) e devolve um
+        // resumo já em tipos de Basket.Core (a UI nunca vê Reward/ObtainResult).
+        public MatchRewardSummary ApplyMatchReward(int ownScore, int opponentScore, IEnumerable<string> playedCharacterIds)
+        {
+            Reward reward = rewardRules.For(ownScore, opponentScore);
+            List<ObtainResult> obtainResults = RewardGranter.Grant(reward, Profile.Inventory, Profile.Economy,
+                progressionConfig, obtainRules, reason: "match_result", xpTo: playedCharacterIds);
+            Save();
+
+            List<string> itemDescriptions = reward.items?.Select(cost => $"{cost.itemId} x{cost.count}").ToList()
+                ?? new List<string>();
+            List<string> characterDescriptions = obtainResults.Select(r => $"{r.Instance.characterId} ({r.Outcome})").ToList();
+
+            return new MatchRewardSummary(won: ownScore > opponentScore, itemsGranted: itemDescriptions, charactersObtained: characterDescriptions);
         }
     }
 }

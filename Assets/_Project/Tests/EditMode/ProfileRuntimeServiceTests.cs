@@ -1,5 +1,6 @@
 using NUnit.Framework;
 using UnityEngine;
+using Basket.Core;
 using Basket.Meta;
 
 public class ProfileRuntimeServiceTests
@@ -78,5 +79,33 @@ public class ProfileRuntimeServiceTests
         var roster = service.BuildRosterOrNull(requiredCount: 1);
 
         Assert.IsNull(roster);
+    }
+
+    [Test]
+    public void ApplyMatchReward_Win_GrantsXpOnlyToPlayedCharacters()
+    {
+        var storage = new MemorySaveStorage();
+        var saveService = new SaveService(storage, new JsonSaveSerializer());
+        var itemCatalog = ScriptableObject.CreateInstance<ItemCatalog>();
+        var characterCatalog = ScriptableObject.CreateInstance<CharacterCatalog>();
+        var progression = ScriptableObject.CreateInstance<Basket.Characters.ProgressionConfig>();
+        var obtainRules = ScriptableObject.CreateInstance<CharacterObtainRules>();
+        // BuildService() usa um MatchRewardRules "zerado" (characterXp = 0 em win/loss/draw);
+        // este teste precisa de xp > 0 na vitória, então monta o próprio MatchRewardRules
+        // em vez de reusar o helper compartilhado.
+        var rewardRules = ScriptableObject.CreateInstance<MatchRewardRules>();
+        // 50 (não 100): com ProgressionConfig padrão (xpBase=100, xpExponent=1.5), 100 xp fecha
+        // o nível 1 exatamente e AddXp zera o excedente -- o teste ficaria comparando 0 com 0.
+        rewardRules.win.characterXp = 50;
+        var service = new ProfileRuntimeService(saveService, itemCatalog, characterCatalog, progression, obtainRules, rewardRules);
+        service.LoadOrCreate();
+        service.Profile.Inventory.AddCharacter(new Basket.Characters.CharacterInstance("ace"));
+        service.Profile.Inventory.AddCharacter(new Basket.Characters.CharacterInstance("bench"));
+
+        MatchRewardSummary summary = service.ApplyMatchReward(ownScore: 21, opponentScore: 15, playedCharacterIds: new[] { "ace" });
+
+        Assert.IsTrue(summary.Won);
+        Assert.Greater(service.Profile.Inventory.GetCharacter("ace").xp, 0);
+        Assert.AreEqual(0, service.Profile.Inventory.GetCharacter("bench").xp);
     }
 }
