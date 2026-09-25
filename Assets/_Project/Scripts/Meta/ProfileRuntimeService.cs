@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Basket.Characters;
 
 namespace Basket.Meta
@@ -49,6 +50,19 @@ namespace Basket.Meta
         {
             if (Profile == null || LastLoadStatus == SaveLoadStatus.NewerVersion) return;
             saveService.Save(SaveSlot, Profile.ToSave());
+        }
+
+        // Elenco possível a partir do que o jogador possui de verdade. Devolve null (o chamador
+        // cai para o MatchSetup configurado) se o perfil não tiver personagens suficientes ainda.
+        public List<CharacterDefinition> BuildRosterOrNull(int requiredCount)
+        {
+            var owned = new List<CharacterDefinition>();
+            foreach (CharacterInstance instance in Profile.Inventory.Characters)
+            {
+                CharacterDefinition definition = characterCatalog.Find(instance.characterId);
+                if (definition != null) owned.Add(definition);
+            }
+            return owned.Count >= requiredCount ? owned : null;
         }
     }
 }

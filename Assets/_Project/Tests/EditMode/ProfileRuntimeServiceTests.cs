@@ -41,4 +41,42 @@ public class ProfileRuntimeServiceTests
         Assert.IsTrue(reloaded.Inventory.Owns("ace"));
         Assert.AreEqual(3, reloaded.Inventory.GetCharacter("ace").level);
     }
+
+    [Test]
+    public void BuildRosterOrNull_EnoughOwnedCharacters_ReturnsThem()
+    {
+        var storage = new MemorySaveStorage();
+        var service = BuildService(storage);
+        PlayerProfile profile = service.LoadOrCreate();
+        var ace = ScriptableObject.CreateInstance<Basket.Characters.CharacterDefinition>();
+        ace.characterId = "ace";
+        // service's CharacterCatalog is private -- rebuild with a catalog containing "ace" for this test
+        var catalogWithAce = ScriptableObject.CreateInstance<CharacterCatalog>();
+        catalogWithAce.characters.Add(ace);
+        var serviceWithCatalog = new ProfileRuntimeService(
+            new SaveService(storage, new JsonSaveSerializer()),
+            ScriptableObject.CreateInstance<ItemCatalog>(), catalogWithAce,
+            ScriptableObject.CreateInstance<Basket.Characters.ProgressionConfig>(),
+            ScriptableObject.CreateInstance<CharacterObtainRules>(),
+            ScriptableObject.CreateInstance<MatchRewardRules>());
+        serviceWithCatalog.LoadOrCreate();
+        serviceWithCatalog.Profile.Inventory.AddCharacter(new Basket.Characters.CharacterInstance("ace"));
+
+        var roster = serviceWithCatalog.BuildRosterOrNull(requiredCount: 1);
+
+        Assert.IsNotNull(roster);
+        Assert.AreEqual(1, roster.Count);
+        Assert.AreEqual(ace, roster[0]);
+    }
+
+    [Test]
+    public void BuildRosterOrNull_NotEnoughOwnedCharacters_ReturnsNull()
+    {
+        var service = BuildService(new MemorySaveStorage());
+        service.LoadOrCreate();
+
+        var roster = service.BuildRosterOrNull(requiredCount: 1);
+
+        Assert.IsNull(roster);
+    }
 }
