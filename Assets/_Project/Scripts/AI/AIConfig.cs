@@ -79,9 +79,10 @@ namespace Basket.AI
 
         [Header("Team: shot quality estimate (the AI's own read, not the real model)")]
         public float qualityAtRim = 0.8f;
-        public float qualityFalloffPerMeter = 0.05f;
+        public float qualityFalloffPerMeter = 0.065f;
         public float contestReadRadius = 2f;
-        public float contestWeight = 0.5f;
+        public float contestWeight = 0.8f;
+        // Used only when the rules' point values are unknown.
         public float threePointValueMultiplier = 1.5f;
         // A defender this close to the passing lane makes the pass risky.
         public float passLaneDanger = 0.9f;

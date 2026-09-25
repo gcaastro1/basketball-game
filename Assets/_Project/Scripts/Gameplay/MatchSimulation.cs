@@ -71,6 +71,7 @@ namespace Basket.Gameplay
             snapshot.SetAttackingHoop(TeamId.Home, hoop.RimCenter);
             snapshot.SetAttackingHoop(TeamId.Away, hoop.RimCenter);
             snapshot.SetThreePointRadius(rules.threePointRadius);
+            snapshot.SetScoring(rules.pointsInsideArc, rules.pointsBeyondArc);
             snapshot.SetCourtCenter(new Vector3(0f, 0f, court.depth * 0.5f));
 
             Match = new MatchManager(rules, hoop.RimCenter);

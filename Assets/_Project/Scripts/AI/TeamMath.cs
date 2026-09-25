@@ -30,7 +30,8 @@ namespace Basket.AI
             float make = Mathf.Clamp01(c.qualityAtRim - c.qualityFalloffPerMeter * distance);
             float contest = Mathf.Clamp01(1f - NearestOpponentDistance(s, index) / c.contestReadRadius);
             float value = make * (1f - c.contestWeight * contest);
-            return distance >= s.ThreePointRadius ? value * c.threePointValueMultiplier : value;
+            float arcBonus = s.ArcValueRatio > 0f ? s.ArcValueRatio : c.threePointValueMultiplier;
+            return distance >= s.ThreePointRadius ? value * arcBonus : value;
         }
 
         // 1 = clean lane; drops toward 0 as a defender gets close to the passing line.

@@ -30,7 +30,7 @@ namespace Basket.Gameplay
 
         [Header("Accuracy: aim error radius (m) = base x modifiers")]
         public float jumpShotBaseError = 0.09f;
-        public float jumpShotErrorPerMeter = 0.014f;
+        public float jumpShotErrorPerMeter = 0.011f;
         public float layupBaseError = 0.06f;
         // Free throws: timed like a jump shot, never contested.
         public float freeThrowBaseError = 0.07f;

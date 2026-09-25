@@ -38,6 +38,8 @@ namespace Basket.Core
         // True while the team in possession still has to take the ball beyond the arc.
         public bool BallMustBeCleared { get; private set; }
         public float ThreePointRadius { get; private set; } = 6.75f;
+        // Points beyond the arc / points inside it (3x3: 2, classic: 1.5); 0 = unknown.
+        public float ArcValueRatio { get; private set; }
         // Middle of the playing area; with the hoop it gives the court's axis.
         public Vector3 CourtCenter { get; private set; }
 
@@ -83,6 +85,8 @@ namespace Basket.Core
         }
 
         public void SetThreePointRadius(float radius) => ThreePointRadius = radius;
+        public void SetScoring(int pointsInside, int pointsBeyond) =>
+            ArcValueRatio = pointsInside > 0 ? pointsBeyond / (float)pointsInside : 0f;
         public void SetCourtCenter(Vector3 center) => CourtCenter = center;
 
         // True if no teammate of `index` is closer (on the floor plane) to the ball.

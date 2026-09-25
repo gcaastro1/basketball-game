@@ -23,7 +23,7 @@ MonoBehaviour:
   shotPocketHeight: 2.1
   perfectReleaseWindow: 0.05
   jumpShotBaseError: 0.09
-  jumpShotErrorPerMeter: 0.014
+  jumpShotErrorPerMeter: 0.011
   layupBaseError: 0.06
   freeThrowBaseError: 0.07
   timingPenaltyPerSecond: 3
