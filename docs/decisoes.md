@@ -25,7 +25,9 @@ de troca.
 | D-017 | Quadra inteira = mesma simulação: `CourtConfig.fullCourt` espelha a cesta; cada `HoopController` sabe quem o ataca; regras de meia-quadra/linhas/bola ao alto são flags de `MatchRules` | Aceita |
 | D-018 | Passe "passa" pelo defensor colado ao passador (todo o voo) e só o recebedor pega com o raio cheio; interceptar exige estar na linha do passe | **Provisória** (valores) |
 | D-019 | Visual em assembly próprio (`Presentation`) que só lê o gameplay; modelo Humanoid; animação procedural por músculos até existirem clipes; clipes por Playables (sem Animator Controller) | Aceita (valores do procedural: **provisórios**) |
+| D-020 | Meta em assembly próprio (`Basket.Meta`, só Core + Characters): dados (SO), regras puras e serviços separados; apresentação fora; save versionado com checksum, escrita atômica e backup | Aceita |
 | P-001 | Modo B (controle do time) | **Pendente** — ponto de encaixe pronto: `ITeamStrategy` (e `IAgentController`) |
+| P-003 | Gacha definitivo (raridades, taxas, pity, custos, moedas) | **Provisória**: 3 níveis genéricos, 3/17/80%, pity 80 (soft 65, +6%), 50/50 com garantia, multi de 10 com garantia de nível 2 — tudo em `Data/Meta/StandardBanner.asset` |
 | P-002 | Semântica dos Limit Breaks | **Provisória**: 4 LBs (20→40, 40→50, 50→60, "Awakening" no 60 sem novo teto), tudo em `DefaultProgressionConfig` |
 
 ---
@@ -242,3 +244,20 @@ nos jogos IA×IA vinha das **paredes** do arena placeholder, que ficam sobre as 
 cantos/alas (8–8,5 m) seguravam a bola parcialmente dentro da parede e o arremesso morria nela (4 de 11 bolas
 longas no 3v3). Arremessos e passes agora saem de um ponto livre de cenário (`BallController.ClearOfScenery`).
 `LiveShotTests` fica como regressão de "arremesso ao vivo = modelo".
+
+## D-020 — Meta game (Etapa 8)
+
+O briefing pede separar sistema técnico do gacha, dados de banner, economia, apresentação e regras de
+obtenção. `Basket.Meta` depende só de Core e Characters (não conhece gameplay nem UI):
+- **Dados** em ScriptableObjects (itens, catálogo, banners, regras de obtenção, recompensas).
+- **Regras puras** testáveis sem Unity (`GachaEngine` com RNG injetável, `CharacterObtainer`,
+  `CharacterUpgrades`, `SaveMigrator`).
+- **Serviços** que juntam as partes (`EconomyService`, `GachaService`, `SaveService`, `PlayerProfile`).
+- O **inventário** implementa `IItemWallet`, então os Limit Breaks da Etapa 5 gastam materiais reais.
+- **Save**: dados do jogador separados da configuração (o save guarda ids); envelope com versão e
+  checksum; escrita atômica com backup; migração por versão; save de build mais nova nunca é sobrescrito.
+
+## P-003 — Gacha (provisória)
+
+Raridades, taxas, pity, moedas e custos são decisões em aberto (briefing, seção 3). Os valores atuais
+são placeholders coerentes com o gênero e estão **só em dados**; mudar qualquer um não exige código.

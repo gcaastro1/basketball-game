@@ -1,0 +1,17 @@
+{
+    "name": "Basket.Meta",
+    "rootNamespace": "Basket.Meta",
+    "references": [
+        "Basket.Core",
+        "Basket.Characters"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

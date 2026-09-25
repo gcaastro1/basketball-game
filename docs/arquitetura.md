@@ -6,6 +6,7 @@
 Core ◄── Characters ◄── Gameplay ◄──┐
                           ▲             │
                      Presentation ◄─────┤  (modelos e animação: só lê o gameplay)
+Core ◄── Characters ◄── Meta               (inventário, economia, gacha, save: sem gameplay)
   ▲  ◄── AI          ├── Bootstrap (composition root)
   ▲  ◄── Input       │
   ▲  ◄── UI     ◄────┘
@@ -59,6 +60,11 @@ Eventos
 | Trocar o modelo 3D de um personagem | `CharacterVisualDefinition` (`Data/Characters/DefaultCharacterVisual.asset`) → campo `visual` do `CharacterDefinition` |
 | Pôr animações de verdade | slots `clips` do `CharacterVisualDefinition` (idle + run ativam os clipes; o resto cai no procedural) |
 | Ajustar a animação procedural | `Presentation/ProceduralPoseMath.cs` (poses) e a tabela de músculos em `Presentation/ProceduralHumanoidAnimator.cs` |
+| Mudar taxas/pity/custos do gacha, criar banner | `Data/Meta/StandardBanner.asset` (`BannerDefinition`); lógica em `Meta/GachaEngine.cs` |
+| Criar moeda/material/item | asset `ItemDefinition` em `Data/Meta/Items` + incluir no `ItemCatalog` |
+| O que um dupe além do 6º vira | `Data/Meta/CharacterObtainRules.asset` |
+| Recompensas de partida | `Data/Meta/MatchRewardRules.asset` |
+| Formato do save / migração | `Meta/PlayerSave.cs` (`CurrentVersion`, `SaveMigrator`) |
 | Novo tipo de controle (Modo B, replay, rede) | nova implementação de `Core/IAgentController` |
 | Nova regra | `Gameplay/MatchManager` + campo em `MatchRules` (nunca nos controllers) |
 

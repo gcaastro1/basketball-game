@@ -8,6 +8,7 @@
         "Basket.AI",
         "Basket.Input",
         "Basket.Presentation",
+        "Basket.Meta",
         "Unity.InputSystem",
         "Unity.InputSystem.TestFramework",
         "UnityEngine.TestRunner",

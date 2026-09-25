@@ -1,0 +1,67 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c77ff2e6a6e94be380b77b1e5da71021, type: 3}
+  m_Name: StandardBanner
+  m_EditorClassIdentifier: Basket.Meta::Basket.Meta.BannerDefinition
+  bannerId: standard_placeholder
+  displayName: Standard Banner (placeholder)
+  description: 'Provisional banner: rarities, rates, pity and costs are placeholders (decision P-003).'
+  singleCost:
+    itemId: currency_gems
+    count: 160
+  multiCount: 10
+  multiCost:
+    itemId: currency_gems
+    count: 1600
+  multiGuaranteeRarityId: rarity_2
+  rarities:
+  - rarityId: rarity_3
+    displayName: Tier 3 (placeholder)
+    rate: 0.03
+  - rarityId: rarity_2
+    displayName: Tier 2 (placeholder)
+    rate: 0.17
+  - rarityId: rarity_1
+    displayName: Tier 1 (placeholder)
+    rate: 0.8
+  pool:
+  - character: {fileID: 11400000, guid: 2d282050a5fb42e48e99afb1a8bf2623, type: 2}
+    rarityId: rarity_3
+    featured: 1
+    weight: 1
+  - character: {fileID: 11400000, guid: d304cd73eaa74ddc9bc59157802ff4cb, type: 2}
+    rarityId: rarity_3
+    featured: 0
+    weight: 1
+  - character: {fileID: 11400000, guid: e99b48b726ef454cb9bd8ca8cec8eba0, type: 2}
+    rarityId: rarity_2
+    featured: 0
+    weight: 1
+  - character: {fileID: 11400000, guid: 6e4b07e5e37440b3a67c28dd7bc1d39b, type: 2}
+    rarityId: rarity_2
+    featured: 0
+    weight: 1
+  - character: {fileID: 11400000, guid: 9afa6e72fb6841ca9c34d4496ba3b17d, type: 2}
+    rarityId: rarity_1
+    featured: 0
+    weight: 1
+  - character: {fileID: 11400000, guid: 20f5382d1809459baece771fdab2a726, type: 2}
+    rarityId: rarity_1
+    featured: 0
+    weight: 1
+  pity:
+    group: standard
+    hardPity: 80
+    softPityStart: 65
+    softPityStep: 0.06
+    featuredGuarantee: 1
+    featuredChance: 0.5
