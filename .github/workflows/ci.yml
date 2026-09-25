@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: [main, 'claude/**']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  # Compile check without Unity. Needs no license, so it always runs.
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Mono
+        run: sudo apt-get update -q && sudo apt-get install -y -q mono-devel
+      - uses: actions/cache@v4
+        with:
+          path: tools/typecheck/.deps
+          key: typecheck-deps-v1
+      - run: tools/typecheck/check.sh
+
+  # Real EditMode + PlayMode run in Unity via GameCI.
+  # Requires repository secrets UNITY_LICENSE, UNITY_EMAIL, UNITY_PASSWORD
+  # (see docs/ci.md). Skipped with a warning while they are not set.
+  unity-tests:
+    runs-on: ubuntu-latest
+    env:
+      UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+      UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+      UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+    steps:
+      - name: Check Unity license secret
+        id: license
+        run: |
+          if [ -z "$UNITY_LICENSE" ]; then
+            echo "::warning::UNITY_LICENSE secret is not set; Unity tests skipped (see docs/ci.md)."
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.license.outputs.available == 'true'
+
+      # The Tripo3D bridge is referenced by an absolute path on the developer's machine
+      # (file:D:/...), which does not exist here. It is an editor import tool that no
+      # project code depends on, so CI drops it from its own copy of the manifest only.
+      - name: Drop machine-local packages
+        if: steps.license.outputs.available == 'true'
+        run: |
+          for f in Packages/manifest.json Packages/packages-lock.json; do
+            jq 'del(.dependencies["com.tripo3d.unitybridge"])' "$f" > "$f.tmp" && mv "$f.tmp" "$f"
+          done
+
+      - uses: actions/cache@v4
+        if: steps.license.outputs.available == 'true'
+        with:
+          path: Library
+          key: Library-${{ hashFiles('Packages/**', 'ProjectSettings/ProjectVersion.txt') }}
+          restore-keys: Library-
+
+      - uses: game-ci/unity-test-runner@v4
+        if: steps.license.outputs.available == 'true'
+        id: tests
+        with:
+          testMode: all
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          checkName: Unity test results
+
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.license.outputs.available == 'true'
+        with:
+          name: unity-test-results
+          path: ${{ steps.tests.outputs.artifactsPath }}

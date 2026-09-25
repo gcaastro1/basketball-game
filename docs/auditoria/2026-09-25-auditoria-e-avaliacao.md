@@ -1,5 +1,7 @@
 # Auditoria do projeto + Avaliação do briefing
 
+> **Atualização 2026-09-25:** Etapa 1.5 aprovada e implementada (C1–C5, I1, I2, I4, I6–I10). Tripo3D mantido no manifest local (D-008); CI configurado (D-007). Ver `docs/decisoes.md` e `docs/roadmap-mestre.md`. Pendentes: I3 e I5 (Etapa 2), P-001 e P-002.
+
 **Data:** 2026-09-25
 **Branch auditada:** `claude/hopeful-ptolemy-5nfm22` (idêntica a `main`, commit `14a74bd`)
 **Briefing:** `docs/briefing-original.md`
