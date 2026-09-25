@@ -115,6 +115,33 @@ public class FundamentalsTests
         Assert.AreEqual(1, match.Sim.Snapshot.BallHolderIndex, string.Join("\n", match.Events));
     }
 
+    // Regression (AI-vs-AI log): a pass thrown by a dribbling player at the bottom of the
+    // bounce touched the floor at once and was picked up by the passer's defender.
+    [UnityTest]
+    public IEnumerator Pass_WhileDribblingAtTheBottomOfTheBounce_ReachesTheTeammate()
+    {
+        bool passed = false;
+        float lowestBall = float.MaxValue;
+        match.Start(
+            (TeamId.Home, (s, self) =>
+            {
+                if (s.BallHolderIndex != self || passed) return PlayerCommand.None;
+                // Dribble (move) for a while, then pass on a low bounce.
+                bool low = s.BallPosition.y < 0.5f;
+                if (s.Time > 0.8f) lowestBall = Mathf.Min(lowestBall, s.BallPosition.y);
+                bool pass = s.Phase == MatchPhase.Live && s.Time > 0.8f && low;
+                if (pass) passed = true;
+                return new PlayerCommand(new Vector2(0.4f, 0f), pass: pass); // slow walk sideways, stays in bounds
+            }),
+            (TeamId.Home, TestMatch.Idle),
+            (TeamId.Away, TestMatch.Idle));
+
+        yield return match.RunUntil(() => passed && match.Sim.Snapshot.BallHolderIndex >= 0 && match.Sim.Snapshot.BallHolderIndex != 0, 5f);
+
+        Assert.IsTrue(passed, $"the pass was thrown from a low bounce (lowest ball seen {lowestBall:0.00} m)");
+        Assert.AreEqual(1, match.Sim.Snapshot.BallHolderIndex, string.Join("\n", match.Events));
+    }
+
     [UnityTest]
     public IEnumerator Block_DefenderJumpingInFront_DeflectsTheShot()
     {

@@ -247,7 +247,15 @@ namespace Basket.Gameplay
             rb.linearVelocity = velocity;
         }
 
-        private Vector3 HeldPosition()
+        // Where the holder's hand carries the ball, ignoring the dribble bounce: passes are
+        // thrown from here. (Released from the bottom of a bounce -- ~0.15 m off the floor --
+        // a pass touched the court at once, went loose next to the passer and was picked up
+        // by their defender: found by the AI-vs-AI per-pass log.)
+        public Vector3 HandPosition => CurrentHolder != null ? HeldPosition(Vector3.zero) : transform.position;
+
+        private Vector3 HeldPosition() => HeldPosition(heldLocalOffset);
+
+        private Vector3 HeldPosition(Vector3 localOffset)
         {
             if (holderEntity != null)
             {
@@ -256,9 +264,9 @@ namespace Basket.Gameplay
                        + Vector3.up * config.holdHeightAboveFeet
                        + t.forward * config.holdForwardOffset
                        + t.right * config.holdSideOffset
-                       + heldLocalOffset;
+                       + localOffset;
             }
-            return CurrentHolder.position + Vector3.up * config.handHeightOffset + heldLocalOffset;
+            return CurrentHolder.position + Vector3.up * config.handHeightOffset + localOffset;
         }
 
         private void LateUpdate()

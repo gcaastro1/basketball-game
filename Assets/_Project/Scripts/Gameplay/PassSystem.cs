@@ -21,7 +21,7 @@ namespace Basket.Gameplay
         {
             if (ball.CurrentState != BallState.Held || ball.CurrentHolder != passer) return false;
 
-            Vector3 origin = ball.Position;
+            Vector3 origin = ball.HandPosition;
             float apex = config.passApexHeight;
             if (passer.TryGetComponent<PlayerEntity>(out var passerEntity) && passerEntity.Tuning != null)
                 apex *= passerEntity.AttributeMult(AttributeId.Passing, passerEntity.Tuning.passApex);
@@ -43,7 +43,7 @@ namespace Basket.Gameplay
             Vector3 velocity = TrajectoryMath.ComputeCompensatedArcVelocity(origin, destination, apex,
                 Physics.gravity.y, ball.LinearDamping, Time.fixedDeltaTime);
 
-            ball.Release(BallState.Passing, velocity);
+            ball.ReleaseAt(BallState.Passing, origin, velocity);
             ball.BeginPass(target, PlayersNear(origin));
             return true;
         }
