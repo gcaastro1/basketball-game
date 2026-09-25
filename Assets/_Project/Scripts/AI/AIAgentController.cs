@@ -43,6 +43,16 @@ namespace Basket.AI
         {
             snapshot = s;
             selfIndex = self;
+            // A pass is coming to me: go meet the ball instead of following team orders
+            // (lead passes to a receiver who then changed direction landed alone and went
+            // loose -- AI-vs-AI log).
+            if (s.BallState == BallState.Passing && s.PassTargetIndex == self)
+            {
+                Vector3 me = s.GetPosition(self);
+                Vector3 ballAhead = s.BallPosition + new Vector3(s.BallVelocity.x, 0f, s.BallVelocity.z) * config.meetPassLookAhead;
+                snapshot = null;
+                return new PlayerCommand(MoveToward(me, new Vector3(ballAhead.x, me.y, ballAhead.z), 0.2f), sprint: true);
+            }
             int focus = -1;
             if (brain != null)
             {

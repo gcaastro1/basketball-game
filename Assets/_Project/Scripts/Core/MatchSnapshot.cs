@@ -35,6 +35,9 @@ namespace Basket.Core
         public BallState BallState { get; private set; }
         // -1 when nobody holds the ball.
         public int BallHolderIndex { get; private set; } = -1;
+        // Intended receiver of the pass in flight (-1 = none).
+        public int PassTargetIndex { get; private set; } = -1;
+        public void SetPassTarget(int index) => PassTargetIndex = index;
         public MatchPhase Phase { get; private set; }
         public float Time { get; private set; }
         // Negative when the rules have no shot clock.

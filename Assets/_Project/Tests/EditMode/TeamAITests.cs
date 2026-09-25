@@ -295,6 +295,23 @@ public class TeamAITests
     }
 
     [Test]
+    public void Receiver_OfAPassInFlight_GoesToMeetTheBall()
+    {
+        var s = ThreeOnThree(Standard(), holder: -1);
+        // Ball in flight from the handler (top) toward the left wing (player 1 at -5, 8).
+        var ballPos = new Vector3(-2f, 1.5f, 6.5f);
+        s.SetBall(ballPos, BallState.Passing, -1, new Vector3(-6f, 0f, 3f));
+        s.SetPassTarget(1);
+        var brain = new TeamBrain(TeamId.Home, 6, config, rng: new System.Random(1));
+        var ai = new AIAgentController(config, new System.Random(1), brain);
+
+        PlayerCommand cmd = ai.Decide(s, 1);
+        Vector3 toBall = ballPos - s.GetPosition(1);
+        Assert.Greater(Vector2.Dot(cmd.Move.normalized, new Vector2(toBall.x, toBall.z).normalized), 0.8f, "moves toward the ball");
+        Assert.IsTrue(cmd.Sprint);
+    }
+
+    [Test]
     public void AutoStrategy_FollowsWeights()
     {
         config.spacingPlayWeight = 0f;

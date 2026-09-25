@@ -30,6 +30,11 @@ namespace Basket.Gameplay
         // the defender standing next to the passer "caught" nearly every pass at release --
         // found by the AI-vs-AI simulation).
         private Transform passReceiver;
+        // Diagnostics of the last pass (AI-vs-AI log): did it go loose, how close did it
+        // get to its receiver.
+        public bool PassWentLoose { get; private set; }
+        public float PassClosestToReceiver { get; private set; } = float.PositiveInfinity;
+        public Transform PassReceiver => stateMachine.CurrentState == BallState.Passing ? passReceiver : null;
         private readonly List<Collider> passIgnoredColliders = new List<Collider>();
 
         // The release that can still score: set by Release(), cleared when the ball touches
@@ -283,6 +288,12 @@ namespace Basket.Gameplay
             {
                 RestoreReleaserCollision();
             }
+            if (stateMachine.CurrentState == BallState.Passing && passReceiver != null)
+            {
+                Vector3 d = rb.position - passReceiver.position;
+                d.y = 0f;
+                PassClosestToReceiver = Mathf.Min(PassClosestToReceiver, d.magnitude);
+            }
             // The protection lasts the whole pass: it ends when the pass does (caught, or
             // loose after touching anything).
             if (passIgnoredColliders.Count > 0 && stateMachine.CurrentState != BallState.Passing)
@@ -301,6 +312,8 @@ namespace Basket.Gameplay
         {
             if (stateMachine.CurrentState != BallState.Passing) return;
             passReceiver = receiver;
+            PassWentLoose = false;
+            PassClosestToReceiver = float.PositiveInfinity;
             EndPassProtection();
             if (ballCollider == null || nearbyPlayers == null) return;
             for (int i = 0; i < nearbyPlayers.Count; i++)
@@ -364,6 +377,7 @@ namespace Basket.Gameplay
 
             if (state == BallState.Shooting || state == BallState.Passing)
             {
+                if (state == BallState.Passing) PassWentLoose = true;
                 stateMachine.TryTransition(BallState.Free);
             }
             if (collision.transform.TryGetComponent<CourtSurface>(out _))

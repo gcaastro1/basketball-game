@@ -14,6 +14,8 @@ namespace Basket.Presentation
         private const float StrideLengthMeters = 2.2f;
         private const float DribbleHz = 2.2f;
         private const float TwoPi = Mathf.PI * 2f;
+        private const float ToeHeight = 0.03f;
+        private const float AnkleHeight = 0.08f;
 
         private PlayerEntity player;
         private MatchSimulation sim;
@@ -21,6 +23,8 @@ namespace Basket.Presentation
         private ProceduralHumanoidAnimator procedural;
         private ClipAnimationBackend clipBackend;
         private HandIK rightHand, leftHand;
+        private Transform leftSole, rightSole;
+        private float soleHeight;
         private float stridePhase, dribblePhase;
         private float sincePass = 99f, sinceScored = 99f;
 
@@ -42,6 +46,16 @@ namespace Basket.Presentation
             {
                 rightHand = new HandIK(animator, right: true);
                 leftHand = new HandIK(animator, right: false);
+                // Toe joints sit just above the sole; ankles higher (m, for a body fitted to ~1.85 m).
+                leftSole = animator.GetBoneTransform(HumanBodyBones.LeftToes);
+                rightSole = animator.GetBoneTransform(HumanBodyBones.RightToes);
+                soleHeight = ToeHeight;
+                if (leftSole == null || rightSole == null)
+                {
+                    leftSole = animator.GetBoneTransform(HumanBodyBones.LeftFoot);
+                    rightSole = animator.GetBoneTransform(HumanBodyBones.RightFoot);
+                    soleHeight = AnkleHeight;
+                }
             }
             if (sim != null)
             {
@@ -109,7 +123,19 @@ namespace Basket.Presentation
                 }));
             }
 
+            GroundFeet();
             if (input.HasBall) HandsOnBall(output.Pose);
+        }
+
+        // Puts the lowest foot of the posed body on the gameplay body's feet (which rise in
+        // a jump too). Mesh bounds alone left the Tripo model 1.3 m under the floor in CI:
+        // the posed skeleton, not the bind-pose mesh, decides where the feet are.
+        private void GroundFeet()
+        {
+            if (leftSole == null || rightSole == null) return;
+            float lowest = Mathf.Min(leftSole.position.y, rightSole.position.y);
+            float target = player.FeetPosition.y + soleHeight;
+            transform.position += Vector3.up * (target - lowest);
         }
 
         private void HandsOnBall(AnimPose pose)

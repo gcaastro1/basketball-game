@@ -32,7 +32,7 @@ namespace Basket.Gameplay
         [Header("Pass")]
         public float passApexHeight = 0.6f;
         // Never lead a receiver by more than this (m).
-        public float maxPassLead = 4f;
+        public float maxPassLead = 2f;
         // Players this close to the ball when a pass is thrown (other than the receiver)
         // cannot touch that pass: it is thrown past them.
         public float passProtectRadius = 1.8f;

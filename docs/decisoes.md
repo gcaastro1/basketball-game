@@ -189,6 +189,10 @@ log por passe mostrou 8 de 10 passes perdidos pegos por um defensor a 0,7–1,1 
 linha do passe. Durante o voo, quem não é o recebedor só pega a bola com `interceptRadius`
 (0,5 m) — interceptar exige estar na linha do passe longe do passador (ex.: o marcador do recebedor).
 
+Também: o passe sai da mão (não do ponto do quique do drible, que o fazia bater no chão na hora), o
+recebedor **vai ao encontro** da bola em voo em vez de seguir a ordem do time (passes com antecipação
+para quem mudou de direção caíam sozinhos), e a antecipação máxima caiu de 4 m para 2 m.
+
 ## D-010 (revisão) — Precisão calibrada no aro físico
 
 `ShotCalibrationTests` mediu no Unity real: sem desvio de trajetória (mirando no centro, a bola

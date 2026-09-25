@@ -280,7 +280,8 @@ namespace Basket.Gameplay
                         {
                             Vector3 from = players[passerIndex].FeetPosition, at = players[i].FeetPosition;
                             Raise($"PASS LOST {players[passerIndex].name}->{players[passTargetIndex].name}: caught by {players[i].name} " +
-                                  $"{Vector3.Distance(from, at):0.0} m from the passer, receiver was {Vector3.Distance(from, players[passTargetIndex].FeetPosition):0.0} m away");
+                                  $"{Vector3.Distance(from, at):0.0} m from the passer, receiver was {Vector3.Distance(from, players[passTargetIndex].FeetPosition):0.0} m away; " +
+                                  $"ball {(ball.PassWentLoose ? "went loose" : "intercepted in flight")}, closest to receiver {ball.PassClosestToReceiver:0.0} m");
                         }
                     }
                 }
@@ -377,6 +378,15 @@ namespace Basket.Gameplay
                 if (ball.CurrentHolder == p.transform) holder = i;
             }
             snapshot.SetBall(ball.Position, ball.CurrentState, holder, ball.Velocity);
+            int passTarget = -1;
+            if (ball.CurrentState == BallState.Passing && ball.PassReceiver != null)
+            {
+                for (int i = 0; i < players.Length; i++)
+                {
+                    if (players[i].transform == ball.PassReceiver) passTarget = i;
+                }
+            }
+            snapshot.SetPassTarget(passTarget);
             MatchState s = Match.State;
             snapshot.SetMatch(s.Phase, time, s.ShotClock, s.BallMustBeCleared);
         }
