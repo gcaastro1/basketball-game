@@ -109,7 +109,10 @@ namespace Basket.AI
                 outward.y = 0f;
                 if (outward.sqrMagnitude < 0.0001f) outward = Vector3.back;
                 Vector3 clearSpot = new Vector3(p.AttackHoop.x, 0f, p.AttackHoop.z) + outward.normalized * (p.ThreePointRadius + config.clearMargin);
-                return new PlayerCommand(MoveToward(p.SelfPosition, clearSpot, config.arrivalDistance), sprint: true);
+                // Steer around players in the way: the under-basket restart puts the inbounder's
+                // defender at the arc right on this line, and running straight into him stalled
+                // possessions until the shot clock ran out (AI-vs-AI timeline).
+                return new PlayerCommand(Steer(p, clearSpot, config.arrivalDistance, -1), sprint: true);
             }
 
             bool freeThrow = p.Phase == MatchPhase.FreeThrow;

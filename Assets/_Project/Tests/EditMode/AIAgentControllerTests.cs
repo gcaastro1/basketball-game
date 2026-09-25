@@ -189,6 +189,28 @@ public class AIAgentControllerTests
     }
 
     [Test]
+    public void MustClear_GoesAroundTheDefenderInTheWay()
+    {
+        var s = new MatchSnapshot(2);
+        s.SetPlayer(0, TeamId.Home, new Vector3(0f, 0f, 11.6f), Vector3.zero);
+        s.SetPlayer(1, TeamId.Away, new Vector3(0.1f, 0f, 10.8f), Vector3.zero);   // right on the clear line
+        s.SetMatchup(0, 1);
+        s.SetMatchup(1, 0);
+        s.SetAttackingHoop(TeamId.Home, Hoop);
+        s.SetAttackingHoop(TeamId.Away, Hoop);
+        s.SetBall(new Vector3(0f, 1f, 11.6f), BallState.Held, 0);
+        s.SetMatch(MatchPhase.Live, 5f, shotClock: 10f, ballMustBeCleared: true);
+
+        var ai = new AIAgentController(Config());
+        ai.Decide(s, 0);
+        var cmd = ai.Decide(s, 0);
+
+        Assert.IsFalse(cmd.ShootHeld);
+        Assert.Less(cmd.Move.y, 0f, "still heads out toward the arc");
+        Assert.Less(cmd.Move.x, -0.3f, "steps around the defender instead of into him");
+    }
+
+    [Test]
     public void FreeThrow_ShootsEvenWhenItWouldOtherwiseDrive()
     {
         var ai = new AIAgentController(Config(driveChance: 1f));

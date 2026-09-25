@@ -66,14 +66,14 @@ jogadas? trocar o jogador controlado? pausar e dar ordens?). Pontos de encaixe j
 
 ## Pendências menores conhecidas
 
-- **IA 3x3 depois de uma cesta (ajustar jogando localmente).** O jogador que repõe a bola
-  corre em linha reta para limpar além do arco, e o defensor é posicionado exatamente ali
-  (`MatchSimulation`, reinício `UnderBasket`); algumas posses travam até roubo ou violação
-  de shot clock (visível na `Timeline` do `AISimulationTests`). Tentativa no PR #1
-  (limpar para o lado com mais espaço + defensor da bola correndo junto) resolveu o
-  travamento, mas virou "limpar e arremessar na hora", derrubou os passes e piorou o 5v5;
-  foi revertida. Ajuste com iterações rápidas no editor, olhando passes/arremessos/violações
-  por minuto no 3v3 e no 5v5 juntos.
+- **IA 3x3 depois de uma cesta.** O jogador que repõe a bola sai reto para limpar além do
+  arco, e o defensor é posicionado exatamente ali (`MatchSimulation`, reinício
+  `UnderBasket`); correndo contra ele, posses travavam até roubo ou violação de shot clock
+  (até 3 por jogo na `Timeline` do `AISimulationTests`). Agora ele contorna quem está no
+  caminho (mesma esquiva do jogo em equipe). Tentativa mais agressiva (limpar para o lado
+  mais vazio + defensor da bola sempre em sprint) virou "limpar e arremessar livre na
+  hora", derrubou os passes e piorou o 5v5; foi revertida. Refinar jogando no editor,
+  olhando passes/arremessos/violações por minuto no 3v3 e no 5v5 juntos.
 - O teste `AIvsAI_3v3_PlaysBasketball` fica perto do limite (16 arremessos em 120 s; já
   deu 12, 16 e 28 no mesmo código). Faltas de arremesso com 2–3 lances livres consomem
   ~10 s cada e pesam muito na contagem.
