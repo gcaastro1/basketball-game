@@ -26,6 +26,7 @@ de troca.
 | D-018 | Passe "passa" pelo defensor colado ao passador (todo o voo) e só o recebedor pega com o raio cheio; interceptar exige estar na linha do passe | **Provisória** (valores) |
 | D-019 | Visual em assembly próprio (`Presentation`) que só lê o gameplay; modelo Humanoid; animação procedural por músculos até existirem clipes; clipes por Playables (sem Animator Controller) | Aceita (valores do procedural: **provisórios**) |
 | D-020 | Meta em assembly próprio (`Basket.Meta`, só Core + Characters): dados (SO), regras puras e serviços separados; apresentação fora; save versionado com checksum, escrita atômica e backup | Aceita |
+| D-021 | Ligação do meta ao jogo (Etapa 8.5): `IPlayerProfileReadOnly` em Core (UI continua só conhecendo Core, mesmo padrão do gameplay); `CharacterCatalog` novo para `characterId → CharacterDefinition`; coordenador `ProfileRuntimeService` é POCO em `Basket.Meta`, não lógica no `GameBootstrap` | Aceita |
 | P-001 | Modo B (controle do time) | **Pendente** — ponto de encaixe pronto: `ITeamStrategy` (e `IAgentController`) |
 | P-003 | Gacha definitivo (raridades, taxas, pity, custos, moedas) | **Provisória**: 3 níveis genéricos, 3/17/80%, pity 80 (soft 65, +6%), 50/50 com garantia, multi de 10 com garantia de nível 2 — tudo em `Data/Meta/StandardBanner.asset` |
 | P-002 | Semântica dos Limit Breaks | **Provisória**: 4 LBs (20→40, 40→50, 50→60, "Awakening" no 60 sem novo teto), tudo em `DefaultProgressionConfig` |
@@ -261,3 +262,22 @@ obtenção. `Basket.Meta` depende só de Core e Characters (não conhece gamepla
 
 Raridades, taxas, pity, moedas e custos são decisões em aberto (briefing, seção 3). Os valores atuais
 são placeholders coerentes com o gênero e estão **só em dados**; mudar qualquer um não exige código.
+
+## D-021 — Ligação do meta ao jogo (Etapa 8.5)
+
+`docs/proximos-passos.md` (item A) pedia ligar `Basket.Meta` (Etapa 8, já testado) ao fluxo real de
+partida. Três pontos exigiam decisão:
+
+- **UI ↔ Meta.** Opção descartada: `Basket.UI` passar a referenciar `Basket.Meta` direto — seria a
+  primeira exceção à regra "AI/Input/UI só conhecem Core". Decisão: estender o padrão já usado pro
+  gameplay (`IMatchState`, `IBallStateReadOnly`) — nova interface `IPlayerProfileReadOnly` em `Core`,
+  implementada por `PlayerProfile`. A UI continua só conhecendo Core, sem exceção.
+- **Catálogo de personagens.** Não existia `characterId → CharacterDefinition` confiável em runtime
+  (`BannerDefinition.pool` só cobre quem está em algum banner ativo). `CharacterCatalog` novo (SO),
+  espelhando `ItemCatalog`.
+- **Onde mora o coordenador novo.** `ProfileRuntimeService` é POCO dentro de `Basket.Meta` (construtor
+  com injeção, sem `MonoBehaviour`, testável sem cena — mesmo molde de `SaveService`/`EconomyService`),
+  não lógica nova dentro do `GameBootstrap`. O Bootstrap ganha uma referência sancionada a `Basket.Meta`
+  (antes ausente de propósito) e só instancia/chama nos pontos certos (início, fim de partida, saída).
+
+Plano completo: `docs/etapas/etapa-8.5-meta-consolidacao.md`.

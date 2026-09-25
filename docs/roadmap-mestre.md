@@ -15,6 +15,7 @@ conflitavam). Origem: `docs/auditoria/2026-09-25-auditoria-e-avaliacao.md`, seç
 | 6 Animação | Rig Humanoid, Animator/blend trees, sockets/IK de mão e bola | Placeholders trocados sem mudar gameplay (`CharacterVisualTests`) | ✅ (CI verde: modelo 1,68 m no chão, mãos na bola, gameplay idêntico) — plano: `docs/etapas/etapa-6-animacao.md` |
 | 7 5v5 | Quadra inteira, transição, inbound, backcourt, IA de 5 | Partida 5v5 completa (`FullCourtTests`, cena `02_FullCourt_5v5`) | ✅ (CI verde) — plano: `docs/etapas/etapa-7-5v5.md` |
 | 8 Meta | Inventário, save versionado, economia, Gacha atrás de `IEconomyService` | Testes de pity/taxas com seed (`GachaTests`, `SaveSystemTests`) | ✅ (CI verde: 243 EditMode + 52 PlayMode) — plano: `docs/etapas/etapa-8-meta.md` |
+| **8.5 Meta consolidação** | Liga o meta (Etapa 8) ao fluxo real: fim de partida, recompensas, elenco do perfil, save nos pontos certos, telas placeholder | Ciclo completo testado (partida → recompensa → save sobrevive fechar/reabrir → gacha muda o elenco) | 🔄 — plano: `docs/etapas/etapa-8.5-meta-consolidacao.md` |
 | 9 História | Capítulos/diálogos/partidas-objetivo data-driven | Capítulo de teste | — |
 | 10 Polish | VFX anime, câmera cinemática, UI final, áudio, otimização | — | — |
 
