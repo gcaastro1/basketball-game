@@ -203,9 +203,13 @@ namespace Basket.AI
                 case TeamOrderKind.Crash:
                     return new PlayerCommand(Steer(p, order.Target, config.arrivalDistance, -1), sprint: true);
                 default:
-                    // Get back on defense: sprint when far from where we need to be.
+                    // Get back on defense: sprint when far from where we need to be (on the ball,
+                    // as soon as the handler gets away).
                     Vector3 spot = GuardSpot(p.OpponentPosition, p.DefendHoop, config.guardDistance);
-                    return Defend(p, spot, config.arrivalDistance, sprint: FlatDistance(p.SelfPosition, spot) > config.sprintDistance);
+                    float away = FlatDistance(p.SelfPosition, spot);
+                    bool onBall = p.OpponentHasBall && p.FocusHasBall;
+                    return Defend(p, spot, config.arrivalDistance,
+                        sprint: away > config.sprintDistance || (onBall && away > config.onBallSprintDistance));
             }
         }
 

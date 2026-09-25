@@ -82,6 +82,9 @@ namespace Basket.AI
         public float advanceSpotDistance = 7f;
         // Sprint to a spot farther away than this (transition).
         public float sprintDistance = 6f;
+        // The ball handler's defender sprints to recover when this far from his spot (a
+        // handler sprinting to clear the ball left a jogging defender behind: open shots).
+        public float onBallSprintDistance = 1.5f;
         // With 4+ teammates off the ball, one plays in the post (4 out, 1 in).
         public float postSpotDistance = 2.6f;
 
