@@ -45,10 +45,12 @@ namespace Basket.Gameplay
 
         // Expected make chance for an aim-error radius, from the rim's calibrated make radius
         // (uniform sample in the error disc). For the HUD, balancing and tests.
-        public static float EstimatedMakeChance(float errorRadius, ShotConfig c)
+        public static float EstimatedMakeChance(float errorRadius, ShotConfig c, ShotType type = ShotType.JumpShot)
         {
-            if (errorRadius <= c.calibratedMakeRadius) return 1f;
-            float ratio = c.calibratedMakeRadius / errorRadius;
+            if (type == ShotType.Dunk) return 1f;
+            float makeRadius = type == ShotType.Layup ? c.calibratedLayupMakeRadius : c.calibratedMakeRadius;
+            if (errorRadius <= makeRadius) return 1f;
+            float ratio = makeRadius / errorRadius;
             return ratio * ratio;
         }
 

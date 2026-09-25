@@ -33,11 +33,14 @@ namespace Basket.Gameplay
         // of the rim center always go in, none beyond ~0.2 m. That curve behaves like a
         // clean "make radius" of calibratedMakeRadius: make chance ~ (makeRadius / errorRadius)^2.
         // Targets for an average shooter (rating 0.75) with perfect timing: open 3PT ~40%,
-        // open 4.5 m ~50%, free throw ~75%, fully contested 3PT ~18%.
+        // open 4.5 m ~50%, free throw ~75%, fully contested 3PT ~18%; open layup ~86%,
+        // fully contested layup ~38%.
         public float calibratedMakeRadius = 0.124f;
+        // Layups (low arc) have a wider curve: always in up to ~0.12 m, ~13% at 0.15 m.
+        public float calibratedLayupMakeRadius = 0.141f;
         public float jumpShotBaseError = 0.165f;
         public float jumpShotErrorPerMeter = 0.012f;
-        public float layupBaseError = 0.1f;
+        public float layupBaseError = 0.19f;
         // Free throws: timed like a jump shot, never contested.
         public float freeThrowBaseError = 0.18f;
         // Multiplier added per second of release timing error beyond the perfect window.

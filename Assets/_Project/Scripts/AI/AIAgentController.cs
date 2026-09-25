@@ -110,6 +110,8 @@ namespace Basket.AI
             bool heldLongEnough = urgent || p.Time - attackStartTime >= config.minHoldSecondsBeforeShot;
             if (inRange && heldLongEnough && p.SelfGrounded)
             {
+                bool finishing = drivingThisPossession && FlatDistance(p.SelfPosition, p.AttackHoop) <= config.driveFinishDistance;
+                if (!freeThrow && !finishing && !FeetSet(p)) return PlayerCommand.None;
                 shotInProgress = true;
                 shotStartTime = p.Time;
                 releaseOffsetSeconds = (float)(Gaussian() * ReleaseJitter());
@@ -127,6 +129,8 @@ namespace Basket.AI
             {
                 case HandlerActionKind.Shoot:
                     if (!p.SelfGrounded) return PlayerCommand.None;
+                    bool atRim = FlatDistance(p.SelfPosition, p.AttackHoop) <= config.driveFinishDistance;
+                    if (!atRim && !FeetSet(p)) return PlayerCommand.None;
                     shotInProgress = true;
                     shotStartTime = p.Time;
                     releaseOffsetSeconds = (float)(Gaussian() * ReleaseJitter());
@@ -181,6 +185,13 @@ namespace Basket.AI
                     return Defend(p, spot, config.arrivalDistance, sprint: FlatDistance(p.SelfPosition, spot) > config.sprintDistance);
             }
         }
+
+        // A jump shooter stops and sets their feet before rising (a jumper taken at full
+        // speed carries the movement penalty: the AI-vs-AI log showed every open three at
+        // 1.3x the standing error because it shot straight out of its run). Layups and
+        // dunks keep their momentum.
+        private bool FeetSet(AIPerception p) =>
+            new Vector2(p.SelfVelocity.x, p.SelfVelocity.z).magnitude <= config.setFeetSpeed;
 
         // Offensive IQ tightens release timing around the apex.
         private float ReleaseJitter() =>

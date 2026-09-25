@@ -48,7 +48,10 @@ public class ShotAccuracyModelTests
     public void Layup_IgnoresTimingAndIsMoreAccurateThanAJumper()
     {
         Assert.AreEqual(Error(ShotType.Layup, distance: 1.5f), Error(ShotType.Layup, distance: 1.5f, timing: 0.3f), 1e-6f);
-        Assert.Less(Error(ShotType.Layup, distance: 1.5f), Error(ShotType.JumpShot, distance: 1.5f));
+        // Different arcs have different rim curves: compare make chances, not radii.
+        float layup = ShotAccuracyModel.EstimatedMakeChance(Error(ShotType.Layup, distance: 1.5f), config, ShotType.Layup);
+        float jumper = ShotAccuracyModel.EstimatedMakeChance(Error(ShotType.JumpShot, distance: 1.5f), config, ShotType.JumpShot);
+        Assert.Greater(layup, jumper);
     }
 
     [Test]
@@ -70,7 +73,7 @@ public class ShotAccuracyModelTests
     // Balancing targets for an average shooter (rating 0.75), measured against the
     // physical rim curve (ShotCalibrationTests -> ShotConfig.calibratedMakeRadius).
     private float Make(ShotType type, float distance, float contest = 0f, float speed = 0f, float rating = 0.75f) =>
-        ShotAccuracyModel.EstimatedMakeChance(Error(type, distance, 0f, contest, speed, rating), config);
+        ShotAccuracyModel.EstimatedMakeChance(Error(type, distance, 0f, contest, speed, rating), config, type);
 
     [Test]
     public void Calibration_OpenShotsHitRealisticPercentages()
@@ -78,7 +81,7 @@ public class ShotAccuracyModelTests
         Assert.That(Make(ShotType.JumpShot, 6.75f), Is.InRange(0.35f, 0.45f), "open three");
         Assert.That(Make(ShotType.JumpShot, 4.5f), Is.InRange(0.45f, 0.58f), "open mid-range");
         Assert.That(Make(ShotType.FreeThrow, 4.2f), Is.InRange(0.68f, 0.82f), "free throw, perfect timing");
-        Assert.GreaterOrEqual(Make(ShotType.Layup, 1.5f), 0.9f, "open layup");
+        Assert.That(Make(ShotType.Layup, 1.5f), Is.InRange(0.78f, 0.92f), "open layup");
     }
 
     [Test]
@@ -88,6 +91,8 @@ public class ShotAccuracyModelTests
         Assert.That(contested, Is.InRange(0.12f, 0.25f), "fully contested three");
         Assert.That(Make(ShotType.JumpShot, 6.75f, contest: 0.5f), Is.InRange(0.22f, 0.34f), "half contested three");
         Assert.That(Make(ShotType.JumpShot, 6.75f, speed: 1f), Is.InRange(0.2f, 0.35f), "three on the move");
+        Assert.That(Make(ShotType.Layup, 1.5f, contest: 0.5f), Is.InRange(0.45f, 0.65f), "half contested layup");
+        Assert.That(Make(ShotType.Layup, 1.5f, contest: 1f), Is.InRange(0.3f, 0.48f), "fully contested layup");
     }
 
     [Test]

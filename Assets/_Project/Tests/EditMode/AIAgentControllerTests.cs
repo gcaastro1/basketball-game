@@ -15,9 +15,9 @@ public class AIAgentControllerTests
         return c;
     }
 
-    private static AIPerception WithBall(Vector3 self, float time, bool grounded = true, float vy = 0f) =>
+    private static AIPerception WithBall(Vector3 self, float time, bool grounded = true, float vy = 0f, float vz = 0f) =>
         new AIPerception(self, new Vector3(20f, 0f, 0f), self, opponentHasBall: false, selfHasBall: true,
-            attackHoop: Hoop, defendHoop: Hoop, time: time, selfVelocity: new Vector3(0f, vy, 0f), selfGrounded: grounded);
+            attackHoop: Hoop, defendHoop: Hoop, time: time, selfVelocity: new Vector3(0f, vy, vz), selfGrounded: grounded);
 
     [Test]
     public void LooseBall_ChasesBall()
@@ -53,6 +53,20 @@ public class AIAgentControllerTests
         Assert.IsTrue(ai.Decide(WithBall(inRange, 10.6f)).ShootHeld, "starts the shot");
         Assert.IsTrue(ai.Decide(WithBall(inRange, 10.7f, grounded: false, vy: 2f)).ShootHeld, "still rising");
         Assert.IsFalse(ai.Decide(WithBall(inRange, 10.9f, grounded: false, vy: -0.01f)).ShootHeld, "released at the apex");
+    }
+
+    [Test]
+    public void JumpShot_OnTheRun_StopsAndSetsFeetFirst()
+    {
+        var config = Config();
+        var ai = new AIAgentController(config);
+        Vector3 inRange = new Vector3(0f, 0f, Hoop.z - config.shootRange + 0.5f);
+        ai.Decide(WithBall(inRange, 10f));
+
+        var running = ai.Decide(WithBall(inRange, 10.6f, vz: 5f));
+        Assert.IsFalse(running.ShootHeld, "does not rise while running");
+        Assert.AreEqual(Vector2.zero, running.Move, "stops instead");
+        Assert.IsTrue(ai.Decide(WithBall(inRange, 10.8f, vz: config.setFeetSpeed * 0.5f)).ShootHeld, "shoots once set");
     }
 
     [Test]

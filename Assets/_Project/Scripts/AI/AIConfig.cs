@@ -31,6 +31,9 @@ namespace Basket.AI
         public float minHoldSecondsBeforeShot = 0.5f;
         // Std-dev of release timing around the jump apex (0 = perfect every time).
         public float releaseTimingJitterSeconds = 0.06f;
+        // A jump shot starts only once the shooter has slowed below this (m/s): they stop
+        // and set their feet instead of shooting on the run.
+        public float setFeetSpeed = 1.0f;
 
         [Header("Rules awareness")]
         // Shoot from wherever when the shot clock drops below this.

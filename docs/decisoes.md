@@ -199,3 +199,11 @@ Antes, um três livre e parado de um arremessador médio tinha raio 0,136 m (~83
 bandeja 0,10. Metas (média, soltura perfeita), fixadas em `ShotAccuracyModelTests`: três livre ~40%,
 meia distância ~50%, lance livre ~74%, três totalmente contestado ~18%, três em movimento ~23%;
 o melhor arremessador (nota 1,0) ~70% livre, o pior ~13%.
+
+**Rodada 2 (dados do CI com o log por arremesso):** os lances livres bateram exatamente com o
+modelo (0,144 m, 3/3), mas um três livre e com soltura perfeita saía com 0,26–0,27 m: ×1,3, a
+penalidade máxima de movimento, porque a IA pulava direto da corrida. A IA agora **firma os pés**
+antes do jump shot (`AIConfig.setFeetSpeed` = 1 m/s; bandejas e enterradas mantêm o embalo).
+Bandejas: o arco baixo tem curva própria no aro (100% até 12 cm, 13% a 15 cm → raio efetivo
+0,141 m, `calibratedLayupMakeRadius`); `layupBaseError` 0,10 → 0,19 para bandeja livre ~86%,
+meio contestada ~55%, totalmente contestada ~38% (antes entrava sempre).
