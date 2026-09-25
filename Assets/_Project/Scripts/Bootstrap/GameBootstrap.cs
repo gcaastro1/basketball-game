@@ -5,6 +5,7 @@ using Basket.Characters;
 using Basket.Gameplay;
 using Basket.AI;
 using Basket.Input;
+using Basket.Presentation;
 using Basket.UI;
 
 namespace Basket.Bootstrap
@@ -84,6 +85,16 @@ namespace Basket.Bootstrap
 
             Simulation = new MatchSimulation(players, controllers, arena.Ball, arena.Hoop,
                 courtConfig, matchRules, ballConfig, shotConfig, defenseConfig, rng, attributeTuning, arena.SecondHoop);
+
+            // Character models (Etapa 6): presentation only, attached once the simulation exists.
+            for (int i = 0; i < players.Count; i++)
+            {
+                MatchSetup.PlayerSlot slot = matchSetup.slots[i];
+                if (slot.character == null || slot.character.visual == null) continue;
+                bool human = slot.control == AgentControlType.Human;
+                Color ring = human ? HumanMarker : (slot.team == TeamId.Home ? HomeColor : AwayColor);
+                CharacterVisual.Attach(players[i], Simulation, slot.character.visual, ring);
+            }
 
             if (cameraTarget == null && players.Count > 0) cameraTarget = players[0];
             BuildCamera(cameraTarget != null ? cameraTarget.transform : arena.Ball.transform);

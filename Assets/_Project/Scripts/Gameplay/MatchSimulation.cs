@@ -50,6 +50,11 @@ namespace Basket.Gameplay
         public IShotReportSource ShotReports => shotSystem;
         public MatchStats Stats { get; } = new MatchStats();
         public event Action<string> OnMatchEvent;
+        // Presentation hooks (read-only views of gameplay; nothing here changes the rules).
+        public event Action<int> OnPassThrown;
+        public float SimTime => time;
+        public bool TryGetShot(int index, out ShotType type, out float progress) =>
+            shotSystem.TryGetShot(index, time, out type, out progress);
 
         public MatchSimulation(IReadOnlyList<PlayerEntity> players, IReadOnlyList<IAgentController> controllers,
             BallController ball, HoopController hoop, CourtConfig court, MatchRules rules,
@@ -180,6 +185,7 @@ namespace Basket.Gameplay
                         passTeam = player.Team;
                         passerIndex = index;
                         passTargetIndex = target;
+                        OnPassThrown?.Invoke(index);
                     }
                 }
                 return;

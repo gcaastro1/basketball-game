@@ -4,12 +4,15 @@
 
 ```
 Core ◄── Characters ◄── Gameplay ◄──┐
+                          ▲             │
+                     Presentation ◄─────┤  (modelos e animação: só lê o gameplay)
   ▲  ◄── AI          ├── Bootstrap (composition root)
   ▲  ◄── Input       │
   ▲  ◄── UI     ◄────┘
 Editor (EditorTools) → todos          Tests.EditMode / Tests.PlayMode → ver .asmdef
 ```
-Regra: `AI`, `Input` e `UI` só conhecem `Core`. Nada depende de `Bootstrap`.
+Regra: `AI`, `Input` e `UI` só conhecem `Core`. Nada depende de `Bootstrap`. `Presentation` lê o
+gameplay e nunca escreve nele (trocar modelo/animação não muda uma partida).
 
 ## Fluxo por frame
 
@@ -53,6 +56,9 @@ Eventos
 | Ajustar IA de time (jogadas, espaçamento, passe, ajuda) | `Data/DefaultAIConfig.asset`; lógica em `AI/TeamBrain.cs`, `AI/BallHandlerDecision.cs` |
 | Assistir IA contra IA | asset `MatchSetup3v3AIOnly` no `GameBootstrap` |
 | Ajustar IA | `Data/DefaultAIConfig.asset`; lógica em `AI/AIAgentController.cs` |
+| Trocar o modelo 3D de um personagem | `CharacterVisualDefinition` (`Data/Characters/DefaultCharacterVisual.asset`) → campo `visual` do `CharacterDefinition` |
+| Pôr animações de verdade | slots `clips` do `CharacterVisualDefinition` (idle + run ativam os clipes; o resto cai no procedural) |
+| Ajustar a animação procedural | `Presentation/ProceduralPoseMath.cs` (poses) e a tabela de músculos em `Presentation/ProceduralHumanoidAnimator.cs` |
 | Novo tipo de controle (Modo B, replay, rede) | nova implementação de `Core/IAgentController` |
 | Nova regra | `Gameplay/MatchManager` + campo em `MatchRules` (nunca nos controllers) |
 

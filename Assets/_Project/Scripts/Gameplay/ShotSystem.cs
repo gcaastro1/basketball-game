@@ -54,6 +54,18 @@ namespace Basket.Gameplay
 
         public bool IsShooting(int index) => phase[index] != Phase.None;
 
+        // For presentation: the shot in progress and how far it is from takeoff (0) to the
+        // jump apex (1). False when the player is not shooting.
+        public bool TryGetShot(int index, float time, out ShotType shotType, out float progress)
+        {
+            shotType = type[index];
+            progress = 0f;
+            if (phase[index] == Phase.None) return false;
+            float span = apexTime[index] - startTime[index];
+            progress = span > 1e-4f ? Mathf.Clamp01((time - startTime[index]) / span) : 1f;
+            return true;
+        }
+
         // During a free throw only this player shoots, and their shot is a free throw.
         public void SetFreeThrowShooter(int index) => freeThrowShooter = index;
 

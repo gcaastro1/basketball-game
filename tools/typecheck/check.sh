@@ -55,12 +55,13 @@ build Basket.Core $(src Scripts/Core)
 build Basket.Characters $(refs Basket.Core) $(src Scripts/Characters)
 build Basket.Gameplay $(refs Basket.Core Basket.Characters) $(src Scripts/Gameplay)
 build Basket.AI $(refs Basket.Core) $(src Scripts/AI)
+build Basket.Presentation $(refs Basket.Core Basket.Characters Basket.Gameplay) $(src Scripts/Presentation)
 build Basket.Input $(refs Basket.Core Stubs) $(src Scripts/Input)
 build Basket.UI $(refs Basket.Core) $(src Scripts/UI)
-build Basket.Bootstrap $(refs Basket.Core Basket.Characters Basket.Gameplay Basket.AI Basket.Input Basket.UI) $(src Scripts/Bootstrap)
-build Basket.EditorTools $(refs Stubs Basket.Core Basket.Characters Basket.Gameplay Basket.AI Basket.Input Basket.UI Basket.Bootstrap) $(src Editor)
-build Basket.Tests.EditMode "$NUNIT" $(refs Stubs Basket.Core Basket.Characters Basket.Gameplay Basket.AI Basket.Input) $(src Tests/EditMode)
-build Basket.Tests.PlayMode "$NUNIT" $(refs Stubs Basket.Core Basket.Characters Basket.Gameplay Basket.AI Basket.Input Basket.Bootstrap) $(src Tests/PlayMode)
+build Basket.Bootstrap $(refs Basket.Core Basket.Characters Basket.Gameplay Basket.AI Basket.Input Basket.UI Basket.Presentation) $(src Scripts/Bootstrap)
+build Basket.EditorTools $(refs Stubs Basket.Core Basket.Characters Basket.Gameplay Basket.AI Basket.Input Basket.UI Basket.Presentation Basket.Bootstrap) $(src Editor)
+build Basket.Tests.EditMode "$NUNIT" $(refs Stubs Basket.Core Basket.Characters Basket.Gameplay Basket.AI Basket.Input Basket.Presentation) $(src Tests/EditMode)
+build Basket.Tests.PlayMode "$NUNIT" $(refs Stubs Basket.Core Basket.Characters Basket.Gameplay Basket.AI Basket.Input Basket.Presentation Basket.Bootstrap) $(src Tests/PlayMode)
 
 # Unity binds a ScriptableObject/MonoBehaviour asset to its script file through the class
 # named like the file; any other name breaks the asset at load time (only visible in Unity).

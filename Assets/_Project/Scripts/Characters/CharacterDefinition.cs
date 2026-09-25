@@ -43,6 +43,8 @@ namespace Basket.Characters
 
         public List<AbilityUnlock> abilities = new List<AbilityUnlock>();
         public AITendencies aiTendencies = AITendencies.Neutral;
+        // Model and animation (presentation only; null = placeholder capsule).
+        public CharacterVisualDefinition visual;
     }
 
     // Per-player save data (brief section 28): what the player owns of a character.

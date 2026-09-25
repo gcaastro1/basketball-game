@@ -1,0 +1,105 @@
+using UnityEngine;
+using Basket.Characters;
+using Basket.Gameplay;
+
+namespace Basket.Presentation
+{
+    // Replaces a player's placeholder capsule with a character model (Etapa 6). The
+    // gameplay body -- CharacterController, motor, entity -- is untouched: the model is a
+    // child that only looks. Nothing in gameplay reads it.
+    public class CharacterVisual : MonoBehaviour
+    {
+        private static Material litTemplate;
+
+        public GameObject Model { get; private set; }
+        public PlayerAnimationDriver Driver { get; private set; }
+
+        public static CharacterVisual Attach(PlayerEntity player, MatchSimulation sim, CharacterVisualDefinition definition, Color teamColor)
+        {
+            if (player == null || definition == null || definition.modelPrefab == null) return null;
+            var visual = player.gameObject.AddComponent<CharacterVisual>();
+            visual.Build(player, sim, definition, teamColor);
+            return visual;
+        }
+
+        private void Build(PlayerEntity player, MatchSimulation sim, CharacterVisualDefinition def, Color teamColor)
+        {
+            Transform root = player.transform;
+            Model = Instantiate(def.modelPrefab, root, false);
+            Model.name = "Model";
+            Transform model = Model.transform;
+            model.localPosition = Vector3.zero;
+            model.localRotation = Quaternion.Euler(0f, def.yawOffsetDegrees, 0f);
+            model.localScale = Vector3.one;
+            // Gameplay collision is the root CharacterController only.
+            foreach (Collider c in Model.GetComponentsInChildren<Collider>()) DestroyImmediate(c);
+
+            if (def.overrideMaterials) ApplyMaterial(Model, def.baseMap);
+            float feetLocalY = root.InverseTransformPoint(player.FeetPosition).y;
+            FitToHeight(model, def.modelHeight, feetLocalY);
+            HidePlaceholder(root);
+            AddTeamRing(root, feetLocalY, teamColor);
+
+            Animator animator = Model.GetComponentInChildren<Animator>();
+            if (animator == null) animator = Model.AddComponent<Animator>();
+            animator.applyRootMotion = false;
+            animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+            Driver = Model.AddComponent<PlayerAnimationDriver>();
+            Driver.Configure(player, sim, animator, def.clips);
+        }
+
+        private static void FitToHeight(Transform model, float height, float feetLocalY)
+        {
+            Renderer[] renderers = model.GetComponentsInChildren<Renderer>();
+            if (renderers.Length == 0) return;
+            Bounds bounds = renderers[0].bounds;
+            for (int i = 1; i < renderers.Length; i++) bounds.Encapsulate(renderers[i].bounds);
+            float originY = model.position.y;
+            ModelFitting.Fit(bounds.min.y - originY, bounds.max.y - originY, height, out float scale, out float yOffset);
+            model.localScale = Vector3.one * scale;
+            model.localPosition = new Vector3(0f, feetLocalY + yOffset, 0f);
+        }
+
+        // Tripo's generated material uses the Built-in Standard shader (pink under URP): use
+        // the active pipeline's default lit material -- the one primitives get -- with the
+        // model's texture.
+        private static void ApplyMaterial(GameObject model, Texture2D baseMap)
+        {
+            if (litTemplate == null)
+            {
+                GameObject probe = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                litTemplate = probe.GetComponent<Renderer>().sharedMaterial;
+                DestroyImmediate(probe);
+            }
+            var material = new Material(litTemplate) { name = "CharacterLit", color = Color.white };
+            if (baseMap != null) material.mainTexture = baseMap;
+            foreach (Renderer r in model.GetComponentsInChildren<Renderer>())
+            {
+                var shared = new Material[r.sharedMaterials.Length];
+                for (int i = 0; i < shared.Length; i++) shared[i] = material;
+                r.sharedMaterials = shared;
+            }
+        }
+
+        private static void HidePlaceholder(Transform root)
+        {
+            foreach (string name in new[] { "Body", "Facing" })
+            {
+                Transform t = root.Find(name);
+                if (t != null && t.TryGetComponent<Renderer>(out var r)) r.enabled = false;
+            }
+        }
+
+        // Keeps the teams readable while every character shares one placeholder model.
+        private static void AddTeamRing(Transform root, float feetLocalY, Color color)
+        {
+            GameObject ring = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            ring.name = "TeamRing";
+            DestroyImmediate(ring.GetComponent<Collider>());
+            ring.transform.SetParent(root, false);
+            ring.transform.localPosition = new Vector3(0f, feetLocalY + 0.01f, 0f);
+            ring.transform.localScale = new Vector3(0.9f, 0.005f, 0.9f);
+            ring.GetComponent<Renderer>().material.color = color;
+        }
+    }
+}

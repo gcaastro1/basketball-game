@@ -84,3 +84,4 @@ MonoBehaviour:
     passPreference: 0.9
     stealAggression: 0.8
     abilityUsage: 0.7
+  visual: {fileID: 11400000, guid: ac158575cc594dfb8f9b3472c8a28306, type: 2}

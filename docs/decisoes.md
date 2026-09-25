@@ -24,6 +24,7 @@ de troca.
 | D-016 | Personagens em assembly próprio (`Basket.Characters`), dados em SO, instância = dado de save | Aceita |
 | D-017 | Quadra inteira = mesma simulação: `CourtConfig.fullCourt` espelha a cesta; cada `HoopController` sabe quem o ataca; regras de meia-quadra/linhas/bola ao alto são flags de `MatchRules` | Aceita |
 | D-018 | Passe "passa" pelo defensor colado ao passador (todo o voo) e só o recebedor pega com o raio cheio; interceptar exige estar na linha do passe | **Provisória** (valores) |
+| D-019 | Visual em assembly próprio (`Presentation`) que só lê o gameplay; modelo Humanoid; animação procedural por músculos até existirem clipes; clipes por Playables (sem Animator Controller) | Aceita (valores do procedural: **provisórios**) |
 | P-001 | Modo B (controle do time) | **Pendente** — ponto de encaixe pronto: `ITeamStrategy` (e `IAgentController`) |
 | P-002 | Semântica dos Limit Breaks | **Provisória**: 4 LBs (20→40, 40→50, 50→60, "Awakening" no 60 sem novo teto), tudo em `DefaultProgressionConfig` |
 
@@ -209,3 +210,24 @@ antes do jump shot (`AIConfig.setFeetSpeed` = 1 m/s; bandejas e enterradas mant�
 Bandejas: o arco baixo tem curva própria no aro (100% até 12 cm, 13% a 15 cm → raio efetivo
 0,141 m, `calibratedLayupMakeRadius`); `layupBaseError` 0,10 → 0,19 para bandeja livre ~86%,
 meio contestada ~55%, totalmente contestada ~38% (antes entrava sempre).
+
+## D-019 — Modelos e animação (Etapa 6)
+
+**Contexto.** O modelo do Tripo3D veio como rig Generic, sem animações, com material do shader
+Standard (Built-in; rosa no URP). A regra da etapa: trocar os placeholders sem mudar o gameplay.
+
+**Decisão.**
+- `Basket.Presentation` (depende de Core/Characters/Gameplay) **só lê** o estado de jogo. O corpo de
+  gameplay (CharacterController, motor) continua o mesmo; o modelo é um filho sem colisores.
+  `CharacterVisualTests` prova que um arremesso sai idêntico com e sem modelo.
+- Modelos em `Assets/TripoModels` são importados como **Humanoid** (`TripoHumanoidImporter`); os nomes de
+  osso do Tripo mapeiam automaticamente. Teste de importação no CI.
+- Sem clipes: animação **procedural** no espaço de músculos humanoides (`HumanPoseHandler`) — funciona em
+  qualquer humanoide. Poses por estado de jogo (corrida, drible, posse, defesa, arremesso até a soltura,
+  bandeja, enterrada, passe, toco, comemoração). Valores provisórios, numa única tabela.
+- Com clipes (`CharacterVisualDefinition.clips`, idle + run no mínimo): **Playables** (mistura idle/run
+  pela velocidade + clipe da pose por cima, crossfade). Sem Animator Controller: o mapeamento é dado.
+- **IK de mão** (dois ossos) depois da pose: as mãos vão até a bola, que continua onde o gameplay a põe.
+- Material: o padrão do pipeline ativo (o mesmo dos primitivos) com a textura do modelo.
+- Todos os personagens de exemplo usam o mesmo modelo por ora; um anel na cor do time (amarelo para o
+  humano) sob os pés mantém os times legíveis.

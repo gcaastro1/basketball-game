@@ -6,6 +6,7 @@ using UnityEngine.TestTools;
 using Basket.Bootstrap;
 using Basket.Core;
 using Basket.Gameplay;
+using Basket.Presentation;
 
 public class VerticalSliceIntegrationTests
 {
@@ -39,6 +40,7 @@ public class VerticalSliceIntegrationTests
         Assert.AreEqual(MatchPhase.Live, sim.Match.State.Phase);
         Assert.AreEqual(6, sim.Players.Count, "the scene plays 3v3");
         Assert.AreEqual(BallState.Held, sim.Ball.CurrentState, "match starts with a check ball");
+        Assert.AreEqual(6, Object.FindObjectsByType<CharacterVisual>(FindObjectsSortMode.None).Length, "every player has a character model");
 
         float elapsed = 0f;
         while (elapsed < 10f)
