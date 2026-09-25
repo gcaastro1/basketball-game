@@ -18,7 +18,7 @@ namespace Basket.AI
         public float blockTriggerVerticalSpeed = 2.0f;
         public float stealRange = 1.2f;
         // Average seconds between steal attempts while pressuring the handler.
-        public float stealIntervalSeconds = 2.5f;
+        public float stealIntervalSeconds = 4f;
 
         [Header("Offense")]
         // Horizontal distance to the rim at which the AI stops and takes a jump shot.
@@ -66,7 +66,7 @@ namespace Basket.AI
 
         [Header("Team: ball handler utility")]
         // Shoot when the estimated shot value reaches this.
-        public float shootQualityThreshold = 0.5f;
+        public float shootQualityThreshold = 0.45f;
         // Pass when a teammate's shot value beats ours by this much...
         public float passAdvantage = 0.12f;
         // ...and is at least this good.

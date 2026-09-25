@@ -31,5 +31,7 @@ namespace Basket.Gameplay
 
         [Header("Pass")]
         public float passApexHeight = 0.6f;
+        // Never lead a receiver by more than this (m).
+        public float maxPassLead = 4f;
     }
 }

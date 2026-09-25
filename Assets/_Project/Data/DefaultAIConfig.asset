@@ -18,7 +18,7 @@ MonoBehaviour:
   blockRange: 1.6
   blockTriggerVerticalSpeed: 2
   stealRange: 1.2
-  stealIntervalSeconds: 2.5
+  stealIntervalSeconds: 4
   shootRange: 5.5
   driveChance: 0.4
   driveFinishDistance: 1.8

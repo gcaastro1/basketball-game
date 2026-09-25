@@ -9,9 +9,9 @@ namespace Basket.Gameplay
         public float stealRange = 1.3f;
         // Minimum dot(defender facing, direction to handler).
         public float stealFacingDot = 0.3f;
-        [Range(0f, 1f)] public float stealBaseChance = 0.3f;
+        [Range(0f, 1f)] public float stealBaseChance = 0.12f;
         // A handler dribbling on the move exposes the ball more than one standing still.
-        [Range(0f, 1f)] public float stealMovingHandlerBonus = 0.15f;
+        [Range(0f, 1f)] public float stealMovingHandlerBonus = 0.08f;
         // After any attempt (the "reach"), the defender cannot try again for this long.
         public float stealCooldownSeconds = 1f;
         public float stealKnockSpeed = 3f;

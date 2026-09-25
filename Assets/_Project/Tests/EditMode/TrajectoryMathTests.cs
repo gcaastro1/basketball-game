@@ -87,5 +87,15 @@ public class TrajectoryMathTests
         Assert.AreEqual(a, b);
     }
 
+    [Test]
+    public void EstimateFlightTime_MatchesTheArcsHorizontalSpeed()
+    {
+        Vector3 origin = new Vector3(0f, 1f, 0f), target = new Vector3(6f, 1.2f, 2f);
+        Vector3 v = TrajectoryMath.ComputeArcVelocity(origin, target, 0.6f, -9.81f);
+        float horizontal = new Vector2(target.x - origin.x, target.z - origin.z).magnitude;
+        float expected = horizontal / new Vector2(v.x, v.z).magnitude;
+        Assert.AreEqual(expected, TrajectoryMath.EstimateFlightTime(origin, target, 0.6f, -9.81f), 1e-3f);
+    }
+
     private static float FlatDistance(Vector3 a, Vector3 b) => new Vector2(a.x - b.x, a.z - b.z).magnitude;
 }

@@ -30,6 +30,15 @@ namespace Basket.Gameplay
             return velocityXZ + Vector3.up * velocityY;
         }
 
+        // Flight time of the analytic arc (same apex rule as ComputeArcVelocity).
+        public static float EstimateFlightTime(Vector3 origin, Vector3 target, float apexHeight, float gravity)
+        {
+            float g = Mathf.Abs(gravity);
+            float dy = target.y - origin.y;
+            float apexAboveOrigin = Mathf.Max(apexHeight, 0.01f) + Mathf.Max(0f, dy);
+            return Mathf.Sqrt(2f * apexAboveOrigin / g) + Mathf.Sqrt(2f * (apexAboveOrigin - dy) / g);
+        }
+
         // The analytic arc above assumes continuous, drag-free motion. The physics engine
         // integrates in fixed steps and applies linear damping, which on a ~2 s shot lands
         // the ball tens of centimetres short -- enough to hit the front rim every time.

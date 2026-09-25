@@ -19,9 +19,21 @@ namespace Basket.Gameplay
             if (ball.CurrentState != BallState.Held || ball.CurrentHolder != passer) return false;
 
             Vector3 origin = ball.Position;
-            Vector3 destination = target.TryGetComponent<PlayerEntity>(out var receiver)
-                ? receiver.FeetPosition + Vector3.up * config.holdHeightAboveFeet
-                : target.position + Vector3.up * config.handHeightOffset;
+            Vector3 destination;
+            if (target.TryGetComponent<PlayerEntity>(out var receiver))
+            {
+                destination = receiver.FeetPosition + Vector3.up * config.holdHeightAboveFeet;
+                // Lead a moving receiver (a cutter): throw to where they will be. Found by
+                // the AI-vs-AI simulation: passes aimed at a cutter's current position
+                // landed behind them and became loose balls.
+                float flight = TrajectoryMath.EstimateFlightTime(origin, destination, config.passApexHeight, Physics.gravity.y);
+                Vector3 lead = Vector3.ClampMagnitude(receiver.Motor.HorizontalVelocity * flight, config.maxPassLead);
+                destination += lead;
+            }
+            else
+            {
+                destination = target.position + Vector3.up * config.handHeightOffset;
+            }
             Vector3 velocity = TrajectoryMath.ComputeCompensatedArcVelocity(origin, destination, config.passApexHeight,
                 Physics.gravity.y, ball.LinearDamping, Time.fixedDeltaTime);
 

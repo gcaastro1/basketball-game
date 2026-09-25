@@ -28,6 +28,8 @@ namespace Basket.Gameplay
         private readonly MatchSnapshot snapshot;
         private float time;
         private bool awaitingRebound;
+        private bool awaitingPass;
+        private TeamId passTeam;
         private TeamId reboundShooterTeam;
 
         public MatchManager Match { get; }
@@ -152,7 +154,12 @@ namespace Basket.Gameplay
                 if (live && command.Pass)
                 {
                     int target = PassTargeting.SelectTarget(snapshot, index, command.Move);
-                    if (target >= 0 && passSystem.TryPass(player.transform, players[target].transform)) Stats.Get(player.Team).Passes++;
+                    if (target >= 0 && passSystem.TryPass(player.transform, players[target].transform))
+                    {
+                        Stats.Get(player.Team).Passes++;
+                        awaitingPass = true;
+                        passTeam = player.Team;
+                    }
                 }
                 return;
             }
@@ -199,6 +206,12 @@ namespace Basket.Gameplay
             for (int i = 0; i < players.Length; i++)
             {
                 if (ball.CurrentHolder != players[i].transform) continue;
+                if (awaitingPass)
+                {
+                    awaitingPass = false;
+                    if (players[i].Team == passTeam) Stats.Get(passTeam).PassesCompleted++;
+                    else Stats.Get(passTeam).Turnovers++; // intercepted / thrown away
+                }
                 if (awaitingRebound)
                 {
                     awaitingRebound = false;
@@ -261,6 +274,7 @@ namespace Basket.Gameplay
                 lastShotBeyondArc = beyondArc;
             }
             awaitingRebound = true;
+            awaitingPass = false;
             reboundShooterTeam = shooter.Team;
 
             if (r.Type == ShotType.FreeThrow || Match.State.Phase != MatchPhase.Live) return;
@@ -354,6 +368,7 @@ namespace Basket.Gameplay
 
             AssignMatchups(offense, defense);
             awaitingRebound = false;
+            awaitingPass = false;
             shotSystem.ResetAll();
             ball.ResetToHolder(offense[0].transform);
         }

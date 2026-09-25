@@ -9,6 +9,7 @@ namespace Basket.Core
         public int FreeThrowsAttempted;
         public int FreeThrowsMade;
         public int Passes;
+        public int PassesCompleted;
         public int Steals;
         public int Blocks;
         public int Fouls;
@@ -18,7 +19,7 @@ namespace Basket.Core
 
         public override string ToString() =>
             $"FG {FieldGoalsMade}/{FieldGoalsAttempted}  3P {ThreesMade}/{ThreesAttempted}  FT {FreeThrowsMade}/{FreeThrowsAttempted}  " +
-            $"AST-passes {Passes}  REB {OffensiveRebounds}+{DefensiveRebounds}  STL {Steals}  BLK {Blocks}  TO {Turnovers}  PF {Fouls}";
+            $"PASS {PassesCompleted}/{Passes}  REB {OffensiveRebounds}+{DefensiveRebounds}  STL {Steals}  BLK {Blocks}  TO {Turnovers}  PF {Fouls}";
     }
 
     // Box score of one match, for the HUD, balancing simulations and (later) progression.

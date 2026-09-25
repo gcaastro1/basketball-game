@@ -14,8 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Basket.Gameplay::Basket.Gameplay.DefenseConfig
   stealRange: 1.3
   stealFacingDot: 0.3
-  stealBaseChance: 0.3
-  stealMovingHandlerBonus: 0.15
+  stealBaseChance: 0.12
+  stealMovingHandlerBonus: 0.08
   stealCooldownSeconds: 1
   stealKnockSpeed: 3
   reachInFoulChance: 0.15
