@@ -45,6 +45,9 @@ namespace Basket.Gameplay
         private bool needsClear;
         private bool lastShotBeyondArc;
 
+        private bool reachedFrontcourt;
+        private float frontcourtTimer;
+
         private bool shootingFoulPending;
         private FoulEvent shootingFoul;
 
@@ -59,6 +62,8 @@ namespace Basket.Gameplay
 
         public event Action<TeamId, RestartKind> OnPossessionRestart;
         public event Action<int> OnFreeThrowSetup;
+        // Full court: teams switch baskets (after rules.switchSidesAfterPeriod).
+        public event Action OnSidesSwitched;
         public event Action<string> OnRuleEvent;
         // Stats hooks: a basket that counted (team, points, shot type), a foul that was
         // called, a turnover by a team (violation, uncleared basket, ball out of play).
@@ -77,12 +82,17 @@ namespace Basket.Gameplay
         public void BeginMatch()
         {
             if (rules.useGameClock) gameClock.StartPeriod(1, rules.periodLengthSeconds, overtime: false);
-            RestartPossession(rules.firstPossession, RestartKind.CheckBall);
+            RestartPossession(rules.firstPossession, rules.startWithJumpBall ? RestartKind.JumpBall : RestartKind.CheckBall);
         }
+
+        // Where play resumes after a violation, an out-of-bounds or a common foul.
+        private RestartKind DeadBallRestart => rules.fullCourt ? RestartKind.SidelineInbound : RestartKind.CheckBall;
 
         // ---------- facts from the simulation ----------
 
-        public void NotifyPossession(TeamId team, bool beyondArc)
+        // inFrontcourt: the holder is in the half their team attacks (full court).
+        // lastTouchedByOpponent: the other team touched the ball last before this catch.
+        public void NotifyPossession(TeamId team, bool beyondArc, bool inFrontcourt = true, bool lastTouchedByOpponent = false)
         {
             if (possessionTeam != team)
             {
@@ -90,6 +100,29 @@ namespace Basket.Gameplay
                 possessionTeam = team;
                 shotClock.Reset(rules.shotClockSeconds);
                 needsClear = liveChange && rules.clearBallOnChangeOfPossession;
+                reachedFrontcourt = false;
+                frontcourtTimer = 0f;
+            }
+            if (rules.fullCourt)
+            {
+                if (inFrontcourt)
+                {
+                    reachedFrontcourt = true;
+                }
+                else if (reachedFrontcourt && State.Phase == MatchPhase.Live)
+                {
+                    if (lastTouchedByOpponent)
+                    {
+                        // Deflected back by the defense: legal, bring it up again.
+                        reachedFrontcourt = false;
+                        frontcourtTimer = 0f;
+                    }
+                    else if (rules.useBackcourtRule)
+                    {
+                        Violation("BACKCOURT VIOLATION");
+                        return;
+                    }
+                }
             }
             if (needsClear && beyondArc)
             {
@@ -137,8 +170,9 @@ namespace Basket.Gameplay
 
         public void HandleScore(ScoreEvent scoreEvent)
         {
-            if (scoreEvent.Team == null) return;
-            TeamId team = scoreEvent.Team.Value;
+            TeamId? scorer = scoreEvent.HoopTeam ?? scoreEvent.Team;
+            if (scorer == null) return;
+            TeamId team = scorer.Value;
 
             if (scoreEvent.ShotType == ShotType.FreeThrow)
             {
@@ -153,11 +187,11 @@ namespace Basket.Gameplay
                 OnTurnover?.Invoke(team);
                 shootingFoulPending = false;
                 State.ResetForNextPossession();
-                Schedule(Pending.Possession, team.Opponent(), RestartKind.CheckBall);
+                Schedule(Pending.Possession, team.Opponent(), DeadBallRestart);
                 return;
             }
 
-            int points = ScoringMath.PointsForRelease(scoreEvent.ReleasePosition, rimCenter,
+            int points = ScoringMath.PointsForRelease(scoreEvent.ReleasePosition, scoreEvent.HoopCenter ?? rimCenter,
                 rules.threePointRadius, rules.pointsInsideArc, rules.pointsBeyondArc);
             State.RegisterScore(team, points);
             OnBasketCounted?.Invoke(team, points, scoreEvent.ShotType);
@@ -188,7 +222,8 @@ namespace Basket.Gameplay
             }
             State.ResetForNextPossession();
             if (lastTouchTeam.HasValue) OnTurnover?.Invoke(lastTouchTeam.Value);
-            Schedule(Pending.Possession, lastTouchTeam.HasValue ? lastTouchTeam.Value.Opponent() : rules.firstPossession, RestartKind.CheckBall);
+            if (rules.useBoundaryLines) Raise("OUT OF BOUNDS");
+            Schedule(Pending.Possession, lastTouchTeam.HasValue ? lastTouchTeam.Value.Opponent() : rules.firstPossession, DeadBallRestart);
         }
 
         public void Tick(float dt) => Tick(dt, default);
@@ -221,10 +256,17 @@ namespace Basket.Gameplay
                 shotClock.Tick(dt, ball.Possessed);
                 if (shotClock.Expired && ball.Possessed && possessionTeam.HasValue)
                 {
-                    Raise("SHOT CLOCK VIOLATION");
-                    OnTurnover?.Invoke(possessionTeam.Value);
-                    State.ResetForNextPossession();
-                    Schedule(Pending.Possession, possessionTeam.Value.Opponent(), RestartKind.CheckBall);
+                    Violation("SHOT CLOCK VIOLATION");
+                    return;
+                }
+            }
+
+            if (rules.fullCourt && rules.frontcourtSeconds > 0f && ball.Possessed && !reachedFrontcourt && possessionTeam.HasValue)
+            {
+                frontcourtTimer += dt;
+                if (frontcourtTimer > rules.frontcourtSeconds)
+                {
+                    Violation("8 SECONDS VIOLATION");
                     return;
                 }
             }
@@ -237,9 +279,24 @@ namespace Basket.Gameplay
             }
         }
 
+        private void Violation(string message)
+        {
+            Raise(message);
+            TeamId offender = possessionTeam.Value;
+            OnTurnover?.Invoke(offender);
+            State.ResetForNextPossession();
+            Schedule(Pending.Possession, offender.Opponent(), DeadBallRestart);
+        }
+
         private void EndOfPeriod()
         {
             State.ResetForNextPossession();
+            int finished = gameClock.Period;
+            if (rules.switchSidesAfterPeriod > 0 && finished == rules.switchSidesAfterPeriod && !gameClock.IsOvertime)
+            {
+                Raise("HALFTIME: teams switch baskets");
+                OnSidesSwitched?.Invoke();
+            }
             bool regulationLeft = !gameClock.IsOvertime && gameClock.Period < rules.periods;
             if (regulationLeft)
             {
@@ -248,7 +305,7 @@ namespace Basket.Gameplay
                 if (rules.teamFoulsResetEachPeriod) State.ResetTeamFouls();
                 Raise($"End of period {next - 1}");
                 TeamId offense = next % 2 == 1 ? rules.firstPossession : rules.firstPossession.Opponent();
-                Schedule(Pending.Possession, offense, RestartKind.CheckBall);
+                Schedule(Pending.Possession, offense, rules.fullCourt ? RestartKind.MidcourtInbound : RestartKind.CheckBall);
                 return;
             }
 
@@ -269,7 +326,7 @@ namespace Basket.Gameplay
             {
                 gameClock.StartPeriod(gameClock.Period + 1, rules.overtimeLengthSeconds, overtime: true);
             }
-            Schedule(Pending.Possession, rules.firstPossession.Opponent(), RestartKind.CheckBall);
+            Schedule(Pending.Possession, rules.firstPossession.Opponent(), rules.startWithJumpBall ? RestartKind.JumpBall : RestartKind.CheckBall);
         }
 
         // ---------- fouls and free throws ----------
@@ -285,7 +342,7 @@ namespace Basket.Gameplay
         private void AwardFreeThrowsOrBall(int fouledIndex, TeamId fouledTeam, FoulPenalty penalty)
         {
             if (penalty.FreeThrows > 0) StartFreeThrows(fouledIndex, fouledTeam, penalty);
-            else Schedule(Pending.Possession, fouledTeam, RestartKind.CheckBall);
+            else Schedule(Pending.Possession, fouledTeam, DeadBallRestart);
         }
 
         private void StartFreeThrows(int shooter, TeamId team, FoulPenalty penalty)
@@ -349,10 +406,10 @@ namespace Basket.Gameplay
                 Schedule(Pending.FreeThrow, ftTeam, RestartKind.CheckBall);
                 return;
             }
-            if (ftAfter == AfterFreeThrows.FouledTeamPossession) Schedule(Pending.Possession, ftTeam, RestartKind.CheckBall);
+            if (ftAfter == AfterFreeThrows.FouledTeamPossession) Schedule(Pending.Possession, ftTeam, DeadBallRestart);
             else if (made) Schedule(Pending.Possession, ftTeam.Opponent(), rules.afterMadeBasket);
             // Missed without touching the rim: dead ball, opponent's.
-            else Schedule(Pending.Possession, ftTeam.Opponent(), RestartKind.CheckBall);
+            else Schedule(Pending.Possession, ftTeam.Opponent(), DeadBallRestart);
         }
 
         // ---------- restarts ----------
@@ -384,8 +441,11 @@ namespace Basket.Gameplay
         private void RestartPossession(TeamId offense, RestartKind kind)
         {
             State.ResetForNextPossession();
-            possessionTeam = offense;
+            // Jump ball: nobody has it until someone catches it.
+            possessionTeam = kind == RestartKind.JumpBall ? (TeamId?)null : offense;
             needsClear = kind == RestartKind.UnderBasket && rules.clearBallOnChangeOfPossession;
+            reachedFrontcourt = false;
+            frontcourtTimer = 0f;
             shotClock.Reset(rules.shotClockSeconds);
             shootingFoulPending = false;
             OnPossessionRestart?.Invoke(offense, kind);

@@ -83,7 +83,7 @@ namespace Basket.Bootstrap
             }
 
             Simulation = new MatchSimulation(players, controllers, arena.Ball, arena.Hoop,
-                courtConfig, matchRules, ballConfig, shotConfig, defenseConfig, rng, attributeTuning);
+                courtConfig, matchRules, ballConfig, shotConfig, defenseConfig, rng, attributeTuning, arena.SecondHoop);
 
             if (cameraTarget == null && players.Count > 0) cameraTarget = players[0];
             BuildCamera(cameraTarget != null ? cameraTarget.transform : arena.Ball.transform);

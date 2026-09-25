@@ -50,7 +50,8 @@ public sealed class TestMatch : IDisposable
         {
             Players.Add(PlaceholderPlayerFactory.Create($"{team}_{Players.Count}", team, movement, Color.gray, Color.yellow));
         }
-        Sim = new MatchSimulation(Players, new List<IAgentController>(controllers), Arena.Ball, Arena.Hoop, Court, Rules, BallConfig, ShotConfig, DefenseConfig, new System.Random(1));
+        Sim = new MatchSimulation(Players, new List<IAgentController>(controllers), Arena.Ball, Arena.Hoop, Court, Rules, BallConfig, ShotConfig, DefenseConfig, new System.Random(1),
+            secondHoop: Arena.SecondHoop);
         Sim.OnMatchEvent += Events.Add;
         Sim.ShotReports.OnShotTaken += Shots.Add;
         Sim.Begin();

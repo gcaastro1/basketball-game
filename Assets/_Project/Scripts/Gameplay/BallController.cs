@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using Basket.Core;
 
@@ -23,6 +24,14 @@ namespace Basket.Gameplay
         private Transform lastReleasedBy;
         private float lastReleaseTime = float.NegativeInfinity;
         private Collider ignoredReleaserCollider;
+
+        // A pass in flight: who it is thrown to, and the players around the passer it is
+        // thrown past (a real pass goes around or over the on-ball defender; without this,
+        // the defender standing next to the passer "caught" nearly every pass at release --
+        // found by the AI-vs-AI simulation).
+        private Transform passReceiver;
+        private readonly List<Collider> passIgnoredColliders = new List<Collider>();
+        private float passProtectedUntil = float.NegativeInfinity;
 
         // The release that can still score: set by Release(), cleared when the ball touches
         // the floor, is caught, or is reset. A shot that hits the rim and then drops in is
@@ -109,6 +118,8 @@ namespace Basket.Gameplay
             heldLocalOffset = Vector3.zero;
             releaseLive = false;
             RestoreReleaserCollision();
+            EndPassProtection();
+            passReceiver = null;
 
             if (!rb.isKinematic)
             {
@@ -183,6 +194,8 @@ namespace Basket.Gameplay
             if (touchedBy.HasValue) LastTouchTeam = touchedBy;
 
             RestoreReleaserCollision();
+            EndPassProtection();
+            passReceiver = null;
             if (ballCollider != null)
             {
                 ballCollider.enabled = true;
@@ -204,12 +217,35 @@ namespace Basket.Gameplay
 
         // Called by the hoop when the ball passes down through the rim. Only a live
         // release can score.
-        public void NotifyScored()
+        public void NotifyScored() => NotifyScored(null, null);
+
+        public void NotifyScored(Vector3? hoopCenter, TeamId? hoopTeam)
         {
             if (!releaseLive) return;
             releaseLive = false;
             TeamId? team = releaseEntity != null ? releaseEntity.Team : (TeamId?)null;
-            OnScored?.Invoke(new ScoreEvent(releaseEntity, team, releasePosition, releaseKind, releaseShotType));
+            OnScored?.Invoke(new ScoreEvent(releaseEntity, team, releasePosition, releaseKind, releaseShotType, hoopCenter, hoopTeam));
+        }
+
+        // Jump ball: the ball goes up from `position`, loose, owned by nobody.
+        public void Toss(Vector3 position, Vector3 velocity)
+        {
+            stateMachine.ForceState(BallState.Free);
+            CurrentHolder = null;
+            holderEntity = null;
+            releaseLive = false;
+            heldLocalOffset = Vector3.zero;
+            lastReleasedBy = null;
+            LastTouchTeam = null;
+            RestoreReleaserCollision();
+            EndPassProtection();
+            passReceiver = null;
+            if (ballCollider != null) ballCollider.enabled = true;
+            rb.isKinematic = false;
+            SetFlightPhysics();
+            transform.position = position;
+            rb.position = position;
+            rb.linearVelocity = velocity;
         }
 
         private Vector3 HeldPosition()
@@ -240,6 +276,53 @@ namespace Basket.Gameplay
             {
                 RestoreReleaserCollision();
             }
+            if (passIgnoredColliders.Count > 0 && Time.time >= passProtectedUntil)
+            {
+                EndPassProtection();
+            }
+        }
+
+        // Called right after a pass release. Players (other than the receiver) within
+        // BallConfig.passProtectRadius of the ball cannot touch it for
+        // passReleaseGraceSeconds; later, anyone in the lane can still intercept it.
+        public void BeginPass(Transform receiver, IReadOnlyList<Collider> nearbyPlayers)
+        {
+            if (stateMachine.CurrentState != BallState.Passing) return;
+            passReceiver = receiver;
+            EndPassProtection();
+            passProtectedUntil = Time.time + config.passReleaseGraceSeconds;
+            if (ballCollider == null || nearbyPlayers == null) return;
+            for (int i = 0; i < nearbyPlayers.Count; i++)
+            {
+                Collider c = nearbyPlayers[i];
+                if (c == null || c == ignoredReleaserCollider || c.transform == receiver) continue;
+                Physics.IgnoreCollision(ballCollider, c, true);
+                passIgnoredColliders.Add(c);
+            }
+        }
+
+        private void EndPassProtection()
+        {
+            if (ballCollider != null)
+            {
+                foreach (Collider c in passIgnoredColliders)
+                {
+                    if (c != null) Physics.IgnoreCollision(ballCollider, c, false);
+                }
+            }
+            passIgnoredColliders.Clear();
+            passProtectedUntil = float.NegativeInfinity;
+        }
+
+        private bool InPassProtection(Transform player)
+        {
+            if (stateMachine.CurrentState != BallState.Passing || player == passReceiver) return false;
+            if (Time.time >= passProtectedUntil) return false;
+            foreach (Collider c in passIgnoredColliders)
+            {
+                if (c != null && c.transform == player) return true;
+            }
+            return false;
         }
 
         private void RestoreReleaserCollision()
@@ -263,7 +346,8 @@ namespace Basket.Gameplay
 
             // A pass (or loose ball) that lands on a player is caught -- that is also how
             // interceptions happen. A shot is never caught out of the air.
-            if (IsCatchable && collision.transform.TryGetComponent<PlayerEntity>(out _) && !InSelfCatchGrace(collision.transform))
+            if (IsCatchable && collision.transform.TryGetComponent<PlayerEntity>(out _) && !InSelfCatchGrace(collision.transform)
+                && !InPassProtection(collision.transform))
             {
                 Catch(collision.transform);
                 return;
@@ -302,6 +386,7 @@ namespace Basket.Gameplay
         {
             if (!IsCatchable) return false;
             if (InSelfCatchGrace(player)) return false;
+            if (InPassProtection(player)) return false;
             if (!player.TryGetComponent<PlayerEntity>(out var entity))
             {
                 return Vector3.Distance(transform.position, player.position) <= config.catchRadius;
@@ -312,6 +397,10 @@ namespace Basket.Gameplay
             if (heightAboveFeet > entity.StandingReach + config.catchReachMargin || heightAboveFeet < -0.2f) return false;
             // Good rebounders get to more loose balls.
             float radius = config.catchRadius;
+            // A pass is caught by its receiver's full reach; anyone else has to be in the
+            // lane to pick it off.
+            if (stateMachine.CurrentState == BallState.Passing && passReceiver != null && player != passReceiver)
+                radius = config.interceptRadius;
             if (stateMachine.CurrentState == BallState.Free && entity.Tuning != null)
                 radius *= entity.AttributeMult(AttributeId.DefensiveRebound, entity.Tuning.reboundRadius);
             return DistanceTo(player) <= radius;

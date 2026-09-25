@@ -146,6 +146,21 @@ namespace Basket.AI
                 if (screenPhase != ScreenPhase.None) offBall.Remove(screener);
             }
 
+            // 4 out, 1 in: with four or more off the ball, the best post player seals inside.
+            if (offBall.Count >= 4)
+            {
+                int post = offBall[0];
+                foreach (int i in offBall)
+                {
+                    if (s.GetAttribute(i, AttributeId.PostScoring) > s.GetAttribute(post, AttributeId.PostScoring)) post = i;
+                }
+                if (now >= cutUntil[post])
+                {
+                    offBall.Remove(post);
+                    orders[post] = new TeamOrder(TeamOrderKind.Space, OffensePlanner.PostSpot(rimFloor, s.CourtCenter - rimFloor, holderPos, config.postSpotDistance));
+                }
+            }
+
             List<Vector3> slots = OffensePlanner.SpacingSlots(rimFloor, s.CourtCenter - rimFloor, config.spacingRadius,
                 Mathf.Max(offBall.Count, 1), clearOut: play == PlayType.Isolation);
             var positions = new List<Vector3>();

@@ -22,6 +22,8 @@ de troca.
 | D-014 | IA em três camadas: estratégia do time → TeamBrain (ordens) → controlador por jogador (utility com a bola) | Aceita |
 | D-015 | Atributos: enum fixo (só acrescenta), efeito "centrado" no neutro 70, faixas em `AttributeTuning` | Aceita |
 | D-016 | Personagens em assembly próprio (`Basket.Characters`), dados em SO, instância = dado de save | Aceita |
+| D-017 | Quadra inteira = mesma simulação: `CourtConfig.fullCourt` espelha a cesta; cada `HoopController` sabe quem o ataca; regras de meia-quadra/linhas/bola ao alto são flags de `MatchRules` | Aceita |
+| D-018 | Passe "passa" pelo defensor colado ao passador (0,2 s) e só o recebedor pega com o raio cheio; interceptar exige estar na linha do passe | **Provisória** (valores) |
 | P-001 | Modo B (controle do time) | **Pendente** — ponto de encaixe pronto: `ITeamStrategy` (e `IAgentController`) |
 | P-002 | Semântica dos Limit Breaks | **Provisória**: 4 LBs (20→40, 40→50, 50→60, "Awakening" no 60 sem novo teto), tudo em `DefaultProgressionConfig` |
 
@@ -164,3 +166,22 @@ tetos, Limit Breaks, 6 dupes), `CharacterInstance` (o que o jogador possui: nív
 (passiva sempre/condicional, ativa com cooldown/duração, efeitos em atributos e no arremesso,
 nível pela progressão). Personagens e habilidades de exemplo são **placeholders** — nomes,
 raridades e o conjunto definitivo de habilidades continuam decisões em aberto (briefing, seção 3).
+
+## D-017 — Quadra inteira (Etapa 7)
+
+Nada de "modo 5v5" separado: `CourtConfig.fullCourt` faz o `PlaceholderArenaBuilder` espelhar
+a cesta no meio-campo (z = depth/2), e `MatchSimulation` atribui a cada `HoopController` o time
+que o ataca (troca após `switchSidesAfterPeriod`). A cesta credita **o time que a ataca** e
+pontua pela distância até **ela**. Reposições (fundo, lateral, meio, bola ao alto), 8 s,
+backcourt e linhas são flags/campos de `MatchRules` com o árbitro (`MatchManager`) decidindo.
+Presets: `Court5v5Config`, `FIBA5v5MatchRules`, `MatchSetup5v5`, cena `02_FullCourt_5v5`.
+Fora do escopo por ora: pressão em quadra inteira, substituições/exclusão por 5 faltas,
+tempos técnicos, seta de posse alternada.
+
+## D-018 — Passe e defensor colado (provisória nos valores)
+
+A simulação IA×IA mostrou quase todos os passes virando turnover: o defensor da bola fica a
+~1,5 m do passador e a bola, ao sair da mão, já estava no raio de pegada (1 m) dele. Agora, por
+`BallConfig.passReleaseGraceSeconds` (0,2 s), jogadores a até `passProtectRadius` (1,8 m) da
+soltura não tocam na bola (o passe é lançado por cima/ao lado deles), e durante o voo quem não é
+o recebedor só pega a bola com `interceptRadius` (0,5 m) — precisa estar na linha do passe.

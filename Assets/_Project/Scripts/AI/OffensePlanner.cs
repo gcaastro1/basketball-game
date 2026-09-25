@@ -73,6 +73,16 @@ namespace Basket.AI
             return besideScreener + toRim * 1.5f;
         }
 
+        // Low post on the ball side: beside the lane, `distance` from the rim.
+        public static Vector3 PostSpot(Vector3 rimFloor, Vector3 courtAxis, Vector3 ballPosition, float distance)
+        {
+            Vector3 axis = TeamMath.Flat(courtAxis);
+            axis = axis.sqrMagnitude < 0.0001f ? Vector3.back : axis.normalized;
+            Vector3 side = new Vector3(axis.z, 0f, -axis.x);
+            float sign = Vector3.Dot(TeamMath.Flat(ballPosition - rimFloor), side) >= 0f ? 1f : -1f;
+            return rimFloor + Quaternion.AngleAxis(-sign * 60f, Vector3.up) * axis * distance;
+        }
+
         public static Vector3 CutTarget(Vector3 player, Vector3 rimFloor)
         {
             Vector3 fromRim = TeamMath.Flat(player - rimFloor);

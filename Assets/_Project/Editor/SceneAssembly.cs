@@ -8,24 +8,33 @@ using Basket.Gameplay;
 
 namespace Basket.EditorTools
 {
-    // The match scene (3v3, FIBA 3x3 rules) only contains a GameBootstrap wired to config assets; the
+    // The match scenes (3v3 FIBA 3x3; 5v5 full court) only contain a GameBootstrap wired to config assets; the
     // arena, players, camera and HUD are built at runtime from those configs
-    // (docs/decisoes.md, D-003). This menu recreates that scene and any missing assets.
+    // (docs/decisoes.md, D-003). These menus recreate those scenes and any missing assets.
     public static class SceneAssembly
     {
         private const string ScenePath = "Assets/_Project/Scenes/01_VerticalSlice_HalfCourt.unity";
+        private const string FullCourtScenePath = "Assets/_Project/Scenes/02_FullCourt_5v5.unity";
         private const string DataFolder = "Assets/_Project/Data";
 
         [MenuItem("Basket/Build Vertical Slice Scene")]
-        public static void Build()
+        public static void Build() =>
+            BuildScene(ScenePath, "MatchSetup3v3", "FIBA3x3MatchRules", "DefaultCourtConfig");
+
+        // Etapa 7: 5v5 on the full court (two baskets), FIBA 5v5 rules.
+        [MenuItem("Basket/Build Full Court 5v5 Scene")]
+        public static void BuildFullCourt() =>
+            BuildScene(FullCourtScenePath, "MatchSetup5v5", "FIBA5v5MatchRules", "Court5v5Config");
+
+        private static void BuildScene(string scenePath, string setup, string rules, string court)
         {
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
             var bootstrap = new GameObject("GameBootstrap").AddComponent<GameBootstrap>();
             var so = new SerializedObject(bootstrap);
-            so.FindProperty("matchSetup").objectReferenceValue = LoadOrCreateAsset<MatchSetup>("MatchSetup3v3");
-            so.FindProperty("matchRules").objectReferenceValue = LoadOrCreateAsset<MatchRules>("FIBA3x3MatchRules");
-            so.FindProperty("courtConfig").objectReferenceValue = LoadOrCreateAsset<CourtConfig>("DefaultCourtConfig");
+            so.FindProperty("matchSetup").objectReferenceValue = LoadOrCreateAsset<MatchSetup>(setup);
+            so.FindProperty("matchRules").objectReferenceValue = LoadOrCreateAsset<MatchRules>(rules);
+            so.FindProperty("courtConfig").objectReferenceValue = LoadOrCreateAsset<CourtConfig>(court);
             so.FindProperty("ballConfig").objectReferenceValue = LoadOrCreateAsset<BallConfig>("DefaultBallConfig");
             so.FindProperty("shotConfig").objectReferenceValue = LoadOrCreateAsset<ShotConfig>("DefaultShotConfig");
             so.FindProperty("defenseConfig").objectReferenceValue = LoadOrCreateAsset<DefenseConfig>("DefaultDefenseConfig");
@@ -36,17 +45,23 @@ namespace Basket.EditorTools
             so.FindProperty("attributeTuning").objectReferenceValue = LoadOrCreateAsset<AttributeTuning>("DefaultAttributeTuning");
             so.ApplyModifiedPropertiesWithoutUndo();
 
-            EditorSceneManager.SaveScene(scene, ScenePath);
+            EditorSceneManager.SaveScene(scene, scenePath);
             AddSceneToBuildSettings();
-            Debug.Log("Vertical slice scene built and saved.");
+            Debug.Log($"Scene {scenePath} built and saved.");
         }
 
-        [MenuItem("Basket/Add Vertical Slice Scene To Build Settings")]
+        [MenuItem("Basket/Add Match Scenes To Build Settings")]
         public static void AddSceneToBuildSettings()
         {
             var scenes = new System.Collections.Generic.List<EditorBuildSettingsScene>(EditorBuildSettings.scenes);
-            if (scenes.Exists(s => s.path == ScenePath)) return;
-            scenes.Insert(0, new EditorBuildSettingsScene(ScenePath, true));
+            string[] ours = { ScenePath, FullCourtScenePath };
+            for (int i = 0; i < ours.Length; i++)
+            {
+                string path = ours[i];
+                if (scenes.Exists(s => s.path == path)) continue;
+                if (AssetDatabase.LoadAssetAtPath<SceneAsset>(path) == null) continue;
+                scenes.Insert(Mathf.Min(i, scenes.Count), new EditorBuildSettingsScene(path, true));
+            }
             EditorBuildSettings.scenes = scenes.ToArray();
         }
 

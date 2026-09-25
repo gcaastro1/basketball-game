@@ -15,6 +15,8 @@ namespace Basket.Gameplay
 
         public Vector3 RimCenter => transform.position;
         public float RimRadius => rimRadius;
+        // Team attacking this basket (full court); null = both (half court).
+        public TeamId? AttackingTeam { get; set; }
 
         public void Configure(BallController ballController, float radius)
         {
@@ -31,7 +33,7 @@ namespace Basket.Gameplay
             if (hasPrevious && ball.CurrentState != BallState.Held &&
                 HoopMath.IsScoringCrossing(previousBallPosition, current, RimCenter, rimRadius))
             {
-                ball.NotifyScored();
+                ball.NotifyScored(RimCenter, AttackingTeam);
             }
             previousBallPosition = current;
             hasPrevious = true;

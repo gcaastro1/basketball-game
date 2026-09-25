@@ -7,12 +7,15 @@ namespace Basket.Gameplay
         public readonly GameObject Root;
         public readonly BallController Ball;
         public readonly HoopController Hoop;
+        // Full court only: the mirrored basket (null on a half court).
+        public readonly HoopController SecondHoop;
 
-        public Arena(GameObject root, BallController ball, HoopController hoop)
+        public Arena(GameObject root, BallController ball, HoopController hoop, HoopController secondHoop = null)
         {
             Root = root;
             Ball = ball;
             Hoop = hoop;
+            SecondHoop = secondHoop;
         }
     }
 
@@ -34,12 +37,50 @@ namespace Basket.Gameplay
             BuildLight(root.transform);
             BuildFloor(court, root.transform);
             BuildWalls(court, root.transform);
-            BuildThreePointLine(court, threePointRadius, root.transform);
-            BuildBackboard(court, root.transform);
-            HoopController hoop = BuildRim(court, root.transform);
+            BuildThreePointLine(court, court.rimCenter, threePointRadius, root.transform);
+            BuildBackboard(court, court.backboardCenter, root.transform);
+            HoopController hoop = BuildRim(court, court.rimCenter, root.transform);
+            HoopController second = null;
+            if (court.fullCourt)
+            {
+                BuildThreePointLine(court, court.Mirror(court.rimCenter), threePointRadius, root.transform);
+                BuildBackboard(court, court.Mirror(court.backboardCenter), root.transform);
+                second = BuildRim(court, court.Mirror(court.rimCenter), root.transform);
+                BuildCenterMarks(court, root.transform);
+            }
             BallController ball = BuildBall(court, ballConfig, root.transform);
             hoop.Configure(ball, court.rimRadius);
-            return new Arena(root, ball, hoop);
+            if (second != null) second.Configure(ball, court.rimRadius);
+            return new Arena(root, ball, hoop, second);
+        }
+
+        private static void BuildCenterMarks(CourtConfig court, Transform parent)
+        {
+            var marks = new GameObject("CenterMarks");
+            marks.transform.SetParent(parent, false);
+            GameObject line = CreateVisual(PrimitiveType.Cube, "CenterLine", marks.transform, LineColor, keepCollider: false);
+            line.transform.position = court.CourtCenter + Vector3.up * 0.005f;
+            line.transform.localScale = new Vector3(court.width, 0.01f, 0.05f);
+            BuildArc(court.CourtCenter, court.centerCircleRadius, 0f, 360f, 32, marks.transform, court);
+        }
+
+        private static void BuildArc(Vector3 center, float radius, float fromDeg, float toDeg, int segments, Transform parent, CourtConfig court)
+        {
+            float halfWidth = court.width * 0.5f;
+            for (int i = 0; i < segments; i++)
+            {
+                float a0 = Mathf.Lerp(fromDeg, toDeg, i / (float)segments) * Mathf.Deg2Rad;
+                float a1 = Mathf.Lerp(fromDeg, toDeg, (i + 1) / (float)segments) * Mathf.Deg2Rad;
+                Vector3 p0 = center + new Vector3(Mathf.Sin(a0), 0f, Mathf.Cos(a0)) * radius;
+                Vector3 p1 = center + new Vector3(Mathf.Sin(a1), 0f, Mathf.Cos(a1)) * radius;
+                if (Mathf.Abs(p0.x) > halfWidth || Mathf.Abs(p1.x) > halfWidth) continue;
+                if (p0.z < 0f || p1.z < 0f || p0.z > court.depth || p1.z > court.depth) continue;
+
+                GameObject seg = CreateVisual(PrimitiveType.Cube, "Segment", parent, LineColor, keepCollider: false);
+                seg.transform.position = (p0 + p1) * 0.5f + Vector3.up * 0.005f;
+                seg.transform.rotation = Quaternion.LookRotation(p1 - p0, Vector3.up);
+                seg.transform.localScale = new Vector3(0.05f, 0.01f, (p1 - p0).magnitude + 0.01f);
+            }
         }
 
         private static void BuildLight(Transform parent)
@@ -83,42 +124,30 @@ namespace Basket.Gameplay
             go.AddComponent<BoxCollider>().size = size;
         }
 
-        private static void BuildThreePointLine(CourtConfig court, float radius, Transform parent)
+        // Arc facing the court's center (works for either basket).
+        private static void BuildThreePointLine(CourtConfig court, Vector3 rimCenter, float radius, Transform parent)
         {
             var line = new GameObject("ThreePointLine");
             line.transform.SetParent(parent, false);
-            Vector3 center = court.RimFloorProjection;
-            const int segments = 48;
-            float halfWidth = court.width * 0.5f;
-            for (int i = 0; i < segments; i++)
-            {
-                float a0 = Mathf.Lerp(-90f, 90f, i / (float)segments) * Mathf.Deg2Rad;
-                float a1 = Mathf.Lerp(-90f, 90f, (i + 1) / (float)segments) * Mathf.Deg2Rad;
-                Vector3 p0 = center + new Vector3(Mathf.Sin(a0), 0f, -Mathf.Cos(a0)) * radius;
-                Vector3 p1 = center + new Vector3(Mathf.Sin(a1), 0f, -Mathf.Cos(a1)) * radius;
-                if (Mathf.Abs(p0.x) > halfWidth || Mathf.Abs(p1.x) > halfWidth || p0.z < 0f || p1.z < 0f) continue;
-
-                GameObject seg = CreateVisual(PrimitiveType.Cube, "Segment", line.transform, LineColor, keepCollider: false);
-                seg.transform.position = (p0 + p1) * 0.5f + Vector3.up * 0.005f;
-                seg.transform.rotation = Quaternion.LookRotation(p1 - p0, Vector3.up);
-                seg.transform.localScale = new Vector3(0.05f, 0.01f, (p1 - p0).magnitude + 0.01f);
-            }
+            Vector3 center = new Vector3(rimCenter.x, 0f, rimCenter.z);
+            float facing = court.CourtCenter.z >= center.z ? 0f : 180f;
+            BuildArc(center, radius, facing - 90f, facing + 90f, 48, line.transform, court);
         }
 
-        private static void BuildBackboard(CourtConfig court, Transform parent)
+        private static void BuildBackboard(CourtConfig court, Vector3 boardCenter, Transform parent)
         {
             GameObject board = CreateVisual(PrimitiveType.Cube, "Backboard", parent, BackboardColor, keepCollider: true);
-            board.transform.position = court.backboardCenter;
+            board.transform.position = boardCenter;
             board.transform.localScale = court.backboardSize;
             PhysicsLayers.Assign(board, PhysicsLayers.Hoop);
         }
 
         // A ring of thin capsules: the ball can hit the front/back rim and roll around it.
-        private static HoopController BuildRim(CourtConfig court, Transform parent)
+        private static HoopController BuildRim(CourtConfig court, Vector3 rimCenter, Transform parent)
         {
             var hoopGo = new GameObject("Hoop");
             hoopGo.transform.SetParent(parent, false);
-            hoopGo.transform.position = court.rimCenter;
+            hoopGo.transform.position = rimCenter;
             PhysicsLayers.Assign(hoopGo, PhysicsLayers.Hoop);
 
             int n = Mathf.Max(8, court.rimSegments);
@@ -131,7 +160,7 @@ namespace Basket.Gameplay
 
                 // Unit capsule primitive: height 2 along Y, radius 0.5.
                 GameObject seg = CreateVisual(PrimitiveType.Capsule, "RimSegment", hoopGo.transform, RimColor, keepCollider: true);
-                seg.transform.position = court.rimCenter + radial * court.rimRadius;
+                seg.transform.position = rimCenter + radial * court.rimRadius;
                 seg.transform.rotation = Quaternion.FromToRotation(Vector3.up, tangent);
                 float diameter = court.rimTubeRadius * 2f;
                 seg.transform.localScale = new Vector3(diameter, (segmentLength + diameter) * 0.5f, diameter);

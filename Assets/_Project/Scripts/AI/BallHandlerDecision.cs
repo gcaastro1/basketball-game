@@ -38,6 +38,19 @@ namespace Basket.AI
 
             if (distance <= c.driveFinishDistance) return new HandlerAction(HandlerActionKind.Shoot);
 
+            // Full court: far from the basket, bring the ball up (or push a fast break when
+            // nobody is back); only pass ahead to an open teammate.
+            if (distance > c.advanceDistance)
+            {
+                int ahead = BestPassTarget(s, self, c, out float aheadValue);
+                if (ahead >= 0 && aheadValue >= c.shootQualityThreshold && heldFor >= c.minHoldSecondsBeforeShot)
+                    return new HandlerAction(HandlerActionKind.Pass, s.GetPosition(ahead), ahead);
+                if (TeamMath.DriveLaneOpen(s, self, c.driveLaneClearance)) return new HandlerAction(HandlerActionKind.Drive, rimFloor);
+                Vector3 axis = TeamMath.Flat(s.CourtCenter - rimFloor);
+                axis = axis.sqrMagnitude < 0.0001f ? Vector3.back : axis.normalized;
+                return new HandlerAction(HandlerActionKind.Drive, rimFloor + axis * c.advanceSpotDistance);
+            }
+
             float own = TeamMath.ShotValue(s, self, c);
             if (distance >= s.ThreePointRadius) own *= Pref(t.threePointPreference);
             int mate = BestPassTarget(s, self, c, out float mateValue);

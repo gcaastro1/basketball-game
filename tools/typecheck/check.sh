@@ -62,4 +62,13 @@ build Basket.EditorTools $(refs Stubs Basket.Core Basket.Characters Basket.Gamep
 build Basket.Tests.EditMode "$NUNIT" $(refs Stubs Basket.Core Basket.Characters Basket.Gameplay Basket.AI Basket.Input) $(src Tests/EditMode)
 build Basket.Tests.PlayMode "$NUNIT" $(refs Stubs Basket.Core Basket.Characters Basket.Gameplay Basket.AI Basket.Input Basket.Bootstrap) $(src Tests/PlayMode)
 
+# Unity binds a ScriptableObject/MonoBehaviour asset to its script file through the class
+# named like the file; any other name breaks the asset at load time (only visible in Unity).
+while IFS= read -r f; do
+    if ! grep -qE "class $(basename "$f" .cs)\b" "$f"; then
+        echo "FAILED  $f: ScriptableObject/MonoBehaviour file has no class named like the file"
+        failed=1
+    fi
+done < <(grep -rlE ':\s*(ScriptableObject|MonoBehaviour)\b' --include='*.cs' "$HERE/../../Assets/_Project/Scripts")
+
 exit $failed

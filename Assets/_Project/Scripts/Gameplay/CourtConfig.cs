@@ -11,6 +11,9 @@ namespace Basket.Gameplay
         [Header("Floor (x: -width/2..width/2, z: 0..depth)")]
         public float width = 15f;
         public float depth = 14f;
+        // Full court: a second basket mirrored across the center line (z = depth / 2).
+        public bool fullCourt = false;
+        public float centerCircleRadius = 1.8f;
         public float wallHeight = 3f;
 
         [Header("Hoop")]
@@ -31,5 +34,9 @@ namespace Basket.Gameplay
         public float freeThrowDistance = 4.2f;
 
         public Vector3 RimFloorProjection => new Vector3(rimCenter.x, 0f, rimCenter.z);
+        public Vector3 CourtCenter => new Vector3(0f, 0f, depth * 0.5f);
+
+        // Mirror of a point across the center line (the other basket's side).
+        public Vector3 Mirror(Vector3 p) => new Vector3(p.x, p.y, depth - p.z);
     }
 }

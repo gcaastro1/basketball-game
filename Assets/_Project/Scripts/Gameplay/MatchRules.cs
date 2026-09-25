@@ -3,7 +3,10 @@ using Basket.Core;
 
 namespace Basket.Gameplay
 {
-    public enum RestartKind { CheckBall, UnderBasket }
+    // CheckBall / UnderBasket: half-court restarts (everyone lines up).
+    // BaselineInbound / SidelineInbound / JumpBall: full-court restarts where only the
+    // inbounder (or the jumpers) are placed and play continues from where everyone is.
+    public enum RestartKind { CheckBall, UnderBasket, BaselineInbound, SidelineInbound, JumpBall, MidcourtInbound }
     public enum OvertimeMode { SuddenDeathPoints, TimedPeriod }
 
     // Scoring, clocks, possession and foul rules for one match mode. 3v3 and 5v5 are
@@ -34,6 +37,17 @@ namespace Basket.Gameplay
         public bool useShotClock = false;
         public float shotClockSeconds = 12f;
         public float shotClockAfterRimTouch = 12f;
+
+        [Header("Full court (5v5)")]
+        public bool fullCourt = false;
+        // Ball or ball handler outside the court lines is a turnover.
+        public bool useBoundaryLines = false;
+        // Seconds to bring the ball past midcourt (0 = no rule).
+        public float frontcourtSeconds = 0f;
+        public bool useBackcourtRule = false;
+        public bool startWithJumpBall = false;
+        // Teams switch baskets after this period (0 = never).
+        public int switchSidesAfterPeriod = 0;
 
         [Header("Possession")]
         public TeamId firstPossession = TeamId.Home;

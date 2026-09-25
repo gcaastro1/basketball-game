@@ -66,6 +66,29 @@ public class FundamentalsTests
         Assert.AreEqual(2, match.Sim.Match.State.ScoreHome);
     }
 
+    // Regression (AI-vs-AI simulation): the on-ball defender standing next to the passer
+    // used to "catch" the ball the instant it left the passer's hands.
+    [UnityTest]
+    public IEnumerator Pass_WithDefenderRightNextToThePasser_ReachesTheTeammate()
+    {
+        match.Court.defenderGap = 1.0f;
+        bool passed = false;
+        match.Start(
+            (TeamId.Home, (s, self) =>
+            {
+                bool pass = !passed && s.BallHolderIndex == self && s.Phase == MatchPhase.Live && s.Time > 0.5f;
+                if (pass) passed = true;
+                return new PlayerCommand(Vector2.zero, pass: pass);
+            }),
+            (TeamId.Home, TestMatch.Idle),
+            (TeamId.Away, TestMatch.Idle));
+        yield return match.RunUntil(() => passed && match.Sim.Snapshot.BallHolderIndex >= 0 && match.Sim.Snapshot.BallHolderIndex != 0, 4f);
+
+        Assert.IsTrue(passed, "the pass was thrown");
+        Assert.AreEqual(1, match.Sim.Snapshot.BallHolderIndex, string.Join("\n", match.Events));
+        Assert.AreEqual(1, match.Sim.Stats.Get(TeamId.Home).PassesCompleted);
+    }
+
     [UnityTest]
     public IEnumerator Block_DefenderJumpingInFront_DeflectsTheShot()
     {

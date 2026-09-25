@@ -20,7 +20,6 @@ namespace Basket.Gameplay
         private readonly BallController ball;
         private readonly ShotConfig config;
         private readonly BallConfig ballConfig;
-        private readonly Vector3 rimCenter;
         private readonly System.Random rng;
         private readonly AttributeTuning tuning;
         private readonly float threePointRadius;
@@ -35,7 +34,8 @@ namespace Basket.Gameplay
 
         public event Action<ShotReport> OnShotTaken;
 
-        public ShotSystem(int playerCount, BallController ball, ShotConfig config, BallConfig ballConfig, Vector3 rimCenter, System.Random rng,
+        // Each shot goes at the basket the shooter's team attacks (from the snapshot).
+        public ShotSystem(int playerCount, BallController ball, ShotConfig config, BallConfig ballConfig, System.Random rng,
             AttributeTuning tuning = null, float threePointRadius = 6.75f)
         {
             this.tuning = tuning != null ? tuning : ScriptableObject.CreateInstance<AttributeTuning>();
@@ -43,7 +43,6 @@ namespace Basket.Gameplay
             this.ball = ball;
             this.config = config;
             this.ballConfig = ballConfig;
-            this.rimCenter = rimCenter;
             this.rng = rng ?? new System.Random();
             phase = new Phase[playerCount];
             type = new ShotType[playerCount];
@@ -71,7 +70,7 @@ namespace Basket.Gameplay
 
             if (phase[index] == Phase.None)
             {
-                if (holding && pressed && player.Motor.IsGrounded) Begin(index, player, command, time);
+                if (holding && pressed && player.Motor.IsGrounded) Begin(index, player, command, snapshot, time);
                 return;
             }
             if (!holding)
@@ -99,8 +98,11 @@ namespace Basket.Gameplay
             }
         }
 
-        private void Begin(int index, PlayerEntity player, PlayerCommand command, float time)
+        private static Vector3 RimFor(MatchSnapshot s, PlayerEntity p) => s.GetAttackingHoop(p.Team);
+
+        private void Begin(int index, PlayerEntity player, PlayerCommand command, MatchSnapshot snapshot, float time)
         {
+            Vector3 rimCenter = RimFor(snapshot, player);
             PlayerMotor motor = player.Motor;
             Vector3 feet = player.FeetPosition;
             float distance = FlatDistance(feet, rimCenter);
@@ -144,6 +146,7 @@ namespace Basket.Gameplay
 
         private void Release(int index, PlayerEntity player, MatchSnapshot snapshot, float time)
         {
+            Vector3 rimCenter = RimFor(snapshot, player);
             ShotType shotType = type[index] == ShotType.Dunk ? ShotType.Layup : type[index];
             Vector3 feet = player.FeetPosition;
             float distance = FlatDistance(feet, rimCenter);
@@ -178,6 +181,7 @@ namespace Basket.Gameplay
 
         private void FinishDunk(int index, PlayerEntity player, MatchSnapshot snapshot, float time)
         {
+            Vector3 rimCenter = RimFor(snapshot, player);
             Vector3 hand = player.ReachPoint;
             bool canFinish = FlatDistance(hand, rimCenter) <= config.dunkFinishReach
                              && hand.y >= rimCenter.y + config.dunkReachClearance;
@@ -198,6 +202,7 @@ namespace Basket.Gameplay
 
         private float MaxContest(int shooter, Vector3 shooterFeet, MatchSnapshot s)
         {
+            Vector3 rimCenter = s.GetAttackingHoop(s.GetTeam(shooter));
             TeamId team = s.GetTeam(shooter);
             float max = 0f;
             for (int i = 0; i < s.PlayerCount; i++)

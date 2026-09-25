@@ -150,7 +150,8 @@ namespace Basket.AI
             switch (order.Kind)
             {
                 case TeamOrderKind.Space:
-                    return new PlayerCommand(Steer(p, order.Target, 0.4f, -1));
+                    // Run the floor in transition, jog into spots in the half court.
+                    return new PlayerCommand(Steer(p, order.Target, 0.4f, -1), sprint: FlatDistance(p.SelfPosition, order.Target) > config.sprintDistance);
                 case TeamOrderKind.Cut:
                 case TeamOrderKind.Roll:
                 case TeamOrderKind.Crash:
@@ -175,7 +176,9 @@ namespace Basket.AI
                 case TeamOrderKind.Crash:
                     return new PlayerCommand(Steer(p, order.Target, config.arrivalDistance, -1), sprint: true);
                 default:
-                    return Defend(p, GuardSpot(p.OpponentPosition, p.DefendHoop, config.guardDistance), config.arrivalDistance);
+                    // Get back on defense: sprint when far from where we need to be.
+                    Vector3 spot = GuardSpot(p.OpponentPosition, p.DefendHoop, config.guardDistance);
+                    return Defend(p, spot, config.arrivalDistance, sprint: FlatDistance(p.SelfPosition, spot) > config.sprintDistance);
             }
         }
 

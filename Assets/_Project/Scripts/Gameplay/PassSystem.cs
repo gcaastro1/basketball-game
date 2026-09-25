@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using Basket.Core;
 
@@ -7,6 +8,8 @@ namespace Basket.Gameplay
     {
         private readonly BallController ball;
         private readonly BallConfig config;
+        private readonly Collider[] overlap = new Collider[16];
+        private readonly List<Collider> nearby = new List<Collider>();
 
         public PassSystem(BallController ballController, BallConfig ballConfig)
         {
@@ -41,7 +44,22 @@ namespace Basket.Gameplay
                 Physics.gravity.y, ball.LinearDamping, Time.fixedDeltaTime);
 
             ball.Release(BallState.Passing, velocity);
+            ball.BeginPass(target, PlayersNear(origin));
             return true;
+        }
+
+        // Player bodies around the release point (the pass is thrown past them).
+        private List<Collider> PlayersNear(Vector3 origin)
+        {
+            nearby.Clear();
+            int count = Physics.OverlapSphereNonAlloc(origin, config.passProtectRadius, overlap,
+                Physics.AllLayers, QueryTriggerInteraction.Ignore);
+            for (int i = 0; i < count; i++)
+            {
+                if (overlap[i].TryGetComponent<PlayerEntity>(out var entity) && entity.BodyCollider == overlap[i])
+                    nearby.Add(overlap[i]);
+            }
+            return nearby;
         }
     }
 }

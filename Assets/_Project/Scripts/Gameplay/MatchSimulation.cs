@@ -30,6 +30,10 @@ namespace Basket.Gameplay
         private readonly AttributeTuning tuning;
         private readonly int[] consecutiveMakes;
         private int pendingShooter = -1;
+        private readonly HoopController homeAttacks;
+        private readonly HoopController awayAttacks;
+        private TeamId? lastTouchBeforeTick;
+        private int lastHolderIndex = -1;
         private float time;
         private bool awaitingRebound;
         private bool awaitingPass;
@@ -47,7 +51,7 @@ namespace Basket.Gameplay
         public MatchSimulation(IReadOnlyList<PlayerEntity> players, IReadOnlyList<IAgentController> controllers,
             BallController ball, HoopController hoop, CourtConfig court, MatchRules rules,
             BallConfig ballConfig, ShotConfig shotConfig, DefenseConfig defenseConfig = null, System.Random random = null,
-            AttributeTuning attributeTuning = null)
+            AttributeTuning attributeTuning = null, HoopController secondHoop = null)
         {
             tuning = attributeTuning != null ? attributeTuning : ScriptableObject.CreateInstance<AttributeTuning>();
             consecutiveMakes = new int[players.Count];
@@ -70,23 +74,26 @@ namespace Basket.Gameplay
             this.defenseConfig = defenseConfig != null ? defenseConfig : ScriptableObject.CreateInstance<DefenseConfig>();
             rng = random ?? new System.Random();
             passSystem = new PassSystem(ball, ballConfig);
-            shotSystem = new ShotSystem(players.Count, ball, shotConfig, ballConfig, hoop.RimCenter, rng, tuning, rules.threePointRadius);
+            shotSystem = new ShotSystem(players.Count, ball, shotConfig, ballConfig, rng, tuning, rules.threePointRadius);
             defenseSystem = new DefenseSystem(players.Count, ball, this.defenseConfig, rng, tuning);
             dribbleSystem = new DribbleSystem(ball, ballConfig);
 
             snapshot = new MatchSnapshot(players.Count);
-            // Half court: both teams attack the single hoop.
-            snapshot.SetAttackingHoop(TeamId.Home, hoop.RimCenter);
-            snapshot.SetAttackingHoop(TeamId.Away, hoop.RimCenter);
+            // Half court: both teams attack the single hoop. Full court: Home attacks the
+            // first basket, Away the mirrored one, until the teams switch sides.
+            homeAttacks = hoop;
+            awayAttacks = secondHoop != null ? secondHoop : hoop;
+            AssignBaskets();
             snapshot.SetThreePointRadius(rules.threePointRadius);
             snapshot.SetScoring(rules.pointsInsideArc, rules.pointsBeyondArc);
-            snapshot.SetCourtCenter(new Vector3(0f, 0f, court.depth * 0.5f));
+            snapshot.SetCourtCenter(court.CourtCenter);
 
             Match = new MatchManager(rules, hoop.RimCenter);
             ball.OnScored += Match.HandleScore;
             ball.OnRimTouched += Match.NotifyRimTouched;
             Match.OnPossessionRestart += SetUpPossession;
             Match.OnFreeThrowSetup += SetUpFreeThrow;
+            Match.OnSidesSwitched += SwitchSides;
             Match.OnRuleEvent += Raise;
             Match.OnBasketCounted += CountBasket;
             Match.OnFoulCalled += CountFoul;
@@ -101,6 +108,7 @@ namespace Basket.Gameplay
         public void Tick(float dt)
         {
             time += dt;
+            lastTouchBeforeTick = ball.LastTouchTeam;
             RefreshSnapshot();
 
             MatchPhase phase = Match.State.Phase;
@@ -119,10 +127,7 @@ namespace Basket.Gameplay
                 defenseSystem.CheckBlocks(players, ball.LastTouchTeam);
                 CatchLooseBall();
                 ReportPossession();
-                if (ball.CurrentState != BallState.Held && IsOutOfPlay(ball.Position))
-                {
-                    Match.HandleBallOutOfPlay(ball.LastTouchTeam);
-                }
+                CheckBoundaries();
             }
 
             BallState state = ball.CurrentState;
@@ -242,10 +247,16 @@ namespace Basket.Gameplay
 
         private void ReportPossession()
         {
-            if (ball.CurrentState != BallState.Held) return;
+            if (ball.CurrentState != BallState.Held)
+            {
+                lastHolderIndex = -1;
+                return;
+            }
             for (int i = 0; i < players.Length; i++)
             {
                 if (ball.CurrentHolder != players[i].transform) continue;
+                bool newCatch = i != lastHolderIndex;
+                lastHolderIndex = i;
                 if (awaitingPass)
                 {
                     awaitingPass = false;
@@ -264,16 +275,65 @@ namespace Basket.Gameplay
                     if (players[i].Team == reboundShooterTeam) stats.OffensiveRebounds++;
                     else stats.DefensiveRebounds++;
                 }
-                Match.NotifyPossession(players[i].Team, IsBeyondArc(players[i].FeetPosition));
+                bool byOpponent = newCatch && lastTouchBeforeTick.HasValue && lastTouchBeforeTick.Value != players[i].Team;
+                Match.NotifyPossession(players[i].Team, IsBeyondArc(players[i].FeetPosition, players[i].Team),
+                    IsInFrontcourt(players[i].FeetPosition, players[i].Team), byOpponent);
                 return;
             }
         }
 
-        private bool IsBeyondArc(Vector3 feet)
+        private bool IsBeyondArc(Vector3 feet, TeamId team)
         {
-            Vector3 hoop = court.RimFloorProjection;
+            Vector3 hoop = snapshot.GetAttackingHoop(team);
             float dx = feet.x - hoop.x, dz = feet.z - hoop.z;
             return dx * dx + dz * dz >= rules.threePointRadius * rules.threePointRadius;
+        }
+
+        // The half of the court with the basket this team attacks (always true on a half court).
+        private bool IsInFrontcourt(Vector3 feet, TeamId team)
+        {
+            if (!court.fullCourt) return true;
+            float hoopSide = snapshot.GetAttackingHoop(team).z - court.CourtCenter.z;
+            return (feet.z - court.CourtCenter.z) * hoopSide >= 0f;
+        }
+
+        private bool IsOutsideLines(Vector3 p) =>
+            Mathf.Abs(p.x) > court.width * 0.5f || p.z < 0f || p.z > court.depth;
+
+        // Ball on/over the floor outside the lines, or a ball handler stepping out.
+        private void CheckBoundaries()
+        {
+            if (ball.CurrentState != BallState.Held)
+            {
+                bool outOfBounds = rules.useBoundaryLines && IsOutsideLines(ball.Position) && ball.Position.y < 1f;
+                if (outOfBounds || IsOutOfPlay(ball.Position)) Match.HandleBallOutOfPlay(ball.LastTouchTeam);
+                return;
+            }
+            if (!rules.useBoundaryLines || lastHolderIndex < 0) return;
+            PlayerEntity holder = players[lastHolderIndex];
+            if (IsOutsideLines(holder.FeetPosition)) Match.HandleBallOutOfPlay(holder.Team);
+        }
+
+        private void AssignBaskets()
+        {
+            snapshot.SetAttackingHoop(TeamId.Home, homeAttacks.RimCenter);
+            snapshot.SetAttackingHoop(TeamId.Away, awayAttacks.RimCenter);
+            if (homeAttacks != awayAttacks)
+            {
+                homeAttacks.AttackingTeam = TeamId.Home;
+                awayAttacks.AttackingTeam = TeamId.Away;
+            }
+        }
+
+        private void SwitchSides()
+        {
+            if (homeAttacks == awayAttacks) return;
+            HoopController a = homeAttacks.AttackingTeam == TeamId.Home ? homeAttacks : awayAttacks;
+            HoopController b = a == homeAttacks ? awayAttacks : homeAttacks;
+            a.AttackingTeam = TeamId.Away;
+            b.AttackingTeam = TeamId.Home;
+            snapshot.SetAttackingHoop(TeamId.Home, b.RimCenter);
+            snapshot.SetAttackingHoop(TeamId.Away, a.RimCenter);
         }
 
         private bool IsOutOfPlay(Vector3 p)
@@ -305,7 +365,7 @@ namespace Basket.Gameplay
         private void OnShotTaken(ShotReport r)
         {
             PlayerEntity shooter = players[r.ShooterIndex];
-            bool beyondArc = IsBeyondArc(shooter.FeetPosition);
+            bool beyondArc = IsBeyondArc(shooter.FeetPosition, shooter.Team);
             Match.NotifyShotReleased(r.ShooterIndex, beyondArc);
             ReportShot(r);
 
@@ -392,6 +452,147 @@ namespace Basket.Gameplay
         // same rank as their man-to-man matchup.
         private void SetUpPossession(TeamId offenseTeam, RestartKind kind)
         {
+            awaitingRebound = false;
+            awaitingPass = false;
+            lastHolderIndex = -1;
+            switch (kind)
+            {
+                case RestartKind.JumpBall:
+                    SetUpJumpBall();
+                    return;
+                case RestartKind.BaselineInbound:
+                case RestartKind.SidelineInbound:
+                case RestartKind.MidcourtInbound:
+                    SetUpInbound(offenseTeam, kind);
+                    return;
+            }
+            SetUpHalfCourtLineup(offenseTeam, kind);
+        }
+
+        // Full court: only the inbounder is placed; everyone else keeps playing from
+        // where they are (that is what makes transition happen).
+        private void SetUpInbound(TeamId offenseTeam, RestartKind kind)
+        {
+            SplitTeams(offenseTeam, out var offense, out var defense);
+            if (offense.Count == 0) (offense, defense) = (defense, offense);
+            if (offense.Count == 0) return;
+
+            Vector3 center = court.CourtCenter;
+            float sideX = (court.width * 0.5f - 0.3f) * (ball.Position.x >= 0f ? 1f : -1f);
+            Vector3 spot;
+            switch (kind)
+            {
+                case RestartKind.BaselineInbound:
+                    // Under the basket that was just scored on (the one this team defends).
+                    Vector3 hoop = snapshot.GetDefendedHoop(offense[0].Team);
+                    Vector3 hoopFloor = new Vector3(hoop.x, 0f, hoop.z);
+                    Vector3 towardBaseline = (hoopFloor - center).normalized;
+                    spot = Clamp(hoopFloor + towardBaseline * 0.9f, 0.3f);
+                    break;
+                case RestartKind.MidcourtInbound:
+                    spot = new Vector3(sideX, 0f, center.z);
+                    break;
+                default:
+                    spot = new Vector3(sideX, 0f, Mathf.Clamp(ball.Position.z, 1f, court.depth - 1f));
+                    break;
+            }
+
+            PlayerEntity inbounder = Nearest(offense, spot);
+            Vector3 attackHoop = snapshot.GetAttackingHoop(inbounder.Team);
+            inbounder.TeleportFeetTo(spot, new Vector3(attackHoop.x, 0f, attackHoop.z) - spot);
+            AssignMatchupsByProximity(offense, defense);
+            shotSystem.ResetAll();
+            ball.ResetToHolder(inbounder.transform);
+        }
+
+        // Jump ball at the center circle: one jumper per team, the rest in their own half.
+        private void SetUpJumpBall()
+        {
+            SplitTeams(TeamId.Home, out var home, out var away);
+            Vector3 center = court.CourtCenter;
+            PlaceJumpTeam(home, center);
+            PlaceJumpTeam(away, center);
+            AssignMatchupsByProximity(home, away);
+            shotSystem.ResetAll();
+            ball.Toss(center + Vector3.up * 2.2f, Vector3.up * 5f);
+        }
+
+        private void PlaceJumpTeam(List<PlayerEntity> team, Vector3 center)
+        {
+            if (team.Count == 0) return;
+            Vector3 defended = snapshot.GetDefendedHoop(team[0].Team);
+            Vector3 back = new Vector3(defended.x - center.x, 0f, defended.z - center.z);
+            back = back.sqrMagnitude < 0.0001f ? Vector3.back : back.normalized;
+
+            // Best leaper jumps.
+            PlayerEntity jumper = team[0];
+            foreach (PlayerEntity p in team)
+            {
+                if (p.AttributeMult(AttributeId.Vertical, tuning.verticalJump) > jumper.AttributeMult(AttributeId.Vertical, tuning.verticalJump)) jumper = p;
+            }
+            jumper.TeleportFeetTo(center + back * 0.6f, -back);
+
+            int k = 0;
+            foreach (PlayerEntity p in team)
+            {
+                if (p == jumper) continue;
+                float angle = (k % 2 == 0 ? 1f : -1f) * (35f + 30f * (k / 2));
+                Vector3 spot = center + Quaternion.AngleAxis(angle, Vector3.up) * back * (court.centerCircleRadius + 1.5f);
+                p.TeleportFeetTo(Clamp(spot, 0.5f), center - spot);
+                k++;
+            }
+        }
+
+        private static PlayerEntity Nearest(List<PlayerEntity> candidates, Vector3 point)
+        {
+            PlayerEntity best = candidates[0];
+            float bestDistance = float.MaxValue;
+            foreach (PlayerEntity p in candidates)
+            {
+                Vector3 d = p.FeetPosition - point;
+                d.y = 0f;
+                if (d.sqrMagnitude < bestDistance)
+                {
+                    bestDistance = d.sqrMagnitude;
+                    best = p;
+                }
+            }
+            return best;
+        }
+
+        // Greedy nearest pairs: players are scattered after a live-ball restart.
+        private void AssignMatchupsByProximity(List<PlayerEntity> offense, List<PlayerEntity> defense)
+        {
+            for (int i = 0; i < players.Length; i++) snapshot.SetMatchup(i, -1);
+            var freeDefenders = new List<PlayerEntity>(defense);
+            var freeAttackers = new List<PlayerEntity>(offense);
+            while (freeDefenders.Count > 0 && freeAttackers.Count > 0)
+            {
+                PlayerEntity bestD = null, bestA = null;
+                float best = float.MaxValue;
+                foreach (PlayerEntity d in freeDefenders)
+                {
+                    foreach (PlayerEntity a in freeAttackers)
+                    {
+                        Vector3 v = d.FeetPosition - a.FeetPosition;
+                        v.y = 0f;
+                        if (v.sqrMagnitude < best)
+                        {
+                            best = v.sqrMagnitude;
+                            bestD = d;
+                            bestA = a;
+                        }
+                    }
+                }
+                snapshot.SetMatchup(bestA.Index, bestD.Index);
+                snapshot.SetMatchup(bestD.Index, bestA.Index);
+                freeDefenders.Remove(bestD);
+                freeAttackers.Remove(bestA);
+            }
+        }
+
+        private void SetUpHalfCourtLineup(TeamId offenseTeam, RestartKind kind)
+        {
             SplitTeams(offenseTeam, out var offense, out var defense);
             if (offense.Count == 0)
             {
@@ -434,15 +635,16 @@ namespace Basket.Gameplay
         private void SetUpFreeThrow(int shooterIndex)
         {
             PlayerEntity shooter = players[shooterIndex];
-            Vector3 hoopFloor = court.RimFloorProjection;
-            Vector3 line = PossessionLayout.AlongCourtAxis(hoopFloor, court.checkBallSpot, court.freeThrowDistance);
+            Vector3 hoop = snapshot.GetAttackingHoop(shooter.Team);
+            Vector3 hoopFloor = new Vector3(hoop.x, 0f, hoop.z);
+            Vector3 line = PossessionLayout.AlongCourtAxis(hoopFloor, court.CourtCenter, court.freeThrowDistance);
             shooter.TeleportFeetTo(line, hoopFloor - line);
 
             int slot = 0;
             for (int i = 0; i < players.Length; i++)
             {
                 if (i == shooterIndex) continue;
-                Vector3 spot = Clamp(PossessionLayout.LaneSlot(hoopFloor, court.checkBallSpot, slot++));
+                Vector3 spot = Clamp(PossessionLayout.LaneSlot(hoopFloor, court.CourtCenter, slot++));
                 players[i].TeleportFeetTo(spot, hoopFloor - spot);
             }
             shotSystem.ResetAll();
@@ -460,7 +662,8 @@ namespace Basket.Gameplay
             }
         }
 
-        private Vector3 Clamp(Vector3 spot) => PossessionLayout.ClampToCourt(spot, court.width, court.depth, CourtEdgeMargin);
+        private Vector3 Clamp(Vector3 spot) => Clamp(spot, CourtEdgeMargin);
+        private Vector3 Clamp(Vector3 spot, float margin) => PossessionLayout.ClampToCourt(spot, court.width, court.depth, margin);
 
         private void ReportShot(ShotReport r)
         {
@@ -479,6 +682,7 @@ namespace Basket.Gameplay
             ball.OnRimTouched -= Match.NotifyRimTouched;
             Match.OnPossessionRestart -= SetUpPossession;
             Match.OnFreeThrowSetup -= SetUpFreeThrow;
+            Match.OnSidesSwitched -= SwitchSides;
             Match.OnRuleEvent -= Raise;
             Match.OnBasketCounted -= CountBasket;
             Match.OnFoulCalled -= CountFoul;

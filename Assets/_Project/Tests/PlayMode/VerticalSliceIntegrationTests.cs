@@ -10,16 +10,20 @@ using Basket.Gameplay;
 public class VerticalSliceIntegrationTests
 {
     private const string SliceScene = "01_VerticalSlice_HalfCourt";
+    private const string FullCourtScene = "02_FullCourt_5v5";
 
     // The slice scene builds a full arena at the same coordinates the other tests use;
     // unload it so it cannot leak players/balls/hoops into later tests.
     [UnityTearDown]
     public IEnumerator UnloadSliceScene()
     {
-        Scene slice = SceneManager.GetSceneByName(SliceScene);
-        if (!slice.isLoaded) yield break;
-        SceneManager.SetActiveScene(SceneManager.CreateScene("AfterSliceTest"));
-        yield return SceneManager.UnloadSceneAsync(slice);
+        foreach (string name in new[] { SliceScene, FullCourtScene })
+        {
+            Scene slice = SceneManager.GetSceneByName(name);
+            if (!slice.isLoaded) continue;
+            SceneManager.SetActiveScene(SceneManager.CreateScene("After_" + name));
+            yield return SceneManager.UnloadSceneAsync(slice);
+        }
     }
 
     [UnityTest]
@@ -42,6 +46,29 @@ public class VerticalSliceIntegrationTests
             yield return null;
             elapsed += Time.deltaTime;
         }
+    }
+
+    [UnityTest]
+    public IEnumerator Scene5v5_FullCourt_StartsWithJumpBallAndRunsTenSeconds()
+    {
+        yield return SceneManager.LoadSceneAsync(FullCourtScene, LoadSceneMode.Single);
+        yield return null;
+
+        var bootstrap = Object.FindAnyObjectByType<GameBootstrap>();
+        Assert.IsNotNull(bootstrap, "GameBootstrap should exist in the scene.");
+        MatchSimulation sim = bootstrap.Simulation;
+        Assert.IsNotNull(sim);
+        Assert.AreEqual(10, sim.Players.Count, "the scene plays 5v5");
+        Assert.AreEqual(2, Object.FindObjectsByType<HoopController>(FindObjectsSortMode.None).Length, "full court: two baskets");
+        Assert.AreEqual(BallState.Free, sim.Ball.CurrentState, "the game starts with a jump ball");
+
+        float elapsed = 0f;
+        while (elapsed < 10f)
+        {
+            yield return null;
+            elapsed += Time.deltaTime;
+        }
+        Assert.AreNotEqual(MatchPhase.Ended, sim.Match.State.Phase, "the game is still being played");
     }
 
     [UnityTest]

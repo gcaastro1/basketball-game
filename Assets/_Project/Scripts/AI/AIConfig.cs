@@ -64,6 +64,17 @@ namespace Basket.AI
         public float screenHoldMaxSeconds = 2.5f;
         public float rollDurationSeconds = 1.5f;
 
+        [Header("Team: full court")]
+        // Farther than this from the rim, the handler brings the ball up instead of
+        // running the half-court decision.
+        public float advanceDistance = 11f;
+        // Where the ball is brought to: this far from the rim, on the court's axis.
+        public float advanceSpotDistance = 7f;
+        // Sprint to a spot farther away than this (transition).
+        public float sprintDistance = 6f;
+        // With 4+ teammates off the ball, one plays in the post (4 out, 1 in).
+        public float postSpotDistance = 2.6f;
+
         [Header("Team: ball handler utility")]
         // Shoot when the estimated shot value reaches this.
         public float shootQualityThreshold = 0.45f;

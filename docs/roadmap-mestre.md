@@ -13,7 +13,7 @@ conflitavam). Origem: `docs/auditoria/2026-09-25-auditoria-e-avaliacao.md`, seç
 | 4 IA 3v3 | Utility AI, blackboard de time, companheiros, marcação, ajuda | Simulação IA×IA com estatísticas (`AISimulationTests`) | ✅ código / ⏳ calibração no CI — plano: `docs/etapas/etapa-4-ia.md` |
 | 5 Personagens | Definição/instância, atributos 0–99 + curvas, habilidades data-driven, níveis/LB/dupes | Arquétipos jogam diferente (medido) | ✅ código / ⏳ CI — plano: `docs/etapas/etapa-5-personagens.md` |
 | 6 Animação | Rig Humanoid, Animator/blend trees, sockets/IK de mão e bola | Placeholders trocados sem mudar gameplay | — |
-| 7 5v5 | Quadra inteira, transição, inbound, backcourt, IA de 5 | Partida 5v5 completa | — |
+| 7 5v5 | Quadra inteira, transição, inbound, backcourt, IA de 5 | Partida 5v5 completa (`FullCourtTests`, cena `02_FullCourt_5v5`) | ✅ código / ⏳ CI — plano: `docs/etapas/etapa-7-5v5.md` |
 | 8 Meta | Inventário, save versionado, economia, Gacha atrás de `IEconomyService` | Testes de pity/taxas com seed | — |
 | 9 História | Capítulos/diálogos/partidas-objetivo data-driven | Capítulo de teste | — |
 | 10 Polish | VFX anime, câmera cinemática, UI final, áudio, otimização | — | — |
