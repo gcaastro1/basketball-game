@@ -107,6 +107,7 @@ namespace Basket.Gameplay
             Match.OnBasketCounted += CountBasket;
             Match.OnFoulCalled += CountFoul;
             Match.OnTurnover += CountTurnover;
+            ball.OnShotTraced += Raise;
             shotSystem.OnShotTaken += OnShotTaken;
             defenseSystem.OnSteal += OnSteal;
             defenseSystem.OnBlock += OnBlock;
@@ -726,6 +727,7 @@ namespace Basket.Gameplay
             Match.OnBasketCounted -= CountBasket;
             Match.OnFoulCalled -= CountFoul;
             Match.OnTurnover -= CountTurnover;
+            ball.OnShotTraced -= Raise;
             shotSystem.OnShotTaken -= OnShotTaken;
             defenseSystem.OnSteal -= OnSteal;
             defenseSystem.OnBlock -= OnBlock;

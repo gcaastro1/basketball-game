@@ -188,6 +188,7 @@ namespace Basket.Gameplay
 
             phase[index] = Phase.None;
             ball.Release(BallState.Shooting, velocity, shotType);
+            ball.BeginShotTrace(rimCenter, target);
             OnShotTaken?.Invoke(new ShotReport(index, shotType, distance, timingError, contest, errorRadius));
         }
 

@@ -66,6 +66,9 @@ namespace Basket.Gameplay
             remove => stateMachine.OnStateChanged -= value;
         }
         public event Action<ScoreEvent> OnScored;
+        // Diagnostics: one line per shot -- where it was aimed, where it actually crossed the
+        // rim height, what it touched first. Used to find live-play-only misses.
+        public event Action<string> OnShotTraced;
         public event Action OnRimTouched;
 
         private void Awake()
@@ -229,6 +232,7 @@ namespace Basket.Gameplay
             if (!releaseLive) return;
             releaseLive = false;
             TeamId? team = releaseEntity != null ? releaseEntity.Team : (TeamId?)null;
+            if (tracing) EndShotTrace(true);
             OnScored?.Invoke(new ScoreEvent(releaseEntity, team, releasePosition, releaseKind, releaseShotType, hoopCenter, hoopTeam));
         }
 
@@ -283,8 +287,61 @@ namespace Basket.Gameplay
             }
         }
 
+        private bool tracing;
+        private Vector3 traceRim, traceAim, traceRelease, tracePrev, traceCross;
+        private float traceReleaseGap, traceStart, traceHitTime;
+        private bool traceCrossed;
+        private string traceHit = "";
+        private float traceHitHeight;
+
+        // Called by the shot system right after a shot's release.
+        public void BeginShotTrace(Vector3 rimCenter, Vector3 aim)
+        {
+            if (tracing) EndShotTrace(false);
+            tracing = true;
+            traceRim = rimCenter;
+            traceAim = aim;
+            traceRelease = transform.position;
+            // Gap between where the aim was computed from (transform) and where physics
+            // actually starts the ball (rigidbody).
+            traceReleaseGap = rb != null ? Vector3.Distance(transform.position, rb.position) : 0f;
+            tracePrev = rb != null ? rb.position : transform.position;
+            traceStart = Time.time;
+            traceCrossed = false;
+            traceHit = "";
+        }
+
+        private void TraceStep()
+        {
+            if (!tracing) return;
+            Vector3 current = rb.position;
+            if (!traceCrossed && tracePrev.y >= traceRim.y && current.y < traceRim.y)
+            {
+                float f = (tracePrev.y - traceRim.y) / Mathf.Max(1e-5f, tracePrev.y - current.y);
+                traceCross = Vector3.Lerp(tracePrev, current, f);
+                traceCrossed = true;
+            }
+            tracePrev = current;
+            if (Time.time - traceStart > 4f || stateMachine.CurrentState == BallState.Held) EndShotTrace(false);
+        }
+
+        private void EndShotTrace(bool made)
+        {
+            tracing = false;
+            Vector3 aimOff = traceAim - traceRim;
+            string crossed = traceCrossed
+                ? $"crossed rim height {Flat(traceCross - traceRim):0.00} m from center ({Flat(traceCross - traceAim):0.00} m from the aim)"
+                : "never came down through rim height";
+            string hit = traceHit.Length > 0 ? $"first touched {traceHit} at {traceHitTime:0.00} s, {traceHitHeight:0.00} m high" : "touched nothing";
+            OnShotTraced?.Invoke($"SHOT TRACE {(made ? "MADE" : "MISS")}: from {Flat(traceRelease - traceRim):0.0} m, {traceRelease.y:0.00} m high " +
+                $"(physics start {traceReleaseGap:0.000} m off), aimed {Flat(aimOff):0.00} m off center; {crossed}; {hit}");
+        }
+
+        private static float Flat(Vector3 v) => new Vector3(v.x, 0f, v.z).magnitude;
+
         private void FixedUpdate()
         {
+            TraceStep();
             if (ignoredReleaserCollider != null && Time.time - lastReleaseTime >= SelfCatchGraceSeconds
                 && stateMachine.CurrentState != BallState.Passing)
             {
@@ -370,6 +427,12 @@ namespace Basket.Gameplay
         {
             BallState state = stateMachine.CurrentState;
             if (state == BallState.Held) return;
+            if (tracing && traceHit.Length == 0)
+            {
+                traceHit = collision.transform.name;
+                traceHitTime = Time.time - traceStart;
+                traceHitHeight = transform.position.y;
+            }
 
             // A pass goes past the players it is thrown past (its passer, the passer's
             // defender): touching them neither catches nor kills it.
