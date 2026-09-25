@@ -82,5 +82,23 @@ namespace Basket.Meta
 
             return new MatchRewardSummary(won: ownScore > opponentScore, itemsGranted: itemDescriptions, charactersObtained: characterDescriptions);
         }
+
+        // Puxa no gacha (paga, rola, concede e registra histórico/pity -- tudo em GachaService)
+        // e devolve um resumo em tipos de Basket.Core. Profile.CreateGacha passa this.Gacha (a
+        // GachaSaveData da própria instância, uma classe) pro GachaService, então o pity e o
+        // histórico persistem entre chamadas de Pull enquanto for o mesmo Profile.
+        public GachaPullSummary Pull(BannerDefinition banner, int count)
+        {
+            GachaService gacha = Profile.CreateGacha(progressionConfig, obtainRules, rng);
+            PullOutcome outcome = gacha.Pull(banner, count);
+            if (outcome.Success) Save();
+
+            List<string> descriptions = outcome.Results
+                .Select(r => $"{r.CharacterId} ({(r.Featured ? "featured " : "")}{r.Outcome})")
+                .ToList();
+            return new GachaPullSummary(success: outcome.Success,
+                failureReason: outcome.Success ? null : outcome.Failure.ToString(),
+                resultDescriptions: descriptions);
+        }
     }
 }

@@ -108,4 +108,26 @@ public class ProfileRuntimeServiceTests
         Assert.Greater(service.Profile.Inventory.GetCharacter("ace").xp, 0);
         Assert.AreEqual(0, service.Profile.Inventory.GetCharacter("bench").xp);
     }
+
+    [Test]
+    public void Pull_SuccessfulPull_SavesAndReturnsDescriptiveSummary()
+    {
+        var storage = new MemorySaveStorage();
+        var service = BuildService(storage);
+        service.LoadOrCreate();
+        // EconomyService.Grant recebe uma lista de ItemCost (não itemId/amount/reason) --
+        // ItemCost.count, não .amount (mesma divergência já vista na Task 7).
+        service.Profile.Economy.Grant(new[] { new Basket.Characters.ItemCost("currency_gems", 1000) }, "test_setup");
+        var banner = ScriptableObject.CreateInstance<Basket.Meta.BannerDefinition>();
+        banner.singleCost = new Basket.Characters.ItemCost("currency_gems", 10);
+        banner.rarities.Add(new Basket.Meta.GachaRarity { rarityId = "r1", rate = 1f });
+        var character = ScriptableObject.CreateInstance<Basket.Characters.CharacterDefinition>();
+        character.characterId = "ace";
+        banner.pool.Add(new Basket.Meta.GachaEntry { character = character, rarityId = "r1", weight = 1f });
+
+        GachaPullSummary summary = service.Pull(banner, count: 1);
+
+        Assert.IsTrue(summary.Success);
+        Assert.AreEqual(1, summary.ResultDescriptions.Count);
+    }
 }
