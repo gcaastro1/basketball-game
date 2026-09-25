@@ -30,6 +30,11 @@ public class AISimulationTests
         match.ShotConfig.freeThrowBaseError = defaults.freeThrowBaseError;
         match.Rules.pointsInsideArc = 1;
         match.Rules.pointsBeyondArc = 2;
+        // Shooting fouls as in the FIBA 3x3 preset (1 / 2 free throws). The defaults are the
+        // 5v5 ones (2 / 3): every foul on a 3x3 "two" went to three free throws, ~10 s each,
+        // which ate over half of a 120 s run in CI.
+        match.Rules.shootingFoulFreeThrowsInsideArc = 1;
+        match.Rules.shootingFoulFreeThrowsBeyondArc = 2;
         match.Rules.winningScore = 0;
         match.Rules.useShotClock = true;
         match.Rules.clearBallOnChangeOfPossession = true;
