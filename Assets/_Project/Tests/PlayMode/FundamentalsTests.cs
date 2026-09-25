@@ -142,6 +142,32 @@ public class FundamentalsTests
         Assert.AreEqual(1, match.Sim.Snapshot.BallHolderIndex, string.Join("\n", match.Events));
     }
 
+    // Regression (AI-vs-AI log): a passer near the sideline facing the wall held the ball
+    // partly inside it, and the pass died on the wall the instant it was thrown.
+    [UnityTest]
+    public IEnumerator Pass_FromTheCornerFacingTheWall_ReachesTheTeammate()
+    {
+        bool passed = false;
+        match.Start(
+            (TeamId.Home, (s, self) =>
+            {
+                bool pass = !passed && s.BallHolderIndex == self && s.Phase == MatchPhase.Live && s.Time > 0.5f;
+                if (pass) passed = true;
+                return new PlayerCommand(Vector2.zero, pass: pass);
+            }),
+            (TeamId.Home, TestMatch.Idle));
+        float wallX = match.Court.width * 0.5f;
+        // Body against the wall (radius 0.35): the held ball (0.45 m ahead) is partly inside it.
+        match.Players[0].TeleportFeetTo(new Vector3(wallX - 0.4f, 0f, 3f), Vector3.right);
+        match.Players[1].TeleportFeetTo(new Vector3(wallX - 5f, 0f, 3f), Vector3.left);
+        match.Sim.Ball.ResetToHolder(match.Players[0].transform);
+
+        yield return match.RunUntil(() => passed && match.Sim.Snapshot.BallHolderIndex >= 0 && match.Sim.Snapshot.BallHolderIndex != 0, 4f);
+
+        Assert.IsTrue(passed, "the pass was thrown");
+        Assert.AreEqual(1, match.Sim.Snapshot.BallHolderIndex, string.Join("\n", match.Events));
+    }
+
     [UnityTest]
     public IEnumerator Block_DefenderJumpingInFront_DeflectsTheShot()
     {
