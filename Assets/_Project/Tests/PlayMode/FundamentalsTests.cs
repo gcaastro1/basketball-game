@@ -168,6 +168,24 @@ public class FundamentalsTests
         Assert.AreEqual(1, match.Sim.Snapshot.BallHolderIndex, string.Join("\n", match.Events));
     }
 
+    // Regression (shot traces): a shooter at a corner/wing spot against the placeholder
+    // arena's side wall had the ball overhead partly inside it and the shot died there.
+    [UnityTest]
+    public IEnumerator JumpShot_FromTheCornerAgainstTheWall_Scores()
+    {
+        match.Start((TeamId.Home, TestMatch.ShootAtApex()));
+        float wallX = match.Court.width * 0.5f;
+        Vector3 rim = match.Court.rimCenter;
+        // Body against the wall (radius 0.35), facing it, beyond the arc.
+        match.Players[0].TeleportFeetTo(new Vector3(wallX - 0.4f, 0f, rim.z - 1f), Vector3.right);
+        match.Sim.Ball.ResetToHolder(match.Players[0].transform);
+
+        yield return match.RunUntil(() => match.Sim.Match.State.ScoreHome > 0, 6f);
+
+        Assert.AreEqual(1, match.Shots.Count, string.Join("\n", match.Events));
+        Assert.AreEqual(3, match.Sim.Match.State.ScoreHome, string.Join("\n", match.Events));
+    }
+
     [UnityTest]
     public IEnumerator Block_DefenderJumpingInFront_DeflectsTheShot()
     {

@@ -235,3 +235,10 @@ Standard (Built-in; rosa no URP). A regra da etapa: trocar os placeholders sem m
 - Material: o padrão do pipeline ativo (o mesmo dos primitivos) com a textura do modelo.
 - Todos os personagens de exemplo usam o mesmo modelo por ora; um anel na cor do time (amarelo para o
   humano) sob os pés mantém os times legíveis.
+
+**Rodada 3 (rastro por arremesso):** um arremessador sozinho, sem defesa, bate o modelo (8/25 vs 9,1
+esperado; a bola sai exatamente de onde a mira foi calculada e os erros são aro, como na curva). A diferença
+nos jogos IA×IA vinha das **paredes** do arena placeholder, que ficam sobre as linhas: arremessadores nos
+cantos/alas (8–8,5 m) seguravam a bola parcialmente dentro da parede e o arremesso morria nela (4 de 11 bolas
+longas no 3v3). Arremessos e passes agora saem de um ponto livre de cenário (`BallController.ClearOfScenery`).
+`LiveShotTests` fica como regressão de "arremesso ao vivo = modelo".

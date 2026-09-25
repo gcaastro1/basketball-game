@@ -183,11 +183,16 @@ namespace Basket.Gameplay
 
             Vector3 target = rimCenter + ShotMath.SampleDiscOffset(errorRadius, rng);
             float arc = (shotType == ShotType.Layup ? config.layupArcHeight : config.arcHeight) * effect.arcHeightMultiplier;
-            Vector3 velocity = TrajectoryMath.ComputeCompensatedArcVelocity(ball.Position, target, arc,
+            // A shooter against the placeholder arena's walls (corner and wing spots sit
+            // right at them) had the ball overhead partly inside the wall: those shots died
+            // there at once (shot traces: 4 of 11 long AI jumpers "first touched WallEast at
+            // 0.01 s"). Release clear of the scenery and aim from there.
+            Vector3 origin = ball.ClearOfScenery(ball.Position, player.transform.position);
+            Vector3 velocity = TrajectoryMath.ComputeCompensatedArcVelocity(origin, target, arc,
                 Physics.gravity.y, ball.LinearDamping, Time.fixedDeltaTime);
 
             phase[index] = Phase.None;
-            ball.Release(BallState.Shooting, velocity, shotType);
+            ball.ReleaseAt(BallState.Shooting, origin, velocity, shotType);
             ball.BeginShotTrace(rimCenter, target);
             OnShotTaken?.Invoke(new ShotReport(index, shotType, distance, timingError, contest, errorRadius));
         }

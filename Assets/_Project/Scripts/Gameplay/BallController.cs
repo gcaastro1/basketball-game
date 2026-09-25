@@ -287,6 +287,30 @@ namespace Basket.Gameplay
             }
         }
 
+        private readonly Collider[] sceneryOverlap = new Collider[16];
+
+        // Release point for a pass or shot: pulled toward the thrower's body until the ball is
+        // clear of everything that is not a player (the placeholder arena's walls stand on
+        // the lines, and a thrower facing one holds the ball partly inside it).
+        public Vector3 ClearOfScenery(Vector3 point, Vector3 body)
+        {
+            body.y = point.y;
+            for (int i = 0; i < 10 && OverlapsScenery(point); i++) point = Vector3.MoveTowards(point, body, 0.1f);
+            return point;
+        }
+
+        private bool OverlapsScenery(Vector3 point)
+        {
+            int count = Physics.OverlapSphereNonAlloc(point, Radius + 0.02f, sceneryOverlap, Physics.AllLayers, QueryTriggerInteraction.Ignore);
+            for (int i = 0; i < count; i++)
+            {
+                Collider c = sceneryOverlap[i];
+                if (c == ballCollider || c.TryGetComponent<PlayerEntity>(out _)) continue;
+                return true;
+            }
+            return false;
+        }
+
         private bool tracing;
         private Vector3 traceRim, traceAim, traceRelease, tracePrev, traceCross;
         private float traceReleaseGap, traceStart, traceHitTime;
