@@ -39,6 +39,13 @@ namespace Basket.Bootstrap
 
             Arena arena = PlaceholderArenaBuilder.Build(courtConfig, ballConfig, matchRules.threePointRadius);
 
+            // One brain per team coordinates its AI players (and the human's AI teammates).
+            var rng = new System.Random();
+            var brains = new Dictionary<TeamId, TeamBrain>
+            {
+                [TeamId.Home] = new TeamBrain(TeamId.Home, matchSetup.slots.Count, aiConfig, rng: rng),
+                [TeamId.Away] = new TeamBrain(TeamId.Away, matchSetup.slots.Count, aiConfig, rng: rng),
+            };
             var players = new List<PlayerEntity>();
             var controllers = new List<IAgentController>();
             var aiControllers = new List<IAIController>();
@@ -62,7 +69,9 @@ namespace Basket.Bootstrap
                 }
                 else
                 {
-                    var ai = new AIAgentController(aiConfig);
+                    // A lone player (1v1) plays without a team brain.
+                    TeamBrain brain = CountTeam(slot.team) > 1 ? brains[slot.team] : null;
+                    var ai = new AIAgentController(aiConfig, rng, brain);
                     controllers.Add(ai);
                     aiControllers.Add(ai);
                 }
@@ -75,9 +84,16 @@ namespace Basket.Bootstrap
             BuildCamera(cameraTarget != null ? cameraTarget.transform : arena.Ball.transform);
 
             var hud = new GameObject("DebugHud").AddComponent<DebugHud>();
-            hud.Configure(Simulation.Match.State, arena.Ball, aiControllers, Simulation);
+            hud.Configure(Simulation.Match.State, arena.Ball, aiControllers, Simulation, Simulation.Stats);
 
             Simulation.Begin();
+        }
+
+        private int CountTeam(TeamId team)
+        {
+            int n = 0;
+            foreach (var s in matchSetup.slots) if (s.team == team) n++;
+            return n;
         }
 
         private void Update()

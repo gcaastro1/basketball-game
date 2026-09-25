@@ -3,10 +3,11 @@ using Basket.Core;
 
 namespace Basket.AI
 {
-    // Basic single-player AI behind IAIController (swappable for Utility AI / behavior
-    // trees later). It plays through the same commands as a human: it holds and releases
-    // the shoot button around its jump apex, jumps to block and to rebound, and reaches
-    // for steals -- no stat or rule cheats.
+    // One AI player behind IAIController. It plays through the same commands as a human:
+    // it holds and releases the shoot button around its jump apex, jumps to block and to
+    // rebound, reaches for steals -- no stat or rule cheats.
+    // With a TeamBrain it executes the team's orders (spacing, cuts, screens, help,
+    // box-outs) and decides with the ball by utility; without one (1v1) it plays alone.
     public sealed class AIAgentController : IAIController
     {
         private readonly AIConfig config;
@@ -19,23 +20,42 @@ namespace Basket.AI
         private float releaseOffsetSeconds;
         private float shotStartTime;
         private float nextStealTime;
+        private readonly TeamBrain brain;
+        private MatchSnapshot snapshot;
+        private int selfIndex = -1;
+        private TeamOrder order = TeamOrder.None;
 
-        public AIAgentController(AIConfig aiConfig = null, System.Random random = null)
+        public AIAgentController(AIConfig aiConfig = null, System.Random random = null, TeamBrain teamBrain = null)
         {
             config = aiConfig != null ? aiConfig : ScriptableObject.CreateInstance<AIConfig>();
             fsm = new OpponentAIStateMachine(config);
             rng = random ?? new System.Random();
+            brain = teamBrain;
         }
+
+        public TeamOrder CurrentOrder => order;
 
         public AIState CurrentState => fsm.CurrentState;
 
-        public PlayerCommand Decide(MatchSnapshot snapshot, int selfIndex)
+        public PlayerCommand Decide(MatchSnapshot s, int self)
         {
-            return Decide(AIPerception.FromSnapshot(snapshot, selfIndex));
+            snapshot = s;
+            selfIndex = self;
+            int focus = -1;
+            if (brain != null)
+            {
+                brain.Update(s);
+                order = brain.GetOrder(self);
+                focus = brain.GetMan(self);
+            }
+            PlayerCommand command = Decide(AIPerception.FromSnapshot(s, self, focus));
+            snapshot = null;
+            return command;
         }
 
         public PlayerCommand Decide(AIPerception p)
         {
+            if (snapshot == null) order = TeamOrder.None;
             AIState previous = fsm.CurrentState;
             fsm.Evaluate(p);
             AIState state = fsm.CurrentState;
@@ -50,8 +70,9 @@ namespace Basket.AI
             {
                 AIState.Attack => Attack(p),
                 AIState.Chase => Chase(p),
-                AIState.Guard => Defend(p, GuardSpot(p.OpponentPosition, p.DefendHoop, config.guardDistance), config.arrivalDistance),
+                AIState.Guard => Guard(p),
                 AIState.ContestShot => Defend(p, p.OpponentPosition, config.contestStandoff),
+                AIState.Idle => FollowOrder(p),
                 _ => PlayerCommand.None
             };
         }
@@ -81,6 +102,7 @@ namespace Basket.AI
 
             bool freeThrow = p.Phase == MatchPhase.FreeThrow;
             bool urgent = p.ShotClock >= 0f && p.ShotClock <= config.shotClockUrgencySeconds;
+            if (brain != null && snapshot != null && !freeThrow && !urgent) return TeamAttack(p);
             float range = drivingThisPossession ? config.driveFinishDistance : config.shootRange;
             bool inRange = freeThrow || urgent || FlatDistance(p.SelfPosition, p.AttackHoop) <= range;
             bool heldLongEnough = urgent || p.Time - attackStartTime >= config.minHoldSecondsBeforeShot;
@@ -95,6 +117,72 @@ namespace Basket.AI
             return new PlayerCommand(MoveToward(p.SelfPosition, p.AttackHoop, range), sprint: drivingThisPossession);
         }
 
+        // Team play with the ball: utility decision (shoot / pass / drive / hold).
+        private PlayerCommand TeamAttack(AIPerception p)
+        {
+            HandlerAction action = BallHandlerDecision.Decide(snapshot, selfIndex, order, p.Time - attackStartTime, config);
+            switch (action.Kind)
+            {
+                case HandlerActionKind.Shoot:
+                    if (!p.SelfGrounded) return PlayerCommand.None;
+                    shotInProgress = true;
+                    shotStartTime = p.Time;
+                    releaseOffsetSeconds = (float)(Gaussian() * config.releaseTimingJitterSeconds);
+                    bool nearRim = FlatDistance(p.SelfPosition, p.AttackHoop) <= config.driveFinishDistance;
+                    return new PlayerCommand(Vector2.zero, sprint: nearRim, shootHeld: true);
+                case HandlerActionKind.Pass:
+                    Vector3 aim = action.MoveTarget - p.SelfPosition;
+                    return new PlayerCommand(new Vector2(aim.x, aim.z).normalized, pass: true);
+                case HandlerActionKind.Drive:
+                    return new PlayerCommand(Steer(p, action.MoveTarget, config.arrivalDistance, -1), sprint: true);
+                default:
+                    return PlayerCommand.None;
+            }
+        }
+
+        // Off-ball offense: spacing, cutting, screening, rolling, crashing the glass.
+        private PlayerCommand FollowOrder(AIPerception p)
+        {
+            switch (order.Kind)
+            {
+                case TeamOrderKind.Space:
+                    return new PlayerCommand(Steer(p, order.Target, 0.4f, -1));
+                case TeamOrderKind.Cut:
+                case TeamOrderKind.Roll:
+                case TeamOrderKind.Crash:
+                    return new PlayerCommand(Steer(p, order.Target, config.arrivalDistance, -1), sprint: true);
+                case TeamOrderKind.Screen:
+                    // No avoidance: the screener must get into the defender's path.
+                    return new PlayerCommand(MoveToward(p.SelfPosition, order.Target, 0.15f));
+                default:
+                    return PlayerCommand.None;
+            }
+        }
+
+        private PlayerCommand Guard(AIPerception p)
+        {
+            switch (order.Kind)
+            {
+                case TeamOrderKind.Help:
+                    return Defend(p, order.Target, config.arrivalDistance, sprint: true);
+                case TeamOrderKind.BoxOut:
+                    // Seal the man: move to the spot between him and the rim, no avoidance.
+                    return Defend(p, order.Target, 0.15f);
+                case TeamOrderKind.Crash:
+                    return new PlayerCommand(Steer(p, order.Target, config.arrivalDistance, -1), sprint: true);
+                default:
+                    return Defend(p, GuardSpot(p.OpponentPosition, p.DefendHoop, config.guardDistance), config.arrivalDistance);
+            }
+        }
+
+        // Move toward target, steering around other players when playing as a team.
+        private Vector2 Steer(AIPerception p, Vector3 target, float arrival, int ignore)
+        {
+            Vector2 dir = MoveToward(p.SelfPosition, target, arrival);
+            if (snapshot == null || dir == Vector2.zero) return dir;
+            return TeamMath.Avoid(snapshot, selfIndex, dir, ignore, config.avoidanceRadius);
+        }
+
         private PlayerCommand Chase(AIPerception p)
         {
             Vector3 lead = p.BallPosition + new Vector3(p.BallVelocity.x, 0f, p.BallVelocity.z) * config.reboundLeadSeconds;
@@ -106,7 +194,7 @@ namespace Basket.AI
                 sprint: config.sprintWhenChasing, jump: jump);
         }
 
-        private PlayerCommand Defend(AIPerception p, Vector3 target, float arrival)
+        private PlayerCommand Defend(AIPerception p, Vector3 target, float arrival, bool sprint = false)
         {
             float toHandler = FlatDistance(p.SelfPosition, p.OpponentPosition);
             bool onBall = p.OpponentHasBall && p.FocusHasBall;
@@ -120,7 +208,7 @@ namespace Basket.AI
                 steal = true;
                 nextStealTime = p.Time + config.stealIntervalSeconds * (0.5f + (float)rng.NextDouble());
             }
-            return new PlayerCommand(MoveToward(p.SelfPosition, target, arrival), jump: block, steal: steal);
+            return new PlayerCommand(MoveToward(p.SelfPosition, target, arrival), sprint: sprint, jump: block, steal: steal);
         }
 
         // Standard normal sample (Box-Muller).

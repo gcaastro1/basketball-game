@@ -60,6 +60,11 @@ namespace Basket.Gameplay
         public event Action<TeamId, RestartKind> OnPossessionRestart;
         public event Action<int> OnFreeThrowSetup;
         public event Action<string> OnRuleEvent;
+        // Stats hooks: a basket that counted (team, points, shot type), a foul that was
+        // called, a turnover by a team (violation, uncleared basket, ball out of play).
+        public event Action<TeamId, int, ShotType?> OnBasketCounted;
+        public event Action<FoulEvent> OnFoulCalled;
+        public event Action<TeamId> OnTurnover;
 
         public MatchManager(MatchRules matchRules, Vector3 rimCenter)
         {
@@ -114,6 +119,7 @@ namespace Basket.Gameplay
         {
             if (State.Phase != MatchPhase.Live) return;
             int fouls = State.AddTeamFoul(foul.FoulerTeam);
+            OnFoulCalled?.Invoke(foul);
             Raise($"FOUL on {foul.FoulerTeam}{(foul.Shooting ? " (shooting)" : "")} - team fouls {fouls}");
 
             if (foul.Shooting)
@@ -144,6 +150,7 @@ namespace Basket.Gameplay
             if (needsClear && possessionTeam == team)
             {
                 Raise("Basket does not count: the ball was not cleared");
+                OnTurnover?.Invoke(team);
                 shootingFoulPending = false;
                 State.ResetForNextPossession();
                 Schedule(Pending.Possession, team.Opponent(), RestartKind.CheckBall);
@@ -153,6 +160,7 @@ namespace Basket.Gameplay
             int points = ScoringMath.PointsForRelease(scoreEvent.ReleasePosition, rimCenter,
                 rules.threePointRadius, rules.pointsInsideArc, rules.pointsBeyondArc);
             State.RegisterScore(team, points);
+            OnBasketCounted?.Invoke(team, points, scoreEvent.ShotType);
             if (State.Phase == MatchPhase.Ended) return;
 
             if (shootingFoulPending && shootingFoul.FouledTeam == team)
@@ -179,6 +187,7 @@ namespace Basket.Gameplay
                 return;
             }
             State.ResetForNextPossession();
+            if (lastTouchTeam.HasValue) OnTurnover?.Invoke(lastTouchTeam.Value);
             Schedule(Pending.Possession, lastTouchTeam.HasValue ? lastTouchTeam.Value.Opponent() : rules.firstPossession, RestartKind.CheckBall);
         }
 
@@ -213,6 +222,7 @@ namespace Basket.Gameplay
                 if (shotClock.Expired && ball.Possessed && possessionTeam.HasValue)
                 {
                     Raise("SHOT CLOCK VIOLATION");
+                    OnTurnover?.Invoke(possessionTeam.Value);
                     State.ResetForNextPossession();
                     Schedule(Pending.Possession, possessionTeam.Value.Opponent(), RestartKind.CheckBall);
                     return;
@@ -313,6 +323,7 @@ namespace Basket.Gameplay
             if (phase != MatchPhase.FreeThrow && phase != MatchPhase.Live) return;
 
             State.AddPoints(team, rules.freeThrowPoints);
+            OnBasketCounted?.Invoke(team, rules.freeThrowPoints, ShotType.FreeThrow);
             Raise($"Free throw made ({team})");
             if (State.Phase == MatchPhase.Ended) return;
 

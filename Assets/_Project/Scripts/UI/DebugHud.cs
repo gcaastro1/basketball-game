@@ -12,10 +12,14 @@ namespace Basket.UI
         private IBallStateReadOnly ball;
         private IReadOnlyList<IAIController> ais;
         private IMatchEventFeed feed;
+        private MatchStats stats;
+        private bool showStats = true;
         private readonly List<string> events = new List<string>();
 
-        public void Configure(IMatchState matchState, IBallStateReadOnly ballState, IReadOnlyList<IAIController> aiControllers, IMatchEventFeed eventFeed = null)
+        public void Configure(IMatchState matchState, IBallStateReadOnly ballState, IReadOnlyList<IAIController> aiControllers,
+            IMatchEventFeed eventFeed = null, MatchStats matchStats = null)
         {
+            stats = matchStats;
             match = matchState;
             ball = ballState;
             ais = aiControllers;
@@ -52,6 +56,12 @@ namespace Basket.UI
                 for (int i = 0; i < ais.Count; i++) Line(ref y, $"AI {i}: {ais[i].CurrentState}");
             }
             Line(ref y, "WASD move | Shift sprint | Space: shoot (hold, release at top) / jump | E: pass / steal");
+            if (stats != null && showStats)
+            {
+                y += 6f;
+                Line(ref y, $"HOME  {stats.Get(TeamId.Home)}");
+                Line(ref y, $"AWAY  {stats.Get(TeamId.Away)}");
+            }
             y += 6f;
             foreach (string e in events) Line(ref y, e);
         }

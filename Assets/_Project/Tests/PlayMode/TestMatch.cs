@@ -32,15 +32,25 @@ public sealed class TestMatch : IDisposable
 
     public void Start(params (TeamId team, Func<MatchSnapshot, int, PlayerCommand> decide)[] roster)
     {
-        Arena = PlaceholderArenaBuilder.Build(Court, BallConfig, Rules.threePointRadius);
+        var teams = new List<TeamId>();
         var controllers = new List<IAgentController>();
-        var movement = ScriptableObject.CreateInstance<PlayerMovementConfig>();
         foreach (var (team, decide) in roster)
         {
-            Players.Add(PlaceholderPlayerFactory.Create($"{team}_{Players.Count}", team, movement, Color.gray, Color.yellow));
+            teams.Add(team);
             controllers.Add(new Scripted(decide));
         }
-        Sim = new MatchSimulation(Players, controllers, Arena.Ball, Arena.Hoop, Court, Rules, BallConfig, ShotConfig, DefenseConfig, new System.Random(1));
+        Start(teams, controllers);
+    }
+
+    public void Start(IList<TeamId> teams, IList<IAgentController> controllers)
+    {
+        Arena = PlaceholderArenaBuilder.Build(Court, BallConfig, Rules.threePointRadius);
+        var movement = ScriptableObject.CreateInstance<PlayerMovementConfig>();
+        foreach (TeamId team in teams)
+        {
+            Players.Add(PlaceholderPlayerFactory.Create($"{team}_{Players.Count}", team, movement, Color.gray, Color.yellow));
+        }
+        Sim = new MatchSimulation(Players, new List<IAgentController>(controllers), Arena.Ball, Arena.Hoop, Court, Rules, BallConfig, ShotConfig, DefenseConfig, new System.Random(1));
         Sim.OnMatchEvent += Events.Add;
         Sim.ShotReports.OnShotTaken += Shots.Add;
         Sim.Begin();

@@ -62,7 +62,9 @@ namespace Basket.Core
             Phase = phase;
         }
 
-        public static AIPerception FromSnapshot(MatchSnapshot s, int selfIndex)
+        // focusOverride: a team-level assignment (e.g. after a defensive switch) that
+        // replaces the snapshot's matchup; -1 = use the snapshot.
+        public static AIPerception FromSnapshot(MatchSnapshot s, int selfIndex, int focusOverride = -1)
         {
             TeamId selfTeam = s.GetTeam(selfIndex);
             Vector3 selfPos = s.GetPosition(selfIndex);
@@ -73,7 +75,7 @@ namespace Basket.Core
             bool teammateHas = holder >= 0 && !selfHas && !opponentHas;
 
             // Man-to-man: focus on the assigned opponent; fall back to the handler / nearest.
-            int matchup = s.GetMatchup(selfIndex);
+            int matchup = focusOverride >= 0 ? focusOverride : s.GetMatchup(selfIndex);
             int focus = matchup >= 0 ? matchup : opponentHas ? holder : s.FindNearestOpponent(selfIndex);
             Vector3 focusPos = focus >= 0 ? s.GetPosition(focus) : selfPos;
             Vector3 focusVel = focus >= 0 ? s.GetVelocity(focus) : Vector3.zero;

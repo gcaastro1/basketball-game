@@ -46,6 +46,8 @@ Eventos
 | Ajustar precisão/tipos de arremesso | `Data/DefaultShotConfig.asset` (modelo em `Gameplay/ShotAccuracyModel.cs`) |
 | Ajustar roubo/bloqueio | `Data/DefaultDefenseConfig.asset` |
 | Ajustar pulo/alcance | `Data/DefaultPlayerMovementConfig.asset` |
+| Ajustar IA de time (jogadas, espaçamento, passe, ajuda) | `Data/DefaultAIConfig.asset`; lógica em `AI/TeamBrain.cs`, `AI/BallHandlerDecision.cs` |
+| Assistir IA contra IA | asset `MatchSetup3v3AIOnly` no `GameBootstrap` |
 | Ajustar IA | `Data/DefaultAIConfig.asset`; lógica em `AI/AIAgentController.cs` |
 | Novo tipo de controle (Modo B, replay, rede) | nova implementação de `Core/IAgentController` |
 | Nova regra | `Gameplay/MatchManager` + campo em `MatchRules` (nunca nos controllers) |

@@ -19,7 +19,8 @@ de troca.
 | D-011 | Regras como dados (`MatchRules`) + árbitro (`MatchManager`) com peças puras; presets 1v1 genérico e FIBA 3x3 | Aceita |
 | D-012 | Faltas por chance em situações de contato (reach-in, contato na soltura) | **Provisória** |
 | D-013 | Marcação homem-a-homem fixa por reinício; só o mais próximo persegue bola solta | **Provisória** (até a IA tática, Etapa 4) |
-| P-001 | Modo B (controle do time) | **Pendente** (antes da Etapa 4) |
+| D-014 | IA em três camadas: estratégia do time → TeamBrain (ordens) → controlador por jogador (utility com a bola) | Aceita |
+| P-001 | Modo B (controle do time) | **Pendente** — ponto de encaixe pronto: `ITeamStrategy` (e `IAgentController`) |
 | P-002 | Semântica dos Limit Breaks (o que o "4º LB" no nível 60 destrava) | **Pendente** (antes da Etapa 5) |
 
 ---
@@ -123,3 +124,21 @@ Sem animação/colisão de corpo confiável ainda, falta é **chance configuráv
 contato**: roubo errado (reach-in) e defensor colado no arremessador no momento da soltura
 (no ar ou chegando rápido). Quando houver animação e hitboxes (Etapa 6), a detecção passa a
 ser por contato real; o `MatchManager` não muda, porque recebe só o `FoulEvent`.
+
+## D-014 — IA de time
+
+1. `ITeamStrategy` escolhe a jogada da posse (Spacing / PickAndRoll / Isolation); `AutoStrategy`
+   usa pesos do `AIConfig`.
+2. `TeamBrain` (um por time, 10 Hz) dá uma ordem por jogador: Handle, Space, Cut, Screen, Roll,
+   Crash, Guard, Help, BoxOut. Mantém o próprio mapa de marcação para trocar em bloqueios.
+3. `AIAgentController` executa a ordem pelos mesmos comandos do humano; com a bola decide por
+   utility (`BallHandlerDecision`): arremessar / passar / infiltrar / segurar, a partir da
+   **leitura da IA** (`TeamMath.ShotValue`, `PassSafety`, `DriveLaneOpen`) — não da fórmula real
+   de acerto.
+
+Sem `TeamBrain` (1v1) o controlador joga sozinho como antes. O time do humano também tem um
+`TeamBrain`: os companheiros de IA espaçam, cortam e bloqueiam para o jogador.
+
+**Modo B (P-001) continua pendente**, mas não bloqueia: qualquer das opções entra como
+`ITeamStrategy` (técnico que chama jogadas) e/ou `IAgentController` (trocar o jogador
+controlado), sem mexer no restante.

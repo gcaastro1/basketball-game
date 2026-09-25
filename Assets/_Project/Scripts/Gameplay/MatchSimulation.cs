@@ -27,12 +27,15 @@ namespace Basket.Gameplay
         private readonly DribbleSystem dribbleSystem;
         private readonly MatchSnapshot snapshot;
         private float time;
+        private bool awaitingRebound;
+        private TeamId reboundShooterTeam;
 
         public MatchManager Match { get; }
         public MatchSnapshot Snapshot => snapshot;
         public IReadOnlyList<PlayerEntity> Players => players;
         public BallController Ball => ball;
         public IShotReportSource ShotReports => shotSystem;
+        public MatchStats Stats { get; } = new MatchStats();
         public event Action<string> OnMatchEvent;
 
         public MatchSimulation(IReadOnlyList<PlayerEntity> players, IReadOnlyList<IAgentController> controllers,
@@ -66,6 +69,7 @@ namespace Basket.Gameplay
             snapshot.SetAttackingHoop(TeamId.Home, hoop.RimCenter);
             snapshot.SetAttackingHoop(TeamId.Away, hoop.RimCenter);
             snapshot.SetThreePointRadius(rules.threePointRadius);
+            snapshot.SetCourtCenter(new Vector3(0f, 0f, court.depth * 0.5f));
 
             Match = new MatchManager(rules, hoop.RimCenter);
             ball.OnScored += Match.HandleScore;
@@ -73,6 +77,9 @@ namespace Basket.Gameplay
             Match.OnPossessionRestart += SetUpPossession;
             Match.OnFreeThrowSetup += SetUpFreeThrow;
             Match.OnRuleEvent += Raise;
+            Match.OnBasketCounted += CountBasket;
+            Match.OnFoulCalled += CountFoul;
+            Match.OnTurnover += CountTurnover;
             shotSystem.OnShotTaken += OnShotTaken;
             defenseSystem.OnSteal += OnSteal;
             defenseSystem.OnBlock += OnBlock;
@@ -145,7 +152,7 @@ namespace Basket.Gameplay
                 if (live && command.Pass)
                 {
                     int target = PassTargeting.SelectTarget(snapshot, index, command.Move);
-                    if (target >= 0) passSystem.TryPass(player.transform, players[target].transform);
+                    if (target >= 0 && passSystem.TryPass(player.transform, players[target].transform)) Stats.Get(player.Team).Passes++;
                 }
                 return;
             }
@@ -192,6 +199,13 @@ namespace Basket.Gameplay
             for (int i = 0; i < players.Length; i++)
             {
                 if (ball.CurrentHolder != players[i].transform) continue;
+                if (awaitingRebound)
+                {
+                    awaitingRebound = false;
+                    TeamStats stats = Stats.Get(players[i].Team);
+                    if (players[i].Team == reboundShooterTeam) stats.OffensiveRebounds++;
+                    else stats.DefensiveRebounds++;
+                }
                 Match.NotifyPossession(players[i].Team, IsBeyondArc(players[i].FeetPosition));
                 return;
             }
@@ -231,8 +245,23 @@ namespace Basket.Gameplay
         private void OnShotTaken(ShotReport r)
         {
             PlayerEntity shooter = players[r.ShooterIndex];
-            Match.NotifyShotReleased(r.ShooterIndex, IsBeyondArc(shooter.FeetPosition));
+            bool beyondArc = IsBeyondArc(shooter.FeetPosition);
+            Match.NotifyShotReleased(r.ShooterIndex, beyondArc);
             ReportShot(r);
+
+            TeamStats stats = Stats.Get(shooter.Team);
+            if (r.Type == ShotType.FreeThrow)
+            {
+                stats.FreeThrowsAttempted++;
+            }
+            else
+            {
+                stats.FieldGoalsAttempted++;
+                if (beyondArc) stats.ThreesAttempted++;
+                lastShotBeyondArc = beyondArc;
+            }
+            awaitingRebound = true;
+            reboundShooterTeam = shooter.Team;
 
             if (r.Type == ShotType.FreeThrow || Match.State.Phase != MatchPhase.Live) return;
             int fouler = FoulMath.ShootingContact(snapshot, r.ShooterIndex,
@@ -243,8 +272,36 @@ namespace Basket.Gameplay
             }
         }
 
-        private void OnSteal(int i) => Raise($"STEAL by {players[i].name}");
-        private void OnBlock(int i) => Raise($"BLOCK by {players[i].name}");
+        private bool lastShotBeyondArc;
+
+        private void OnSteal(int i)
+        {
+            Stats.Get(players[i].Team).Steals++;
+            Stats.Get(players[i].Team.Opponent()).Turnovers++;
+            Raise($"STEAL by {players[i].name}");
+        }
+
+        private void OnBlock(int i)
+        {
+            Stats.Get(players[i].Team).Blocks++;
+            Raise($"BLOCK by {players[i].name}");
+        }
+
+        private void CountBasket(TeamId team, int points, ShotType? type)
+        {
+            awaitingRebound = false;
+            TeamStats stats = Stats.Get(team);
+            if (type == ShotType.FreeThrow)
+            {
+                stats.FreeThrowsMade++;
+                return;
+            }
+            stats.FieldGoalsMade++;
+            if (lastShotBeyondArc) stats.ThreesMade++;
+        }
+
+        private void CountFoul(FoulEvent foul) => Stats.Get(foul.FoulerTeam).Fouls++;
+        private void CountTurnover(TeamId team) => Stats.Get(team).Turnovers++;
 
         // ---------- restarts ----------
 
@@ -296,6 +353,7 @@ namespace Basket.Gameplay
             }
 
             AssignMatchups(offense, defense);
+            awaitingRebound = false;
             shotSystem.ResetAll();
             ball.ResetToHolder(offense[0].transform);
         }
@@ -349,6 +407,9 @@ namespace Basket.Gameplay
             Match.OnPossessionRestart -= SetUpPossession;
             Match.OnFreeThrowSetup -= SetUpFreeThrow;
             Match.OnRuleEvent -= Raise;
+            Match.OnBasketCounted -= CountBasket;
+            Match.OnFoulCalled -= CountFoul;
+            Match.OnTurnover -= CountTurnover;
             shotSystem.OnShotTaken -= OnShotTaken;
             defenseSystem.OnSteal -= OnSteal;
             defenseSystem.OnBlock -= OnBlock;
