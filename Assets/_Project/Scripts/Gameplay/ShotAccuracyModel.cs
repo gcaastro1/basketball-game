@@ -43,6 +43,15 @@ namespace Basket.Gameplay
                    * Mathf.Lerp(c.ratingErrorScaleAtZero, c.ratingErrorScaleAtOne, Mathf.Clamp01(input.Rating));
         }
 
+        // Expected make chance for an aim-error radius, from the rim's calibrated make radius
+        // (uniform sample in the error disc). For the HUD, balancing and tests.
+        public static float EstimatedMakeChance(float errorRadius, ShotConfig c)
+        {
+            if (errorRadius <= c.calibratedMakeRadius) return 1f;
+            float ratio = c.calibratedMakeRadius / errorRadius;
+            return ratio * ratio;
+        }
+
         // Jump shots and free throws are player-timed; layups/dunks release automatically.
         public static float TimingFactor(ShotType type, float timingError, ShotConfig c)
         {

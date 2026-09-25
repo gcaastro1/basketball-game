@@ -22,13 +22,14 @@ MonoBehaviour:
   dunkBallDropSpeed: 4
   shotPocketHeight: 2.1
   perfectReleaseWindow: 0.05
-  jumpShotBaseError: 0.09
-  jumpShotErrorPerMeter: 0.011
-  layupBaseError: 0.06
-  freeThrowBaseError: 0.07
+  calibratedMakeRadius: 0.124
+  jumpShotBaseError: 0.165
+  jumpShotErrorPerMeter: 0.012
+  layupBaseError: 0.1
+  freeThrowBaseError: 0.18
   timingPenaltyPerSecond: 3
-  contestPenalty: 1
-  movePenalty: 0.5
+  contestPenalty: 0.5
+  movePenalty: 0.3
   contestRadius: 2
   airborneContestBonus: 0.3
   defaultShooterRating: 0.75

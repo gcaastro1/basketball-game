@@ -185,3 +185,17 @@ A simulação IA×IA mostrou quase todos os passes virando turnover: o defensor 
 `BallConfig.passReleaseGraceSeconds` (0,2 s), jogadores a até `passProtectRadius` (1,8 m) da
 soltura não tocam na bola (o passe é lançado por cima/ao lado deles), e durante o voo quem não é
 o recebedor só pega a bola com `interceptRadius` (0,5 m) — precisa estar na linha do passe.
+
+## D-010 (revisão) — Precisão calibrada no aro físico
+
+`ShotCalibrationTests` mediu no Unity real: sem desvio de trajetória (mirando no centro, a bola
+cruza o centro do aro, < 1 mm, de 4,2 a 7,5 m); a curva física acerta 100% até ~9 cm de desvio,
+~63% a 12 cm, ~13% a 15 cm e 0% a partir de 20 cm — equivale a um raio efetivo de 0,124 m
+(`ShotConfig.calibratedMakeRadius`), com chance ≈ (0,124 / raio de erro)².
+
+Antes, um três livre e parado de um arremessador médio tinha raio 0,136 m (~83%), mas contestação
+(×2) e movimento (×1,5) empilhavam até ~0,27 m (~21%) — a IA errava quase tudo. Novos valores
+(provisórios): base 0,165 + 0,012/m, contestação +50% no máximo, movimento +30%, lance livre 0,18,
+bandeja 0,10. Metas (média, soltura perfeita), fixadas em `ShotAccuracyModelTests`: três livre ~40%,
+meia distância ~50%, lance livre ~74%, três totalmente contestado ~18%, três em movimento ~23%;
+o melhor arremessador (nota 1,0) ~70% livre, o pior ~13%.

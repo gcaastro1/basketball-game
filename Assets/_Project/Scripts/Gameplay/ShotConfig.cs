@@ -29,17 +29,23 @@ namespace Basket.Gameplay
         public float perfectReleaseWindow = 0.05f;
 
         [Header("Accuracy: aim error radius (m) = base x modifiers")]
-        public float jumpShotBaseError = 0.09f;
-        public float jumpShotErrorPerMeter = 0.011f;
-        public float layupBaseError = 0.06f;
+        // Calibrated against the physical rim (ShotCalibrationTests): shots within ~0.09 m
+        // of the rim center always go in, none beyond ~0.2 m. That curve behaves like a
+        // clean "make radius" of calibratedMakeRadius: make chance ~ (makeRadius / errorRadius)^2.
+        // Targets for an average shooter (rating 0.75) with perfect timing: open 3PT ~40%,
+        // open 4.5 m ~50%, free throw ~75%, fully contested 3PT ~18%.
+        public float calibratedMakeRadius = 0.124f;
+        public float jumpShotBaseError = 0.165f;
+        public float jumpShotErrorPerMeter = 0.012f;
+        public float layupBaseError = 0.1f;
         // Free throws: timed like a jump shot, never contested.
-        public float freeThrowBaseError = 0.07f;
+        public float freeThrowBaseError = 0.18f;
         // Multiplier added per second of release timing error beyond the perfect window.
         public float timingPenaltyPerSecond = 3f;
-        // Multiplier added at full contest (1.0 doubles the error).
-        public float contestPenalty = 1f;
+        // Multiplier added at full contest (0.5 = 1.5x the error).
+        public float contestPenalty = 0.5f;
         // Multiplier added when moving at full speed.
-        public float movePenalty = 0.5f;
+        public float movePenalty = 0.3f;
 
         [Header("Contest")]
         public float contestRadius = 2f;

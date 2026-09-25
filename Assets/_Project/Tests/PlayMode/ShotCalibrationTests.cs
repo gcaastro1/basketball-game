@@ -128,4 +128,28 @@ public class ShotCalibrationTests
         Debug.Log(log.ToString());
         Assert.GreaterOrEqual(rates[0], rates[rates.Count - 1], "a bigger miss never goes in more often\n" + log);
     }
+
+    // Layups use a low arc, so their make curve is its own: logged to tune layupBaseError.
+    [UnityTest]
+    public IEnumerator LayupArc_MakeRateByAimOffset_IsLogged()
+    {
+        yield return new WaitForFixedUpdate();
+        var log = new StringBuilder($"Layup make rate vs aim offset (arc {shots.layupArcHeight} m, 1.5 m, {Angles} directions each):\n");
+        int madeAtSmallest = 0;
+        foreach (float r in Offsets)
+        {
+            int made = 0;
+            for (int k = 0; k < Angles; k++)
+            {
+                float a = k * Mathf.PI * 2f / Angles;
+                var o = new Outcome();
+                yield return Shoot(1.5f, 0f, new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * r, shots.layupArcHeight, o);
+                if (o.Made) made++;
+            }
+            if (r == Offsets[0]) madeAtSmallest = made;
+            log.AppendLine($"  offset={r:0.00} m: {made}/{Angles}");
+        }
+        Debug.Log(log.ToString());
+        Assert.AreEqual(Angles, madeAtSmallest, "a near-perfect layup goes in\n" + log);
+    }
 }

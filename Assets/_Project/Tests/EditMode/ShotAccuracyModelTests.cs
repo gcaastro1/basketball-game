@@ -66,4 +66,42 @@ public class ShotAccuracyModelTests
         Assert.AreEqual(ShotType.Layup, ShotAccuracyModel.Classify(1.5f, sprinting: true, reachAtApex: 3.0f, rim, config), "cannot reach the rim -> layup");
         Assert.AreEqual(ShotType.JumpShot, ShotAccuracyModel.Classify(5f, sprinting: true, reachAtApex: 3.25f, rim, config));
     }
+
+    // Balancing targets for an average shooter (rating 0.75), measured against the
+    // physical rim curve (ShotCalibrationTests -> ShotConfig.calibratedMakeRadius).
+    private float Make(ShotType type, float distance, float contest = 0f, float speed = 0f, float rating = 0.75f) =>
+        ShotAccuracyModel.EstimatedMakeChance(Error(type, distance, 0f, contest, speed, rating), config);
+
+    [Test]
+    public void Calibration_OpenShotsHitRealisticPercentages()
+    {
+        Assert.That(Make(ShotType.JumpShot, 6.75f), Is.InRange(0.35f, 0.45f), "open three");
+        Assert.That(Make(ShotType.JumpShot, 4.5f), Is.InRange(0.45f, 0.58f), "open mid-range");
+        Assert.That(Make(ShotType.FreeThrow, 4.2f), Is.InRange(0.68f, 0.82f), "free throw, perfect timing");
+        Assert.GreaterOrEqual(Make(ShotType.Layup, 1.5f), 0.9f, "open layup");
+    }
+
+    [Test]
+    public void Calibration_ContestAndMovementHurtWithoutZeroingTheShot()
+    {
+        float contested = Make(ShotType.JumpShot, 6.75f, contest: 1f);
+        Assert.That(contested, Is.InRange(0.12f, 0.25f), "fully contested three");
+        Assert.That(Make(ShotType.JumpShot, 6.75f, contest: 0.5f), Is.InRange(0.22f, 0.34f), "half contested three");
+        Assert.That(Make(ShotType.JumpShot, 6.75f, speed: 1f), Is.InRange(0.2f, 0.35f), "three on the move");
+    }
+
+    [Test]
+    public void Calibration_ShooterRatingSpreadsTheOpenThree()
+    {
+        Assert.Less(Make(ShotType.JumpShot, 6.75f, rating: 0f), 0.2f, "non-shooter");
+        Assert.That(Make(ShotType.JumpShot, 6.75f, rating: 1f), Is.InRange(0.55f, 0.8f), "best shooter");
+    }
+
+    [Test]
+    public void EstimatedMakeChance_IsCertainInsideTheMakeRadiusAndFallsWithTheSquare()
+    {
+        float r = config.calibratedMakeRadius;
+        Assert.AreEqual(1f, ShotAccuracyModel.EstimatedMakeChance(r * 0.5f, config));
+        Assert.AreEqual(0.25f, ShotAccuracyModel.EstimatedMakeChance(r * 2f, config), 1e-5f);
+    }
 }

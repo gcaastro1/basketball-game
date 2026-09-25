@@ -39,6 +39,8 @@ namespace Basket.Gameplay
         private bool awaitingRebound;
         private bool awaitingPass;
         private TeamId passTeam;
+        private int passerIndex = -1;
+        private int passTargetIndex = -1;
         private TeamId reboundShooterTeam;
 
         public MatchManager Match { get; }
@@ -176,6 +178,8 @@ namespace Basket.Gameplay
                         Stats.Get(player.Team).Passes++;
                         awaitingPass = true;
                         passTeam = player.Team;
+                        passerIndex = index;
+                        passTargetIndex = target;
                     }
                 }
                 return;
@@ -263,7 +267,16 @@ namespace Basket.Gameplay
                 {
                     awaitingPass = false;
                     if (players[i].Team == passTeam) Stats.Get(passTeam).PassesCompleted++;
-                    else Stats.Get(passTeam).Turnovers++; // intercepted / thrown away
+                    else
+                    {
+                        Stats.Get(passTeam).Turnovers++; // intercepted / thrown away
+                        if (passerIndex >= 0 && passTargetIndex >= 0)
+                        {
+                            Vector3 from = players[passerIndex].FeetPosition, at = players[i].FeetPosition;
+                            Raise($"PASS LOST {players[passerIndex].name}->{players[passTargetIndex].name}: caught by {players[i].name} " +
+                                  $"{Vector3.Distance(from, at):0.0} m from the passer, receiver was {Vector3.Distance(from, players[passTargetIndex].FeetPosition):0.0} m away");
+                        }
+                    }
                 }
                 if (awaitingRebound)
                 {
