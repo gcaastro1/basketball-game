@@ -19,6 +19,7 @@ namespace Basket.Presentation
 
         public bool IsValid => upper != null && lower != null && hand != null;
         public Vector3 HandPosition => hand != null ? hand.position : Vector3.zero;
+        public Vector3 ShoulderPosition => upper != null ? upper.position : Vector3.zero;
 
         // weight 0 = leave the animated arm, 1 = hand on target.
         public void Reach(Vector3 target, Transform body, float weight)

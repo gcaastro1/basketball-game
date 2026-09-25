@@ -33,6 +33,7 @@ namespace Basket.Gameplay
         // Diagnostics of the last pass (AI-vs-AI log): did it go loose, how close did it
         // get to its receiver.
         public bool PassWentLoose { get; private set; }
+        public string PassLooseCause { get; private set; } = "";
         public float PassClosestToReceiver { get; private set; } = float.PositiveInfinity;
         public Transform PassReceiver => stateMachine.CurrentState == BallState.Passing ? passReceiver : null;
         private readonly List<Collider> passIgnoredColliders = new List<Collider>();
@@ -284,7 +285,8 @@ namespace Basket.Gameplay
 
         private void FixedUpdate()
         {
-            if (ignoredReleaserCollider != null && Time.time - lastReleaseTime >= SelfCatchGraceSeconds)
+            if (ignoredReleaserCollider != null && Time.time - lastReleaseTime >= SelfCatchGraceSeconds
+                && stateMachine.CurrentState != BallState.Passing)
             {
                 RestoreReleaserCollision();
             }
@@ -313,6 +315,7 @@ namespace Basket.Gameplay
             if (stateMachine.CurrentState != BallState.Passing) return;
             passReceiver = receiver;
             PassWentLoose = false;
+            PassLooseCause = "";
             PassClosestToReceiver = float.PositiveInfinity;
             EndPassProtection();
             if (ballCollider == null || nearbyPlayers == null) return;
@@ -340,6 +343,8 @@ namespace Basket.Gameplay
         private bool InPassProtection(Transform player)
         {
             if (stateMachine.CurrentState != BallState.Passing || player == passReceiver) return false;
+            // The passer never touches their own pass.
+            if (player == lastReleasedBy) return true;
             foreach (Collider c in passIgnoredColliders)
             {
                 if (c != null && c.transform == player) return true;
@@ -366,10 +371,14 @@ namespace Basket.Gameplay
             BallState state = stateMachine.CurrentState;
             if (state == BallState.Held) return;
 
+            // A pass goes past the players it is thrown past (its passer, the passer's
+            // defender): touching them neither catches nor kills it.
+            bool isPlayer = collision.transform.TryGetComponent<PlayerEntity>(out _);
+            if (isPlayer && InPassProtection(collision.transform)) return;
+
             // A pass (or loose ball) that lands on a player is caught -- that is also how
             // interceptions happen. A shot is never caught out of the air.
-            if (IsCatchable && collision.transform.TryGetComponent<PlayerEntity>(out _) && !InSelfCatchGrace(collision.transform)
-                && !InPassProtection(collision.transform))
+            if (IsCatchable && isPlayer && !InSelfCatchGrace(collision.transform))
             {
                 Catch(collision.transform);
                 return;
@@ -377,7 +386,11 @@ namespace Basket.Gameplay
 
             if (state == BallState.Shooting || state == BallState.Passing)
             {
-                if (state == BallState.Passing) PassWentLoose = true;
+                if (state == BallState.Passing)
+                {
+                    PassWentLoose = true;
+                    PassLooseCause = $"{collision.transform.name} after {Time.time - lastReleaseTime:0.00} s";
+                }
                 stateMachine.TryTransition(BallState.Free);
             }
             if (collision.transform.TryGetComponent<CourtSurface>(out _))

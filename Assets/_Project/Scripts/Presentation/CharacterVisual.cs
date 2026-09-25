@@ -44,20 +44,63 @@ namespace Basket.Presentation
             if (animator == null) animator = Model.AddComponent<Animator>();
             animator.applyRootMotion = false;
             animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+            foreach (SkinnedMeshRenderer skin in Model.GetComponentsInChildren<SkinnedMeshRenderer>())
+            {
+                skin.updateWhenOffscreen = true; // bounds follow the procedural pose
+            }
             Driver = Model.AddComponent<PlayerAnimationDriver>();
-            Driver.Configure(player, sim, animator, def.clips);
+            Driver.Configure(player, sim, animator, def.clips, SoleBelowToes(Model, animator));
         }
 
         private static void FitToHeight(Transform model, float height, float feetLocalY)
         {
-            Renderer[] renderers = model.GetComponentsInChildren<Renderer>();
-            if (renderers.Length == 0) return;
-            Bounds bounds = renderers[0].bounds;
-            for (int i = 1; i < renderers.Length; i++) bounds.Encapsulate(renderers[i].bounds);
+            if (!MeasureMeshY(model.gameObject, out float minY, out float maxY)) return;
             float originY = model.position.y;
-            ModelFitting.Fit(bounds.min.y - originY, bounds.max.y - originY, height, out float scale, out float yOffset);
+            ModelFitting.Fit(minY - originY, maxY - originY, height, out float scale, out float yOffset);
             model.localScale = Vector3.one * scale;
             model.localPosition = new Vector3(0f, feetLocalY + yOffset, 0f);
+        }
+
+        // Lowest and highest point of the model's actual (skinned, posed) mesh in world
+        // space. Renderer bounds of a skinned mesh are only an estimate from the bind pose;
+        // the Tripo model's were off by more than a meter.
+        public static bool MeasureMeshY(GameObject model, out float minY, out float maxY)
+        {
+            minY = float.MaxValue;
+            maxY = float.MinValue;
+            var baked = new Mesh();
+            foreach (SkinnedMeshRenderer skin in model.GetComponentsInChildren<SkinnedMeshRenderer>())
+            {
+                // Baked with the renderer's scale, in its local frame: rotate and move only.
+                skin.BakeMesh(baked, true);
+                Transform t = skin.transform;
+                foreach (Vector3 v in baked.vertices) Extend(t.position + t.rotation * v, ref minY, ref maxY);
+            }
+            Destroy(baked);
+            foreach (MeshFilter filter in model.GetComponentsInChildren<MeshFilter>())
+            {
+                if (filter.sharedMesh == null) continue;
+                Transform t = filter.transform;
+                foreach (Vector3 v in filter.sharedMesh.vertices) Extend(t.TransformPoint(v), ref minY, ref maxY);
+            }
+            return minY <= maxY;
+        }
+
+        private static void Extend(Vector3 p, ref float minY, ref float maxY)
+        {
+            if (p.y < minY) minY = p.y;
+            if (p.y > maxY) maxY = p.y;
+        }
+
+        // How far the sole of the mesh is below the lowest toe (or ankle) bone, so the driver
+        // can put the sole -- not the joint -- on the floor.
+        private static float SoleBelowToes(GameObject model, Animator animator)
+        {
+            if (animator == null || animator.avatar == null || !animator.avatar.isHuman) return 0f;
+            Transform l = animator.GetBoneTransform(HumanBodyBones.LeftToes) ?? animator.GetBoneTransform(HumanBodyBones.LeftFoot);
+            Transform r = animator.GetBoneTransform(HumanBodyBones.RightToes) ?? animator.GetBoneTransform(HumanBodyBones.RightFoot);
+            if (l == null || r == null || !MeasureMeshY(model, out float minY, out _)) return 0f;
+            return Mathf.Clamp(Mathf.Min(l.position.y, r.position.y) - minY, 0f, 0.3f);
         }
 
         // Tripo's generated material uses the Built-in Standard shader (pink under URP): use

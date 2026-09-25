@@ -281,7 +281,7 @@ namespace Basket.Gameplay
                             Vector3 from = players[passerIndex].FeetPosition, at = players[i].FeetPosition;
                             Raise($"PASS LOST {players[passerIndex].name}->{players[passTargetIndex].name}: caught by {players[i].name} " +
                                   $"{Vector3.Distance(from, at):0.0} m from the passer, receiver was {Vector3.Distance(from, players[passTargetIndex].FeetPosition):0.0} m away; " +
-                                  $"ball {(ball.PassWentLoose ? "went loose" : "intercepted in flight")}, closest to receiver {ball.PassClosestToReceiver:0.0} m");
+                                  $"ball {(ball.PassWentLoose ? "went loose off " + ball.PassLooseCause : "intercepted in flight")}, closest to receiver {ball.PassClosestToReceiver:0.0} m");
                         }
                     }
                 }

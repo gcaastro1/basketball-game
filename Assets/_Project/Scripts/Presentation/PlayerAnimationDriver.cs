@@ -15,7 +15,6 @@ namespace Basket.Presentation
         private const float DribbleHz = 2.2f;
         private const float TwoPi = Mathf.PI * 2f;
         private const float ToeHeight = 0.03f;
-        private const float AnkleHeight = 0.08f;
 
         private PlayerEntity player;
         private MatchSimulation sim;
@@ -34,7 +33,8 @@ namespace Basket.Presentation
         public Vector3 RightHandPosition => rightHand != null ? rightHand.HandPosition : transform.position;
         public Vector3 LeftHandPosition => leftHand != null ? leftHand.HandPosition : transform.position;
 
-        public void Configure(PlayerEntity entity, MatchSimulation simulation, Animator bodyAnimator, CharacterAnimationClips clips)
+        public void Configure(PlayerEntity entity, MatchSimulation simulation, Animator bodyAnimator, CharacterAnimationClips clips,
+            float soleBelowToes = ToeHeight)
         {
             player = entity;
             sim = simulation;
@@ -46,16 +46,15 @@ namespace Basket.Presentation
             {
                 rightHand = new HandIK(animator, right: true);
                 leftHand = new HandIK(animator, right: false);
-                // Toe joints sit just above the sole; ankles higher (m, for a body fitted to ~1.85 m).
-                leftSole = animator.GetBoneTransform(HumanBodyBones.LeftToes);
+                        leftSole = animator.GetBoneTransform(HumanBodyBones.LeftToes);
                 rightSole = animator.GetBoneTransform(HumanBodyBones.RightToes);
-                soleHeight = ToeHeight;
                 if (leftSole == null || rightSole == null)
                 {
                     leftSole = animator.GetBoneTransform(HumanBodyBones.LeftFoot);
                     rightSole = animator.GetBoneTransform(HumanBodyBones.RightFoot);
-                    soleHeight = AnkleHeight;
                 }
+                // Measured on the mesh when available (Tripo's soles sit well below the toe joint).
+                soleHeight = soleBelowToes > 0f ? soleBelowToes : ToeHeight;
             }
             if (sim != null)
             {
@@ -152,9 +151,10 @@ namespace Basket.Presentation
                 rightHand.Reach(b + Vector3.up * r, body, Mathf.Clamp01((height - 0.45f) / 0.35f));
                 return;
             }
-            // Both hands on the sides of the ball (layup: the shooting hand leads).
-            rightHand.Reach(b + body.right * r, body, 1f);
-            leftHand.Reach(b - body.right * r, body, pose == AnimPose.Layup ? 0.5f : 1f);
+            // Each hand on the side of the ball facing its shoulder (layup: the shooting hand
+            // leads). The ball is carried on the right, so the left hand reaches across.
+            rightHand.Reach(b + (rightHand.ShoulderPosition - b).normalized * r, body, 1f);
+            leftHand.Reach(b + (leftHand.ShoulderPosition - b).normalized * r, body, pose == AnimPose.Layup ? 0.5f : 1f);
         }
 
         private void OnDestroy()

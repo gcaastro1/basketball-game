@@ -25,13 +25,6 @@ public class CharacterVisualTests
 #endif
     }
 
-    private static Bounds ModelBounds(CharacterVisual visual)
-    {
-        Renderer[] renderers = visual.Model.GetComponentsInChildren<Renderer>();
-        Bounds b = renderers[0].bounds;
-        foreach (Renderer r in renderers) b.Encapsulate(r.bounds);
-        return b;
-    }
 
     [UnityTest]
     public IEnumerator Model_ReplacesTheCapsule_FitsTheHeightAndStandsOnTheFloor()
@@ -48,10 +41,14 @@ public class CharacterVisualTests
         Assert.IsTrue(animator.avatar != null && animator.avatar.isHuman, "humanoid avatar");
         Assert.IsTrue(visual.Driver.UsesProcedural, "no clips yet: procedural animation");
 
-        Bounds b = ModelBounds(visual);
-        Debug.Log($"Model bounds: height {b.size.y:0.00} m, min y {b.min.y:0.00}, feet {match.Players[0].FeetPosition.y:0.00}");
-        Assert.AreEqual(def.modelHeight, b.size.y, 0.25f, "fitted to the configured height (pose changes it a little)");
-        Assert.AreEqual(match.Players[0].FeetPosition.y, b.min.y, 0.15f, "stands on the floor");
+        Assert.IsTrue(CharacterVisual.MeasureMeshY(visual.Model, out float minY, out float maxY));
+        float feet = match.Players[0].FeetPosition.y;
+        float head = animator.GetBoneTransform(HumanBodyBones.Head).position.y - feet;
+        Debug.Log($"Model mesh: height {maxY - minY:0.00} m, min y {minY:0.00}, feet {feet:0.00}, head bone {head:0.00} m above feet");
+        Assert.AreEqual(def.modelHeight, maxY - minY, 0.25f, "fitted to the configured height (pose changes it a little)");
+        Assert.AreEqual(feet, minY, 0.08f, "stands on the floor");
+        // Independent of the mesh measurement: the skeleton ends up at a human height.
+        Assert.That(head, Is.InRange(0.7f * def.modelHeight, 1.0f * def.modelHeight), "head bone at a plausible height");
     }
 
     // The core promise of Etapa 6: visuals are presentation only.
