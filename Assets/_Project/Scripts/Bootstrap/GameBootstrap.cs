@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using Basket.Core;
 using Basket.Characters;
@@ -7,6 +8,7 @@ using Basket.AI;
 using Basket.Input;
 using Basket.Presentation;
 using Basket.UI;
+using Basket.Meta;
 
 namespace Basket.Bootstrap
 {
@@ -33,13 +35,42 @@ namespace Basket.Bootstrap
         [SerializeField] private AIConfig aiConfig;
         [SerializeField] private ProgressionConfig progressionConfig;
         [SerializeField] private AttributeTuning attributeTuning;
+        [SerializeField] private ItemCatalog itemCatalog;
+        [SerializeField] private CharacterCatalog characterCatalog;
+        [SerializeField] private CharacterObtainRules obtainRules;
+        [SerializeField] private MatchRewardRules rewardRules;
 
         public MatchSimulation Simulation { get; private set; }
         private readonly List<System.IDisposable> disposables = new List<System.IDisposable>();
+        private ProfileRuntimeService profileService;
 
         private void Awake()
         {
             EnsureConfigs();
+
+            // Meta (Etapa 8.5): the profile's real roster replaces the Inspector's exhibition
+            // MatchSetup when the player already owns enough characters for every slot.
+            profileService = new ProfileRuntimeService(
+                new SaveService(new FileSaveStorage(Application.persistentDataPath), new JsonSaveSerializer()),
+                itemCatalog, characterCatalog, progressionConfig, obtainRules, rewardRules);
+            profileService.LoadOrCreate();
+
+            List<CharacterDefinition> ownedRoster = profileService.BuildRosterOrNull(matchSetup.slots.Count);
+            if (ownedRoster != null)
+            {
+                var liveSetup = ScriptableObject.CreateInstance<MatchSetup>();
+                liveSetup.slots = new List<MatchSetup.PlayerSlot>();
+                for (int i = 0; i < matchSetup.slots.Count; i++)
+                {
+                    MatchSetup.PlayerSlot original = matchSetup.slots[i];
+                    CharacterInstance instance = profileService.Profile.Inventory.GetCharacter(ownedRoster[i].characterId);
+                    liveSetup.slots.Add(new MatchSetup.PlayerSlot(original.team, original.control, ownedRoster[i],
+                        instance?.level ?? 1, instance?.limitBreak ?? 0, instance?.dupes ?? 0));
+                }
+                matchSetup = liveSetup;
+            }
+            // Senão, matchSetup continua sendo o asset configurado no Inspector (fallback: perfil
+            // ainda não tem personagens suficientes para preencher todos os slots).
 
             Arena arena = PlaceholderArenaBuilder.Build(courtConfig, ballConfig, matchRules.threePointRadius);
 
@@ -85,6 +116,16 @@ namespace Basket.Bootstrap
 
             Simulation = new MatchSimulation(players, controllers, arena.Ball, arena.Hoop,
                 courtConfig, matchRules, ballConfig, shotConfig, defenseConfig, rng, attributeTuning, arena.SecondHoop);
+
+            // Meta (Etapa 8.5): recompensa de partida pros personagens que jogaram, ao fim da
+            // partida. Simulation.Match (o MatchManager) já existe aqui.
+            Simulation.Match.OnMatchEnded += finalState =>
+            {
+                IEnumerable<string> playedIds = matchSetup.slots
+                    .Where(s => s.character != null)
+                    .Select(s => s.character.characterId);
+                profileService.ApplyMatchReward(finalState.ScoreHome, finalState.ScoreAway, playedIds);
+            };
 
             // Character models (Etapa 6): presentation only, attached once the simulation exists.
             for (int i = 0; i < players.Count; i++)
@@ -132,6 +173,7 @@ namespace Basket.Bootstrap
 
         private void OnDestroy()
         {
+            profileService?.Save();
             Simulation?.Dispose();
             foreach (var d in disposables) d.Dispose();
             disposables.Clear();
@@ -166,6 +208,10 @@ namespace Basket.Bootstrap
             aiConfig = OrDefault(aiConfig);
             progressionConfig = OrDefault(progressionConfig);
             attributeTuning = OrDefault(attributeTuning);
+            itemCatalog = OrDefault(itemCatalog);
+            characterCatalog = OrDefault(characterCatalog);
+            obtainRules = OrDefault(obtainRules);
+            rewardRules = OrDefault(rewardRules);
         }
 
         private static T OrDefault<T>(T asset) where T : ScriptableObject =>

@@ -8,7 +8,8 @@
         "Basket.AI",
         "Basket.Input",
         "Basket.UI",
-        "Basket.Presentation"
+        "Basket.Presentation",
+        "Basket.Meta"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
