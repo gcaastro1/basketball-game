@@ -65,11 +65,12 @@ public class FullCourtTests
             foreach (HoopController hoop in new[] { arena.Hoop, arena.SecondHoop })
             {
                 int before = scores.Count;
-                arena.Ball.Catch(holder.transform);
+                // Forces Held: after the first make the ball is still in flight (Shooting).
+                arena.Ball.ResetToHolder(holder.transform);
                 arena.Ball.ReleaseAt(BallState.Shooting, hoop.RimCenter + Vector3.up * 1f, Vector3.zero);
                 for (int i = 0; i < 90 && scores.Count == before; i++) yield return new WaitForFixedUpdate();
 
-                Assert.AreEqual(before + 1, scores.Count, $"scored through {hoop.name}");
+                Assert.AreEqual(before + 1, scores.Count, $"scored through the basket at z={hoop.RimCenter.z}");
                 Assert.AreEqual(hoop.AttackingTeam, scores[before].HoopTeam);
                 Assert.AreEqual(hoop.RimCenter.z, scores[before].HoopCenter.Value.z, 0.01f);
             }

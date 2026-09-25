@@ -20,6 +20,7 @@ namespace Basket.Gameplay
         private readonly BallController ball;
         private readonly CourtConfig court;
         private readonly MatchRules rules;
+        private readonly BallConfig ballConfig;
         private readonly DefenseConfig defenseConfig;
         private readonly System.Random rng;
         private readonly PassSystem passSystem;
@@ -71,6 +72,7 @@ namespace Basket.Gameplay
             this.ball = ball;
             this.court = court;
             this.rules = rules;
+            this.ballConfig = ballConfig;
             this.defenseConfig = defenseConfig != null ? defenseConfig : ScriptableObject.CreateInstance<DefenseConfig>();
             rng = random ?? new System.Random();
             passSystem = new PassSystem(ball, ballConfig);
@@ -514,7 +516,11 @@ namespace Basket.Gameplay
             PlaceJumpTeam(away, center);
             AssignMatchupsByProximity(home, away);
             shotSystem.ResetAll();
-            ball.Toss(center + Vector3.up * 2.2f, Vector3.up * 5f);
+            // Tossed from above everyone's standing reach: only a jumper can get to it (from
+            // 2.2 m a jumper standing next to it caught it on the first tick).
+            float reach = 0f;
+            foreach (PlayerEntity p in players) reach = Mathf.Max(reach, p.StandingReach);
+            ball.Toss(center + Vector3.up * (reach + ballConfig.catchReachMargin + 0.3f), Vector3.up * 3f);
         }
 
         private void PlaceJumpTeam(List<PlayerEntity> team, Vector3 center)
