@@ -28,6 +28,7 @@ namespace Basket.Gameplay
         private readonly float[] apexTime;
         private readonly float[] takeoffSpeedRatio;
         private readonly bool[] previousHeld;
+        private int freeThrowShooter = -1;
 
         public event Action<ShotReport> OnShotTaken;
 
@@ -47,6 +48,9 @@ namespace Basket.Gameplay
         }
 
         public bool IsShooting(int index) => phase[index] != Phase.None;
+
+        // During a free throw only this player shoots, and their shot is a free throw.
+        public void SetFreeThrowShooter(int index) => freeThrowShooter = index;
 
         public void ResetAll()
         {
@@ -77,6 +81,7 @@ namespace Basket.Gameplay
             switch (type[index])
             {
                 case ShotType.JumpShot:
+                case ShotType.FreeThrow:
                     if (!command.ShootHeld || landed) Release(index, player, snapshot, time);
                     break;
                 case ShotType.Layup:
@@ -94,7 +99,9 @@ namespace Basket.Gameplay
             Vector3 feet = player.FeetPosition;
             float distance = FlatDistance(feet, rimCenter);
             float reachAtApex = feet.y + player.StandingReach + motor.Config.jumpHeight;
-            ShotType shotType = ShotAccuracyModel.Classify(distance, command.Sprint, reachAtApex, rimCenter.y, config);
+            ShotType shotType = index == freeThrowShooter
+                ? ShotType.FreeThrow
+                : ShotAccuracyModel.Classify(distance, command.Sprint, reachAtApex, rimCenter.y, config);
 
             float timeToApex = motor.JumpSpeed / Mathf.Abs(Physics.gravity.y);
             takeoffSpeedRatio[index] = motor.HorizontalVelocity.magnitude / Mathf.Max(0.01f, motor.Config.maxSpeed);
@@ -110,7 +117,7 @@ namespace Basket.Gameplay
                     : Vector3.zero;
                 jumped = motor.Jump(lunge);
             }
-            else if (shotType == ShotType.JumpShot)
+            else if (shotType == ShotType.JumpShot || shotType == ShotType.FreeThrow)
             {
                 // A jump shot goes (mostly) straight up; a layup keeps the drive's momentum.
                 jumped = motor.Jump(motor.HorizontalVelocity * 0.3f);
@@ -133,7 +140,7 @@ namespace Basket.Gameplay
             Vector3 feet = player.FeetPosition;
             float distance = FlatDistance(feet, rimCenter);
             float timingError = time - apexTime[index];
-            float contest = MaxContest(index, feet, snapshot);
+            float contest = shotType == ShotType.FreeThrow ? 0f : MaxContest(index, feet, snapshot);
 
             var input = new ShotAccuracyInput(shotType, distance, timingError, contest, takeoffSpeedRatio[index], config.defaultShooterRating);
             float errorRadius = ShotAccuracyModel.ErrorRadius(input, config);
@@ -143,7 +150,7 @@ namespace Basket.Gameplay
                 Physics.gravity.y, ball.LinearDamping, Time.fixedDeltaTime);
 
             phase[index] = Phase.None;
-            ball.Release(BallState.Shooting, velocity);
+            ball.Release(BallState.Shooting, velocity, shotType);
             OnShotTaken?.Invoke(new ShotReport(index, shotType, distance, timingError, contest, errorRadius));
         }
 
@@ -162,7 +169,7 @@ namespace Basket.Gameplay
             phase[index] = Phase.None;
             Vector3 feet = player.FeetPosition;
             float contest = MaxContest(index, feet, snapshot);
-            ball.ReleaseAt(BallState.Shooting, rimCenter + Vector3.up * (ball.Radius + 0.1f), Vector3.down * config.dunkBallDropSpeed);
+            ball.ReleaseAt(BallState.Shooting, rimCenter + Vector3.up * (ball.Radius + 0.1f), Vector3.down * config.dunkBallDropSpeed, ShotType.Dunk);
             OnShotTaken?.Invoke(new ShotReport(index, ShotType.Dunk, FlatDistance(feet, rimCenter), 0f, contest, 0f));
         }
 

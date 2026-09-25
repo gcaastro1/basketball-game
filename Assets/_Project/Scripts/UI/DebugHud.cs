@@ -41,6 +41,10 @@ namespace Basket.UI
 
             float y = 10f;
             Line(ref y, $"HOME {match.ScoreHome} - {match.ScoreAway} AWAY   ({match.Phase})");
+            string clock = match.GameClock >= 0f ? $"{(match.IsOvertime ? "OT" : "P" + match.Period)} {Clock(match.GameClock)}" : "no game clock";
+            string shotClock = match.ShotClock >= 0f ? $"   shot clock {match.ShotClock:0.0}" : "";
+            Line(ref y, $"{clock}{shotClock}   fouls H{match.GetTeamFouls(TeamId.Home)} A{match.GetTeamFouls(TeamId.Away)}");
+            if (match.BallMustBeCleared) Line(ref y, $"{match.PossessionTeam}: CLEAR THE BALL (take it beyond the arc)");
             if (match.Winner.HasValue) Line(ref y, $"{match.Winner.Value} wins!");
             Line(ref y, $"Ball: {ball.CurrentState}");
             if (ais != null)
@@ -50,6 +54,12 @@ namespace Basket.UI
             Line(ref y, "WASD move | Shift sprint | Space: shoot (hold, release at top) / jump | E: pass / steal");
             y += 6f;
             foreach (string e in events) Line(ref y, e);
+        }
+
+        private static string Clock(float seconds)
+        {
+            int total = Mathf.CeilToInt(seconds);
+            return $"{total / 60}:{total % 60:00}";
         }
 
         private static void Line(ref float y, string text)

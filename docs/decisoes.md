@@ -16,6 +16,9 @@ de troca.
 | D-008 | Tripo3D Bridge fica no manifest local; só o CI o remove | Aceita |
 | D-009 | Botões contextuais (com bola: arremesso/passe; sem bola: pulo/roubo) + buffer de 0,15 s | Aceita |
 | D-010 | Precisão = raio de erro de mira (m) no plano do aro, com multiplicadores independentes | **Provisória** (valores) |
+| D-011 | Regras como dados (`MatchRules`) + árbitro (`MatchManager`) com peças puras; presets 1v1 genérico e FIBA 3x3 | Aceita |
+| D-012 | Faltas por chance em situações de contato (reach-in, contato na soltura) | **Provisória** |
+| D-013 | Marcação homem-a-homem fixa por reinício; só o mais próximo persegue bola solta | **Provisória** (até a IA tática, Etapa 4) |
 | P-001 | Modo B (controle do time) | **Pendente** (antes da Etapa 4) |
 | P-002 | Semântica dos Limit Breaks (o que o "4º LB" no nível 60 destrava) | **Pendente** (antes da Etapa 5) |
 
@@ -102,3 +105,21 @@ rating. A física decide o resto (aro, tabela, rebote). Vantagens: resultados vi
 coerentes, cada fator testável isoladamente, e o `rating` vira atributo de personagem na
 Etapa 5 sem mudar a fórmula. Os números em `DefaultShotConfig` são estimativas iniciais; o
 HUD mostra o relatório de cada arremesso para calibrar.
+
+## D-011 — Regras como dados
+
+`MatchRules` descreve pontos, relógios, prorrogação, shot clock, "limpar a bola", tipo de
+reinício após cesta e faltas/lances livres. `MatchManager` é o árbitro: recebe **fatos** da
+simulação (posse, toque no aro, arremesso solto, cesta, falta, estado da bola) e responde com
+eventos (reiniciar posse de um tipo, preparar lance livre). Relógio de jogo, shot clock e a
+tabela de penalidades (`FoulRules`) são peças puras testadas isoladamente.
+Presets: `DefaultMatchRules` (1v1 genérico, sem relógios) e `FIBA3x3MatchRules`. 5v5 será
+outro asset; o que 5v5 exigir além disso (backcourt, 8 s, reposição lateral) entra como campo
+novo, não como `if (modo == 5v5)` espalhado.
+
+## D-012 — Faltas (provisória)
+
+Sem animação/colisão de corpo confiável ainda, falta é **chance configurável em situações de
+contato**: roubo errado (reach-in) e defensor colado no arremessador no momento da soltura
+(no ar ou chegando rápido). Quando houver animação e hitboxes (Etapa 6), a detecção passa a
+ser por contato real; o `MatchManager` não muda, porque recebe só o `FoulEvent`.

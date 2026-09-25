@@ -33,6 +33,7 @@ namespace Basket.Gameplay
             {
                 ShotType.Dunk => 0f,
                 ShotType.Layup => c.layupBaseError,
+                ShotType.FreeThrow => c.freeThrowBaseError,
                 _ => c.jumpShotBaseError + c.jumpShotErrorPerMeter * Mathf.Max(0f, input.Distance)
             };
             return baseError
@@ -42,10 +43,10 @@ namespace Basket.Gameplay
                    * Mathf.Lerp(c.ratingErrorScaleAtZero, c.ratingErrorScaleAtOne, Mathf.Clamp01(input.Rating));
         }
 
-        // Only jump shots are player-timed; layups/dunks release automatically at the apex.
+        // Jump shots and free throws are player-timed; layups/dunks release automatically.
         public static float TimingFactor(ShotType type, float timingError, ShotConfig c)
         {
-            if (type != ShotType.JumpShot) return 1f;
+            if (type != ShotType.JumpShot && type != ShotType.FreeThrow) return 1f;
             float beyondWindow = Mathf.Max(0f, Mathf.Abs(timingError) - c.perfectReleaseWindow);
             return 1f + c.timingPenaltyPerSecond * beyondWindow;
         }

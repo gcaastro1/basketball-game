@@ -7,7 +7,8 @@ namespace Basket.Gameplay
 {
     // The per-tick match loop for any number of players on two teams:
     // snapshot -> each controller decides a PlayerCommand -> commands are applied through
-    // the motor and ball systems -> loose-ball pickup -> rules tick.
+    // the motor, shot, pass and defense systems -> blocks / loose-ball pickup -> facts
+    // reported to the referee (MatchManager), which answers with restarts and free throws.
     // Owns no Unity lifecycle; whoever composes the match calls Tick(dt).
     public sealed class MatchSimulation : IDisposable, IMatchEventFeed
     {
@@ -17,6 +18,9 @@ namespace Basket.Gameplay
         private readonly IAgentController[] controllers;
         private readonly BallController ball;
         private readonly CourtConfig court;
+        private readonly MatchRules rules;
+        private readonly DefenseConfig defenseConfig;
+        private readonly System.Random rng;
         private readonly PassSystem passSystem;
         private readonly ShotSystem shotSystem;
         private readonly DefenseSystem defenseSystem;
@@ -49,24 +53,29 @@ namespace Basket.Gameplay
 
             this.ball = ball;
             this.court = court;
+            this.rules = rules;
+            this.defenseConfig = defenseConfig != null ? defenseConfig : ScriptableObject.CreateInstance<DefenseConfig>();
+            rng = random ?? new System.Random();
             passSystem = new PassSystem(ball, ballConfig);
-            random ??= new System.Random();
-            if (defenseConfig == null) defenseConfig = ScriptableObject.CreateInstance<DefenseConfig>();
-            shotSystem = new ShotSystem(players.Count, ball, shotConfig, ballConfig, hoop.RimCenter, random);
-            defenseSystem = new DefenseSystem(players.Count, ball, defenseConfig, random);
+            shotSystem = new ShotSystem(players.Count, ball, shotConfig, ballConfig, hoop.RimCenter, rng);
+            defenseSystem = new DefenseSystem(players.Count, ball, this.defenseConfig, rng);
             dribbleSystem = new DribbleSystem(ball, ballConfig);
-            shotSystem.OnShotTaken += ReportShot;
-            defenseSystem.OnSteal += i => Raise($"STEAL by {this.players[i].name}");
-            defenseSystem.OnBlock += i => Raise($"BLOCK by {this.players[i].name}");
 
             snapshot = new MatchSnapshot(players.Count);
             // Half court: both teams attack the single hoop.
             snapshot.SetAttackingHoop(TeamId.Home, hoop.RimCenter);
             snapshot.SetAttackingHoop(TeamId.Away, hoop.RimCenter);
+            snapshot.SetThreePointRadius(rules.threePointRadius);
 
             Match = new MatchManager(rules, hoop.RimCenter);
             ball.OnScored += Match.HandleScore;
+            ball.OnRimTouched += Match.NotifyRimTouched;
             Match.OnPossessionRestart += SetUpPossession;
+            Match.OnFreeThrowSetup += SetUpFreeThrow;
+            Match.OnRuleEvent += Raise;
+            shotSystem.OnShotTaken += OnShotTaken;
+            defenseSystem.OnSteal += OnSteal;
+            defenseSystem.OnBlock += OnBlock;
         }
 
         public void Begin() => Match.BeginMatch();
@@ -78,31 +87,56 @@ namespace Basket.Gameplay
 
             MatchPhase phase = Match.State.Phase;
             bool live = phase == MatchPhase.Live;
+            int freeThrowShooter = Match.FreeThrowShooter;
+            shotSystem.SetFreeThrowShooter(freeThrowShooter);
+
             for (int i = 0; i < players.Length; i++)
             {
-                PlayerCommand command = phase == MatchPhase.Ended ? PlayerCommand.None : controllers[i].Decide(snapshot, i);
-                ApplyCommand(i, command, live, dt);
+                PlayerCommand command = CommandFor(i, phase, freeThrowShooter);
+                ApplyCommand(i, command, live, phase == MatchPhase.FreeThrow && i == freeThrowShooter, dt);
             }
 
-            if (live)
+            if (Match.State.Phase == MatchPhase.Live)
             {
                 defenseSystem.CheckBlocks(players, ball.LastTouchTeam);
                 CatchLooseBall();
+                ReportPossession();
                 if (ball.CurrentState != BallState.Held && IsOutOfPlay(ball.Position))
                 {
                     Match.HandleBallOutOfPlay(ball.LastTouchTeam);
                 }
             }
-            Match.Tick(dt);
+
+            BallState state = ball.CurrentState;
+            Match.Tick(dt, new BallStatus(
+                possessed: state == BallState.Held || state == BallState.Passing,
+                shotInFlight: state == BallState.Shooting,
+                liveRelease: ball.HasLiveRelease));
         }
 
-        private void ApplyCommand(int index, PlayerCommand command, bool live, float dt)
+        private PlayerCommand CommandFor(int index, MatchPhase phase, int freeThrowShooter)
+        {
+            switch (phase)
+            {
+                case MatchPhase.Ended:
+                    return PlayerCommand.None;
+                case MatchPhase.FreeThrow:
+                    if (index != freeThrowShooter) return PlayerCommand.None;
+                    // The shooter stays on the line: only the shoot button counts.
+                    PlayerCommand c = controllers[index].Decide(snapshot, index);
+                    return new PlayerCommand(Vector2.zero, shootHeld: c.ShootHeld);
+                default:
+                    return controllers[index].Decide(snapshot, index);
+            }
+        }
+
+        private void ApplyCommand(int index, PlayerCommand command, bool live, bool freeThrow, float dt)
         {
             PlayerEntity player = players[index];
             player.Motor.Tick(command.Move, command.Sprint, dt);
             bool holding = ball.CurrentHolder == player.transform;
 
-            if (live) shotSystem.Tick(index, player, command, snapshot, time);
+            if (live || freeThrow) shotSystem.Tick(index, player, command, snapshot, time);
             if (shotSystem.IsShooting(index)) return;
 
             if (holding)
@@ -115,22 +149,22 @@ namespace Basket.Gameplay
                 }
                 return;
             }
+            if (!live) return;
 
             // Jumping with the ball without shooting would be a travel; only off-ball jumps.
             if (command.Jump && player.Motor.IsGrounded) player.Motor.Jump();
-            if (live && command.Steal)
-            {
-                int holder = snapshot.BallHolderIndex;
-                defenseSystem.TrySteal(index, players, holder >= 0 && shotSystem.IsShooting(holder), time);
-            }
+            if (command.Steal) TrySteal(index);
         }
 
-        private bool IsOutOfPlay(Vector3 p)
+        private void TrySteal(int index)
         {
-            const float slack = 1f;
-            return p.y < -1f
-                   || Mathf.Abs(p.x) > court.width * 0.5f + slack
-                   || p.z < -slack || p.z > court.depth + slack;
+            int holder = snapshot.BallHolderIndex;
+            StealOutcome outcome = defenseSystem.TrySteal(index, players, holder >= 0 && shotSystem.IsShooting(holder), time);
+            if (outcome == StealOutcome.Missed && holder >= 0 && rng.NextDouble() < defenseConfig.reachInFoulChance)
+            {
+                Raise($"Reach-in by {players[index].name}");
+                Match.HandleFoul(new FoulEvent(players[index].Team, holder, players[holder].Team, shooting: false));
+            }
         }
 
         // Nearest eligible player wins a loose ball, independent of roster order.
@@ -152,6 +186,32 @@ namespace Basket.Gameplay
             if (best >= 0) ball.TryCatchNearby(players[best].transform);
         }
 
+        private void ReportPossession()
+        {
+            if (ball.CurrentState != BallState.Held) return;
+            for (int i = 0; i < players.Length; i++)
+            {
+                if (ball.CurrentHolder != players[i].transform) continue;
+                Match.NotifyPossession(players[i].Team, IsBeyondArc(players[i].FeetPosition));
+                return;
+            }
+        }
+
+        private bool IsBeyondArc(Vector3 feet)
+        {
+            Vector3 hoop = court.RimFloorProjection;
+            float dx = feet.x - hoop.x, dz = feet.z - hoop.z;
+            return dx * dx + dz * dz >= rules.threePointRadius * rules.threePointRadius;
+        }
+
+        private bool IsOutOfPlay(Vector3 p)
+        {
+            const float slack = 1f;
+            return p.y < -1f
+                   || Mathf.Abs(p.x) > court.width * 0.5f + slack
+                   || p.z < -slack || p.z > court.depth + slack;
+        }
+
         private void RefreshSnapshot()
         {
             int holder = -1;
@@ -162,19 +222,48 @@ namespace Basket.Gameplay
                 if (ball.CurrentHolder == p.transform) holder = i;
             }
             snapshot.SetBall(ball.Position, ball.CurrentState, holder, ball.Velocity);
-            snapshot.SetMatch(Match.State.Phase, time);
+            MatchState s = Match.State;
+            snapshot.SetMatch(s.Phase, time, s.ShotClock, s.BallMustBeCleared);
         }
 
-        // Check ball (simplified): offense lines up around the arc with the handler at the
-        // check spot, each defender between their man and the hoop, handler gets the ball.
-        private void SetUpPossession(TeamId offenseTeam)
+        // ---------- shots, steals, blocks ----------
+
+        private void OnShotTaken(ShotReport r)
         {
-            var offense = new List<PlayerEntity>();
-            var defense = new List<PlayerEntity>();
+            PlayerEntity shooter = players[r.ShooterIndex];
+            Match.NotifyShotReleased(r.ShooterIndex, IsBeyondArc(shooter.FeetPosition));
+            ReportShot(r);
+
+            if (r.Type == ShotType.FreeThrow || Match.State.Phase != MatchPhase.Live) return;
+            int fouler = FoulMath.ShootingContact(snapshot, r.ShooterIndex,
+                defenseConfig.shootingContactDistance, defenseConfig.shootingContactClosingSpeed);
+            if (fouler >= 0 && rng.NextDouble() < defenseConfig.shootingFoulChance)
+            {
+                Match.HandleFoul(new FoulEvent(players[fouler].Team, r.ShooterIndex, shooter.Team, shooting: true));
+            }
+        }
+
+        private void OnSteal(int i) => Raise($"STEAL by {players[i].name}");
+        private void OnBlock(int i) => Raise($"BLOCK by {players[i].name}");
+
+        // ---------- restarts ----------
+
+        private void SplitTeams(TeamId offenseTeam, out List<PlayerEntity> offense, out List<PlayerEntity> defense)
+        {
+            offense = new List<PlayerEntity>();
+            defense = new List<PlayerEntity>();
             foreach (PlayerEntity p in players)
             {
                 (p.Team == offenseTeam ? offense : defense).Add(p);
             }
+        }
+
+        // Offense lines up around the arc (handler at the check spot, or under the basket
+        // for an inbound that must be cleared); each defender takes the attacker with the
+        // same rank as their man-to-man matchup.
+        private void SetUpPossession(TeamId offenseTeam, RestartKind kind)
+        {
+            SplitTeams(offenseTeam, out var offense, out var defense);
             if (offense.Count == 0)
             {
                 // e.g. a solo shooting drill: the only team present keeps the ball.
@@ -186,9 +275,11 @@ namespace Basket.Gameplay
             var offenseSpots = new Vector3[Mathf.Max(offense.Count, defense.Count)];
             for (int k = 0; k < offenseSpots.Length; k++)
             {
-                offenseSpots[k] = PossessionLayout.ClampToCourt(
-                    PossessionLayout.OffenseSpot(hoopFloor, court.checkBallSpot, k, court.supportPlayerSpreadDegrees),
-                    court.width, court.depth, CourtEdgeMargin);
+                offenseSpots[k] = Clamp(PossessionLayout.OffenseSpot(hoopFloor, court.checkBallSpot, k, court.supportPlayerSpreadDegrees));
+            }
+            if (kind == RestartKind.UnderBasket)
+            {
+                offenseSpots[0] = Clamp(PossessionLayout.AlongCourtAxis(hoopFloor, court.checkBallSpot, court.underBasketInboundDistance));
             }
 
             for (int k = 0; k < offense.Count; k++)
@@ -197,17 +288,53 @@ namespace Basket.Gameplay
             }
             for (int k = 0; k < defense.Count; k++)
             {
-                Vector3 spot = PossessionLayout.DefenseSpot(hoopFloor, offenseSpots[k], court.defenderGap);
+                Vector3 spot = kind == RestartKind.UnderBasket && k == 0
+                    // Picks up the inbounder at the arc instead of standing under the rim.
+                    ? Clamp(PossessionLayout.AlongCourtAxis(hoopFloor, court.checkBallSpot, rules.threePointRadius - 0.5f))
+                    : PossessionLayout.DefenseSpot(hoopFloor, offenseSpots[k], court.defenderGap);
                 defense[k].TeleportFeetTo(spot, offenseSpots[k] - spot);
             }
 
+            AssignMatchups(offense, defense);
             shotSystem.ResetAll();
             ball.ResetToHolder(offense[0].transform);
         }
 
+        private void SetUpFreeThrow(int shooterIndex)
+        {
+            PlayerEntity shooter = players[shooterIndex];
+            Vector3 hoopFloor = court.RimFloorProjection;
+            Vector3 line = PossessionLayout.AlongCourtAxis(hoopFloor, court.checkBallSpot, court.freeThrowDistance);
+            shooter.TeleportFeetTo(line, hoopFloor - line);
+
+            int slot = 0;
+            for (int i = 0; i < players.Length; i++)
+            {
+                if (i == shooterIndex) continue;
+                Vector3 spot = Clamp(PossessionLayout.LaneSlot(hoopFloor, court.checkBallSpot, slot++));
+                players[i].TeleportFeetTo(spot, hoopFloor - spot);
+            }
+            shotSystem.ResetAll();
+            ball.ResetToHolder(shooter.transform);
+        }
+
+        private void AssignMatchups(List<PlayerEntity> offense, List<PlayerEntity> defense)
+        {
+            for (int i = 0; i < players.Length; i++) snapshot.SetMatchup(i, -1);
+            int pairs = Mathf.Min(offense.Count, defense.Count);
+            for (int k = 0; k < pairs; k++)
+            {
+                snapshot.SetMatchup(offense[k].Index, defense[k].Index);
+                snapshot.SetMatchup(defense[k].Index, offense[k].Index);
+            }
+        }
+
+        private Vector3 Clamp(Vector3 spot) => PossessionLayout.ClampToCourt(spot, court.width, court.depth, CourtEdgeMargin);
+
         private void ReportShot(ShotReport r)
         {
-            string timing = r.Type != ShotType.JumpShot ? "auto"
+            bool timed = r.Type == ShotType.JumpShot || r.Type == ShotType.FreeThrow;
+            string timing = !timed ? "auto"
                 : Mathf.Abs(r.TimingError) <= 0.05f ? "PERFECT"
                 : r.TimingError < 0f ? $"early {-r.TimingError:0.00}s" : $"late {r.TimingError:0.00}s";
             Raise($"{r.Type} by {players[r.ShooterIndex].name}: {r.Distance:0.0} m, {timing}, contest {r.Contest:0.00}, error {r.ErrorRadius:0.00} m");
@@ -218,8 +345,13 @@ namespace Basket.Gameplay
         public void Dispose()
         {
             ball.OnScored -= Match.HandleScore;
-            shotSystem.OnShotTaken -= ReportShot;
+            ball.OnRimTouched -= Match.NotifyRimTouched;
             Match.OnPossessionRestart -= SetUpPossession;
+            Match.OnFreeThrowSetup -= SetUpFreeThrow;
+            Match.OnRuleEvent -= Raise;
+            shotSystem.OnShotTaken -= OnShotTaken;
+            defenseSystem.OnSteal -= OnSteal;
+            defenseSystem.OnBlock -= OnBlock;
         }
     }
 }

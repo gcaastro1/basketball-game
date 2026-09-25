@@ -25,6 +25,10 @@ namespace Basket.Gameplay
         public Vector3 checkBallSpot = new Vector3(0f, 0f, 5.5f);
         public float defenderGap = 1.5f;
         public float supportPlayerSpreadDegrees = 45f;
+        // Inbound spot under the basket (distance from the point under the rim, toward the check spot).
+        public float underBasketInboundDistance = 1.2f;
+        // Free-throw line distance from the point under the rim (FIBA: 4.6 m from the backboard).
+        public float freeThrowDistance = 4.2f;
 
         public Vector3 RimFloorProjection => new Vector3(rimCenter.x, 0f, rimCenter.z);
     }

@@ -8,8 +8,8 @@ conflitavam). Origem: `docs/auditoria/2026-09-25-auditoria-e-avaliacao.md`, seç
 | 0 Auditoria | Estado do projeto + avaliação do briefing | `docs/auditoria/` | ✅ |
 | 1 Vertical slice 1v1 | Movimento, bola, drible visual, passe, arremesso, IA FSM, placar | Spec/plano em `docs/superpowers/` | ✅ |
 | **1.5 Consolidação** | Arquitetura N jogadores, bola com voo real, aro físico, placar por time/zona, reinício de posse, fim de partida, layers, CI | Loop cesta→placar→reinício testado | ✅ (CI verde: 90/90) |
-| 2 Fundamentos | Arremesso por distância/contest/timing, pulo, block, steal, rebote/box-out, bandeja/enterrada básicas, Input Actions + buffer | Testes por fundamento (`FundamentalsTests`) | ✅ código / ⏳ CI — plano: `docs/etapas/etapa-2-fundamentos.md` |
-| 3 Regras 3v3 | Preset FIBA 3x3 (1/2 pts), check ball, clear the ball, tempo, shot clock, faltas básicas | Partida 3v3 completa | — |
+| 2 Fundamentos | Arremesso por distância/contest/timing, pulo, block, steal, rebote/box-out, bandeja/enterrada básicas, Input Actions + buffer | Testes por fundamento (`FundamentalsTests`) | ✅ — plano: `docs/etapas/etapa-2-fundamentos.md` |
+| 3 Regras 3v3 | Preset FIBA 3x3 (1/2 pts), check ball, clear the ball, tempo, shot clock, faltas básicas | Partida 3v3 completa | ✅ código / ⏳ CI — plano: `docs/etapas/etapa-3-regras.md` |
 | 4 IA 3v3 | Utility AI, blackboard de time, companheiros, marcação, ajuda | Simulação IA×IA headless com estatísticas | — (precisa P-001) |
 | 5 Personagens | Definição/instância, atributos 0–99 + curvas, habilidades data-driven, níveis/LB/dupes | Arquétipos jogam diferente (medido) | — (precisa P-002) |
 | 6 Animação | Rig Humanoid, Animator/blend trees, sockets/IK de mão e bola | Placeholders trocados sem mudar gameplay | — |

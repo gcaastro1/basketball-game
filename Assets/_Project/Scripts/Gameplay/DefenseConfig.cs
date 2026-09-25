@@ -16,6 +16,16 @@ namespace Basket.Gameplay
         public float stealCooldownSeconds = 1f;
         public float stealKnockSpeed = 3f;
 
+        [Header("Fouls (provisional chance-based contact model)")]
+        // A missed steal attempt is called a reach-in foul this often.
+        [Range(0f, 1f)] public float reachInFoulChance = 0.15f;
+        // Defender body within this distance of a shooter at release...
+        public float shootingContactDistance = 0.8f;
+        // ...who is airborne or closing in at least this fast...
+        public float shootingContactClosingSpeed = 1.5f;
+        // ...is called for a shooting foul this often.
+        [Range(0f, 1f)] public float shootingFoulChance = 0.35f;
+
         [Header("Block")]
         // A shot can be blocked for this long after release.
         public float blockWindowSeconds = 0.35f;

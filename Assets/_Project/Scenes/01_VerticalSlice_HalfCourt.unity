@@ -163,8 +163,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6d1a8e2972133714b9be271b0aefffe6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Basket.Bootstrap::Basket.Bootstrap.GameBootstrap
-  matchSetup: {fileID: 11400000, guid: 37e39d573c824564b0aebfd402ecbf8c, type: 2}
-  matchRules: {fileID: 11400000, guid: 80f2f20da09c4ba2a160156e3da1448b, type: 2}
+  matchSetup: {fileID: 11400000, guid: a269cd706b774c86a951ba1f4c2401f0, type: 2}
+  matchRules: {fileID: 11400000, guid: ada4b2f8d72447c59eb8ccf746a21abf, type: 2}
   courtConfig: {fileID: 11400000, guid: 423257621d424b828c82903506c16e58, type: 2}
   ballConfig: {fileID: 11400000, guid: a6c6cb0c31247b745b5fb31f5cd29c02, type: 2}
   shotConfig: {fileID: 11400000, guid: 74ba7e43135dbc74a9cefa283d58ef54, type: 2}

@@ -66,4 +66,33 @@ public class AIPerceptionTests
         Assert.AreEqual(new Vector3(0f, 3f, 13f), p.AttackHoop);
         Assert.AreEqual(new Vector3(0f, 3f, 13f), p.DefendHoop);
     }
+
+    [Test]
+    public void FromSnapshot_WithMatchup_FocusesOnAssignedMan()
+    {
+        var s = ThreeVsOne(holder: 2);
+        s.SetMatchup(0, 1);
+        var p = AIPerception.FromSnapshot(s, 0);
+
+        Assert.AreEqual(new Vector3(2f, 0f, 0f), p.OpponentPosition);
+        Assert.IsTrue(p.OpponentHasBall);
+        Assert.IsFalse(p.FocusHasBall, "my man is not the handler");
+    }
+
+    [Test]
+    public void FromSnapshot_MatchupIsHandler_FocusHasBall()
+    {
+        var s = ThreeVsOne(holder: 2);
+        s.SetMatchup(0, 2);
+        Assert.IsTrue(AIPerception.FromSnapshot(s, 0).FocusHasBall);
+    }
+
+    [Test]
+    public void FromSnapshot_MustClear_OnlyForTheTeamInPossession()
+    {
+        var s = ThreeVsOne(holder: 3);
+        s.SetMatch(MatchPhase.Live, 1f, 10f, ballMustBeCleared: true);
+        Assert.IsTrue(AIPerception.FromSnapshot(s, 0).MustClear, "my teammate has it");
+        Assert.IsFalse(AIPerception.FromSnapshot(s, 1).MustClear, "the defense does not clear");
+    }
 }

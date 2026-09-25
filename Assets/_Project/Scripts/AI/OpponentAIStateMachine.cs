@@ -31,12 +31,16 @@ namespace Basket.AI
             if (p.SelfHasBall) return AIState.Attack;
             if (p.OpponentHasBall)
             {
+                // Off-ball defender: stay with the assigned man, between him and the hoop.
+                if (!p.FocusHasBall) return AIState.Guard;
                 float distToOpponent = Vector3.Distance(p.SelfPosition, p.OpponentPosition);
                 return distToOpponent < config.contestDistance ? AIState.ContestShot : AIState.Guard;
             }
             // Off-ball offense (spacing, cuts, screens) belongs to the teammate AI stage.
             if (p.TeammateHasBall) return AIState.Idle;
-            return AIState.Chase;
+            // Loose ball: only the closest player of each team goes for it; the rest
+            // stay with their man.
+            return p.ClosestToBall ? AIState.Chase : AIState.Guard;
         }
     }
 }

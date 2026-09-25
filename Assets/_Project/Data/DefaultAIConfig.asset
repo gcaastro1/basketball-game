@@ -24,6 +24,8 @@ MonoBehaviour:
   driveFinishDistance: 1.8
   minHoldSecondsBeforeShot: 0.5
   releaseTimingJitterSeconds: 0.06
+  shotClockUrgencySeconds: 2.5
+  clearMargin: 0.8
   reboundJumpMinHeight: 2.3
   reboundJumpRange: 1.2
   reboundLeadSeconds: 0.3

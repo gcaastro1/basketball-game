@@ -32,6 +32,8 @@ namespace Basket.Gameplay
         public float jumpShotBaseError = 0.09f;
         public float jumpShotErrorPerMeter = 0.014f;
         public float layupBaseError = 0.06f;
+        // Free throws: timed like a jump shot, never contested.
+        public float freeThrowBaseError = 0.07f;
         // Multiplier added per second of release timing error beyond the perfect window.
         public float timingPenaltyPerSecond = 3f;
         // Multiplier added at full contest (1.0 doubles the error).

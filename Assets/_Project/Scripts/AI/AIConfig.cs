@@ -32,6 +32,12 @@ namespace Basket.AI
         // Std-dev of release timing around the jump apex (0 = perfect every time).
         public float releaseTimingJitterSeconds = 0.06f;
 
+        [Header("Rules awareness")]
+        // Shoot from wherever when the shot clock drops below this.
+        public float shotClockUrgencySeconds = 2.5f;
+        // How far beyond the arc to take the ball when it must be cleared.
+        public float clearMargin = 0.8f;
+
         [Header("Rebound")]
         // Jump for a descending loose ball this high above the feet...
         public float reboundJumpMinHeight = 2.3f;

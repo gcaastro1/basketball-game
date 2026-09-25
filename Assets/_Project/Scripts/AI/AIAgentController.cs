@@ -69,16 +69,28 @@ namespace Basket.AI
                 return new PlayerCommand(Vector2.zero, shootHeld: !release);
             }
 
+            if (p.MustClear)
+            {
+                // 3x3: take the ball beyond the arc before looking to score.
+                Vector3 outward = p.SelfPosition - p.AttackHoop;
+                outward.y = 0f;
+                if (outward.sqrMagnitude < 0.0001f) outward = Vector3.back;
+                Vector3 clearSpot = new Vector3(p.AttackHoop.x, 0f, p.AttackHoop.z) + outward.normalized * (p.ThreePointRadius + config.clearMargin);
+                return new PlayerCommand(MoveToward(p.SelfPosition, clearSpot, config.arrivalDistance), sprint: true);
+            }
+
+            bool freeThrow = p.Phase == MatchPhase.FreeThrow;
+            bool urgent = p.ShotClock >= 0f && p.ShotClock <= config.shotClockUrgencySeconds;
             float range = drivingThisPossession ? config.driveFinishDistance : config.shootRange;
-            bool inRange = FlatDistance(p.SelfPosition, p.AttackHoop) <= range;
-            bool heldLongEnough = p.Time - attackStartTime >= config.minHoldSecondsBeforeShot;
+            bool inRange = freeThrow || urgent || FlatDistance(p.SelfPosition, p.AttackHoop) <= range;
+            bool heldLongEnough = urgent || p.Time - attackStartTime >= config.minHoldSecondsBeforeShot;
             if (inRange && heldLongEnough && p.SelfGrounded)
             {
                 shotInProgress = true;
                 shotStartTime = p.Time;
                 releaseOffsetSeconds = (float)(Gaussian() * config.releaseTimingJitterSeconds);
                 // Sprinting into a close shot is what makes it a dunk attempt.
-                return new PlayerCommand(Vector2.zero, sprint: drivingThisPossession, shootHeld: true);
+                return new PlayerCommand(Vector2.zero, sprint: drivingThisPossession && !freeThrow, shootHeld: true);
             }
             return new PlayerCommand(MoveToward(p.SelfPosition, p.AttackHoop, range), sprint: drivingThisPossession);
         }
@@ -97,12 +109,13 @@ namespace Basket.AI
         private PlayerCommand Defend(AIPerception p, Vector3 target, float arrival)
         {
             float toHandler = FlatDistance(p.SelfPosition, p.OpponentPosition);
-            bool block = p.OpponentHasBall && p.SelfGrounded && !p.OpponentGrounded
+            bool onBall = p.OpponentHasBall && p.FocusHasBall;
+            bool block = onBall && p.SelfGrounded && !p.OpponentGrounded
                          && p.OpponentVelocity.y <= config.blockTriggerVerticalSpeed
                          && toHandler <= config.blockRange;
 
             bool steal = false;
-            if (p.OpponentHasBall && p.OpponentGrounded && toHandler <= config.stealRange && p.Time >= nextStealTime)
+            if (onBall && p.OpponentGrounded && toHandler <= config.stealRange && p.Time >= nextStealTime)
             {
                 steal = true;
                 nextStealTime = p.Time + config.stealIntervalSeconds * (0.5f + (float)rng.NextDouble());

@@ -135,6 +135,7 @@ namespace Basket.Gameplay
                 seg.transform.rotation = Quaternion.FromToRotation(Vector3.up, tangent);
                 float diameter = court.rimTubeRadius * 2f;
                 seg.transform.localScale = new Vector3(diameter, (segmentLength + diameter) * 0.5f, diameter);
+                seg.AddComponent<RimSurface>();
                 PhysicsLayers.Assign(seg, PhysicsLayers.Hoop);
             }
 

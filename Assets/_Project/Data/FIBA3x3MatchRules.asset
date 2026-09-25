@@ -10,30 +10,30 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 24decf7aec284b39bb691f614c09d2ce, type: 3}
-  m_Name: DefaultMatchRules
+  m_Name: FIBA3x3MatchRules
   m_EditorClassIdentifier: Basket.Gameplay::Basket.Gameplay.MatchRules
-  pointsInsideArc: 2
-  pointsBeyondArc: 3
+  pointsInsideArc: 1
+  pointsBeyondArc: 2
   freeThrowPoints: 1
   threePointRadius: 6.75
   winningScore: 21
-  useGameClock: 0
+  useGameClock: 1
   periods: 1
   periodLengthSeconds: 600
   overtimeMode: 0
   overtimePointsToWin: 2
   overtimeLengthSeconds: 300
-  useShotClock: 0
+  useShotClock: 1
   shotClockSeconds: 12
   shotClockAfterRimTouch: 12
   firstPossession: 0
-  afterMadeBasket: 0
-  clearBallOnChangeOfPossession: 0
+  afterMadeBasket: 1
+  clearBallOnChangeOfPossession: 1
   restartDelaySeconds: 1.5
   teamFoulPenaltyThreshold: 7
   teamFoulBonusPossessionThreshold: 10
   penaltyFreeThrows: 2
-  shootingFoulFreeThrowsInsideArc: 2
-  shootingFoulFreeThrowsBeyondArc: 3
+  shootingFoulFreeThrowsInsideArc: 1
+  shootingFoulFreeThrowsBeyondArc: 2
   andOneFreeThrows: 1
   teamFoulsResetEachPeriod: 1

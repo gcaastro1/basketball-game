@@ -25,7 +25,9 @@ GameBootstrap.Update
             sem a bola: pulo (bloqueio/rebote), roubo (DefenseSystem)
        3. se Live: bloqueios (defensor no ar com os braços na bola logo após a soltura);
           bola solta → jogador mais próximo com alcance vertical pega
-       4. MatchManager.Tick(dt)       atraso de reinício → OnPossessionRestart
+       4. fatos → MatchManager (posse/limpeza, toque no aro, arremesso solto, faltas)
+          MatchManager.Tick(dt, BallStatus): relógio, shot clock, faltas pendentes, lances livres,
+          fim de período/prorrogação → OnPossessionRestart(time, tipo) / OnFreeThrowSetup
 Física (FixedUpdate)
   BallController   colisões: pega passe/bola solta; voo → Free; chão encerra a release
   HoopController   bola cruzou o aro de cima p/ baixo? → ball.NotifyScored()
@@ -38,8 +40,8 @@ Eventos
 
 | Quero… | Mexa em |
 |---|---|
-| Mudar 1v1 → 2v2/3v3 | `Data/DefaultMatchSetup.asset` (slots) |
-| Mudar pontos/limite/atraso | `Data/DefaultMatchRules.asset` |
+| Trocar elenco (1v1, 3v3…) | asset `MatchSetup` no `GameBootstrap` (`DefaultMatchSetup` = 1v1, `MatchSetup3v3`) |
+| Trocar/ajustar regras | asset `MatchRules` no `GameBootstrap` (`DefaultMatchRules` = 1v1 sem relógio, `FIBA3x3MatchRules`) |
 | Mudar geometria da quadra/aro | `Data/DefaultCourtConfig.asset` |
 | Ajustar precisão/tipos de arremesso | `Data/DefaultShotConfig.asset` (modelo em `Gameplay/ShotAccuracyModel.cs`) |
 | Ajustar roubo/bloqueio | `Data/DefaultDefenseConfig.asset` |

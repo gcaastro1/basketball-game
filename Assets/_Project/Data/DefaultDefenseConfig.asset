@@ -18,6 +18,10 @@ MonoBehaviour:
   stealMovingHandlerBonus: 0.15
   stealCooldownSeconds: 1
   stealKnockSpeed: 3
+  reachInFoulChance: 0.15
+  shootingContactDistance: 0.8
+  shootingContactClosingSpeed: 1.5
+  shootingFoulChance: 0.35
   blockWindowSeconds: 0.35
   blockRadius: 0.45
   headHeight: 1.8

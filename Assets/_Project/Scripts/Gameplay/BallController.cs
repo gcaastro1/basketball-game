@@ -31,6 +31,7 @@ namespace Basket.Gameplay
         private PlayerEntity releaseEntity;
         private Vector3 releasePosition;
         private BallState releaseKind;
+        private ShotType? releaseShotType;
 
         public BallState CurrentState => stateMachine.CurrentState;
         public Vector3 Position => transform.position;
@@ -51,6 +52,7 @@ namespace Basket.Gameplay
             remove => stateMachine.OnStateChanged -= value;
         }
         public event Action<ScoreEvent> OnScored;
+        public event Action OnRimTouched;
 
         private void Awake()
         {
@@ -125,7 +127,7 @@ namespace Basket.Gameplay
             transform.position = HeldPosition();
         }
 
-        public void Release(BallState releaseState, Vector3 velocity)
+        public void Release(BallState releaseState, Vector3 velocity, ShotType? shotType = null)
         {
             if (stateMachine.CurrentState != BallState.Held) return;
             if (!stateMachine.TryTransition(releaseState)) return;
@@ -136,6 +138,7 @@ namespace Basket.Gameplay
             releaseEntity = holderEntity;
             releasePosition = holderEntity != null ? holderEntity.FeetPosition : CurrentHolder.position;
             releaseKind = releaseState;
+            releaseShotType = shotType;
 
             if (ballCollider != null)
             {
@@ -155,10 +158,10 @@ namespace Basket.Gameplay
         }
 
         // Release from an explicit position (e.g. a dunk puts the ball above the rim).
-        public void ReleaseAt(BallState releaseState, Vector3 position, Vector3 velocity)
+        public void ReleaseAt(BallState releaseState, Vector3 position, Vector3 velocity, ShotType? shotType = null)
         {
             if (stateMachine.CurrentState != BallState.Held) return;
-            Release(releaseState, velocity);
+            Release(releaseState, velocity, shotType);
             transform.position = position;
             rb.position = position;
         }
@@ -206,7 +209,7 @@ namespace Basket.Gameplay
             if (!releaseLive) return;
             releaseLive = false;
             TeamId? team = releaseEntity != null ? releaseEntity.Team : (TeamId?)null;
-            OnScored?.Invoke(new ScoreEvent(releaseEntity, team, releasePosition, releaseKind));
+            OnScored?.Invoke(new ScoreEvent(releaseEntity, team, releasePosition, releaseKind, releaseShotType));
         }
 
         private Vector3 HeldPosition()
@@ -273,6 +276,10 @@ namespace Basket.Gameplay
             if (collision.transform.TryGetComponent<CourtSurface>(out _))
             {
                 releaseLive = false;
+            }
+            else if (collision.transform.TryGetComponent<RimSurface>(out _))
+            {
+                OnRimTouched?.Invoke();
             }
         }
 

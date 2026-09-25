@@ -26,6 +26,7 @@ public sealed class TestMatch : IDisposable
         ShotConfig.jumpShotBaseError = 0f;
         ShotConfig.jumpShotErrorPerMeter = 0f;
         ShotConfig.layupBaseError = 0f;
+        ShotConfig.freeThrowBaseError = 0f;
         Rules.restartDelaySeconds = 0.5f;
     }
 

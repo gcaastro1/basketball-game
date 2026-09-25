@@ -24,3 +24,5 @@ MonoBehaviour:
   checkBallSpot: {x: 0, y: 0, z: 5.5}
   defenderGap: 1.5
   supportPlayerSpreadDegrees: 45
+  underBasketInboundDistance: 1.2
+  freeThrowDistance: 4.2

@@ -25,6 +25,7 @@ MonoBehaviour:
   jumpShotBaseError: 0.09
   jumpShotErrorPerMeter: 0.014
   layupBaseError: 0.06
+  freeThrowBaseError: 0.07
   timingPenaltyPerSecond: 3
   contestPenalty: 1
   movePenalty: 0.5

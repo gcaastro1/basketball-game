@@ -23,7 +23,7 @@ public class VerticalSliceIntegrationTests
     }
 
     [UnityTest]
-    public IEnumerator VerticalSliceScene_StartsWithCheckBallAndRunsFiveSeconds()
+    public IEnumerator Scene3v3_StartsWithCheckBallAndRunsTenSeconds()
     {
         yield return SceneManager.LoadSceneAsync(SliceScene, LoadSceneMode.Single);
         yield return null;
@@ -33,11 +33,11 @@ public class VerticalSliceIntegrationTests
         MatchSimulation sim = bootstrap.Simulation;
         Assert.IsNotNull(sim);
         Assert.AreEqual(MatchPhase.Live, sim.Match.State.Phase);
-        Assert.AreEqual(2, sim.Players.Count, "default setup is 1v1");
+        Assert.AreEqual(6, sim.Players.Count, "the scene plays 3v3");
         Assert.AreEqual(BallState.Held, sim.Ball.CurrentState, "match starts with a check ball");
 
         float elapsed = 0f;
-        while (elapsed < 5f)
+        while (elapsed < 10f)
         {
             yield return null;
             elapsed += Time.deltaTime;

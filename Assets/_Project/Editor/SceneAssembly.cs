@@ -7,7 +7,7 @@ using Basket.Gameplay;
 
 namespace Basket.EditorTools
 {
-    // The vertical slice scene only contains a GameBootstrap wired to config assets; the
+    // The match scene (3v3, FIBA 3x3 rules) only contains a GameBootstrap wired to config assets; the
     // arena, players, camera and HUD are built at runtime from those configs
     // (docs/decisoes.md, D-003). This menu recreates that scene and any missing assets.
     public static class SceneAssembly
@@ -22,8 +22,8 @@ namespace Basket.EditorTools
 
             var bootstrap = new GameObject("GameBootstrap").AddComponent<GameBootstrap>();
             var so = new SerializedObject(bootstrap);
-            so.FindProperty("matchSetup").objectReferenceValue = LoadOrCreateAsset<MatchSetup>("DefaultMatchSetup");
-            so.FindProperty("matchRules").objectReferenceValue = LoadOrCreateAsset<MatchRules>("DefaultMatchRules");
+            so.FindProperty("matchSetup").objectReferenceValue = LoadOrCreateAsset<MatchSetup>("MatchSetup3v3");
+            so.FindProperty("matchRules").objectReferenceValue = LoadOrCreateAsset<MatchRules>("FIBA3x3MatchRules");
             so.FindProperty("courtConfig").objectReferenceValue = LoadOrCreateAsset<CourtConfig>("DefaultCourtConfig");
             so.FindProperty("ballConfig").objectReferenceValue = LoadOrCreateAsset<BallConfig>("DefaultBallConfig");
             so.FindProperty("shotConfig").objectReferenceValue = LoadOrCreateAsset<ShotConfig>("DefaultShotConfig");

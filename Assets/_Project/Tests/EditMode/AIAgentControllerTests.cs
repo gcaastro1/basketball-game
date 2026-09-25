@@ -136,4 +136,61 @@ public class AIAgentControllerTests
 
         Assert.AreEqual(AIState.ContestShot, ai.CurrentState);
     }
+
+    [Test]
+    public void OffBallDefender_GuardsHisMan_WithoutJumpingOrReaching()
+    {
+        var ai = new AIAgentController(Config());
+        Vector3 man = new Vector3(3f, 0f, 8f);
+        var p = new AIPerception(new Vector3(3f, 0f, 8.8f), man, Vector3.zero, opponentHasBall: true, selfHasBall: false,
+            attackHoop: Hoop, defendHoop: Hoop, time: 5f, opponentVelocity: new Vector3(0f, 1f, 0f), opponentGrounded: false,
+            focusHasBall: false);
+
+        var cmd = ai.Decide(p);
+        Assert.AreEqual(AIState.Guard, ai.CurrentState);
+        Assert.IsFalse(cmd.Jump);
+        Assert.IsFalse(cmd.Steal);
+    }
+
+    [Test]
+    public void LooseBall_OnlyTheClosestTeammateChases()
+    {
+        var ai = new AIAgentController(Config());
+        ai.Decide(new AIPerception(Vector3.zero, new Vector3(-5f, 0f, 0f), new Vector3(3f, 0f, 0f), false, false, closestToBall: false));
+        Assert.AreEqual(AIState.Guard, ai.CurrentState);
+    }
+
+    [Test]
+    public void MustClear_TakesTheBallBeyondTheArcInsteadOfShooting()
+    {
+        var ai = new AIAgentController(Config());
+        Vector3 nearRim = new Vector3(0f, 0f, Hoop.z - 3f);
+        var p = new AIPerception(nearRim, new Vector3(20f, 0f, 0f), nearRim, opponentHasBall: false, selfHasBall: true,
+            attackHoop: Hoop, defendHoop: Hoop, time: 5f, mustClear: true);
+        ai.Decide(p);
+        var cmd = ai.Decide(p);
+
+        Assert.IsFalse(cmd.ShootHeld);
+        Assert.Less(cmd.Move.y, 0f, "moves away from the rim, toward the arc");
+    }
+
+    [Test]
+    public void FreeThrow_ShootsEvenWhenItWouldOtherwiseDrive()
+    {
+        var ai = new AIAgentController(Config(driveChance: 1f));
+        Vector3 line = new Vector3(0f, 0f, Hoop.z - 4.2f);
+        var p1 = new AIPerception(line, new Vector3(20f, 0f, 0f), line, false, true, attackHoop: Hoop, defendHoop: Hoop, time: 1f, phase: MatchPhase.FreeThrow);
+        var p2 = new AIPerception(line, new Vector3(20f, 0f, 0f), line, false, true, attackHoop: Hoop, defendHoop: Hoop, time: 2f, phase: MatchPhase.FreeThrow);
+        ai.Decide(p1);
+        Assert.IsTrue(ai.Decide(p2).ShootHeld);
+    }
+
+    [Test]
+    public void ShotClockAboutToExpire_ShootsFromAnywhere()
+    {
+        var ai = new AIAgentController(Config());
+        Vector3 far = new Vector3(0f, 0f, 1f);
+        var p = new AIPerception(far, new Vector3(20f, 0f, 0f), far, false, true, attackHoop: Hoop, defendHoop: Hoop, time: 0f, shotClock: 1f);
+        Assert.IsTrue(ai.Decide(p).ShootHeld);
+    }
 }

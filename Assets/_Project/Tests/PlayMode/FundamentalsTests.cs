@@ -124,4 +124,25 @@ public class FundamentalsTests
         Assert.AreSame(match.Players[0].transform, match.Sim.Ball.CurrentHolder, "a failed reach does not take the ball");
         Assert.IsFalse(match.HasEvent("STEAL"));
     }
+
+    [UnityTest]
+    public IEnumerator ShootingFoul_ContactAtRelease_SendsShooterToTheLine()
+    {
+        match.Court.defenderGap = 0.7f;
+        match.DefenseConfig.shootingFoulChance = 1f;
+        match.Start(
+            (TeamId.Home, TestMatch.ShootAtApex()),
+            (TeamId.Away, (s, self) => new PlayerCommand(Vector2.zero, jump: s.BallHolderIndex == 0 && !s.IsGrounded(0))));
+        // Ends when the free throws are over and the other team has the ball.
+        yield return match.RunUntil(() => match.Shots.Exists(r => r.Type == ShotType.FreeThrow)
+                                           && match.Sim.Match.State.Phase == MatchPhase.Live
+                                           && match.Sim.Match.State.PossessionTeam == TeamId.Away, 15f);
+
+        Assert.IsTrue(match.HasEvent("FOUL on Away (shooting)"), string.Join("\n", match.Events));
+        int freeThrows = match.Shots.FindAll(r => r.Type == ShotType.FreeThrow).Count;
+        // Blocked (missed) three -> 3 free throws; or it went in anyway -> and-one.
+        Assert.That(freeThrows == 3 || freeThrows == 1, $"free throws taken: {freeThrows}");
+        int basket = freeThrows == 1 ? 3 : 0;
+        Assert.AreEqual(basket + freeThrows, match.Sim.Match.State.ScoreHome, "each free throw made is one point");
+    }
 }
