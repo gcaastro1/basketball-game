@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using Basket.Core;
 
@@ -7,22 +8,34 @@ namespace Basket.UI
     {
         private IMatchState match;
         private IBallStateReadOnly ball;
-        private IAIController ai;
+        private IReadOnlyList<IAIController> ais;
 
-        public void Configure(IMatchState matchState, IBallStateReadOnly ballState, IAIController aiController)
+        public void Configure(IMatchState matchState, IBallStateReadOnly ballState, IReadOnlyList<IAIController> aiControllers)
         {
             match = matchState;
             ball = ballState;
-            ai = aiController;
+            ais = aiControllers;
         }
 
         private void OnGUI()
         {
-            if (match == null || ball == null || ai == null) return;
+            if (match == null || ball == null) return;
 
-            GUI.Label(new Rect(10, 10, 300, 20), $"Score: {match.ScoreHome} - {match.ScoreAway}  ({match.Phase})");
-            GUI.Label(new Rect(10, 30, 300, 20), $"Ball: {ball.CurrentState}");
-            GUI.Label(new Rect(10, 50, 300, 20), $"AI: {ai.CurrentState}");
+            float y = 10f;
+            Line(ref y, $"HOME {match.ScoreHome} - {match.ScoreAway} AWAY   ({match.Phase})");
+            if (match.Winner.HasValue) Line(ref y, $"{match.Winner.Value} wins!");
+            Line(ref y, $"Ball: {ball.CurrentState}");
+            if (ais != null)
+            {
+                for (int i = 0; i < ais.Count; i++) Line(ref y, $"AI {i}: {ais[i].CurrentState}");
+            }
+            Line(ref y, "WASD move | Shift sprint | Space shoot | E pass");
+        }
+
+        private static void Line(ref float y, string text)
+        {
+            GUI.Label(new Rect(10f, y, 500f, 20f), text);
+            y += 20f;
         }
     }
 }

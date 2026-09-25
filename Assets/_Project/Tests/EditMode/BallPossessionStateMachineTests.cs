@@ -51,4 +51,35 @@ public class BallPossessionStateMachineTests
         Assert.AreEqual(BallState.Free, observedFrom);
         Assert.AreEqual(BallState.Held, observedTo);
     }
+
+    [Test]
+    public void Passing_CanBeCaught()
+    {
+        var sm = new BallPossessionStateMachine();
+        sm.TryTransition(BallState.Held);
+        sm.TryTransition(BallState.Passing);
+        Assert.IsTrue(sm.TryTransition(BallState.Held));
+    }
+
+    [Test]
+    public void Shooting_CannotBeCaughtOutOfTheAir()
+    {
+        var sm = new BallPossessionStateMachine();
+        sm.TryTransition(BallState.Held);
+        sm.TryTransition(BallState.Shooting);
+        Assert.IsFalse(sm.TryTransition(BallState.Held));
+        Assert.IsTrue(sm.TryTransition(BallState.Free));
+    }
+
+    [Test]
+    public void ForceState_BypassesTransitionTable()
+    {
+        var sm = new BallPossessionStateMachine();
+        sm.TryTransition(BallState.Held);
+        sm.TryTransition(BallState.Shooting);
+
+        sm.ForceState(BallState.Held);
+
+        Assert.AreEqual(BallState.Held, sm.CurrentState);
+    }
 }

@@ -60,4 +60,32 @@ public class TrajectoryMathTests
 
         Assert.AreEqual(target.y, heightAtArrival, 0.05f);
     }
+
+    [Test]
+    public void CompensatedArc_WithDampingAndFixedStep_CrossesRimHeightAtRim()
+    {
+        // A 3PT-range shot: the uncompensated arc falls short by tens of centimetres
+        // once the engine's fixed step and linear damping are applied.
+        Vector3 origin = new Vector3(0.2f, 1.0f, 5.9f);
+        Vector3 rim = new Vector3(0f, 3.05f, 13.1f);
+        const float gravity = -9.81f, damping = 0.05f, dt = 0.02f;
+
+        Vector3 naive = TrajectoryMath.ComputeArcVelocity(origin, rim, 3.5f, gravity);
+        Assert.IsTrue(TrajectoryMath.TrySimulateDescendingCrossing(origin, naive, rim.y, gravity, damping, dt, out Vector3 naiveHit, out _));
+        Assert.Greater(FlatDistance(naiveHit, rim), 0.1f, "precondition: the naive arc really does miss");
+
+        Vector3 compensated = TrajectoryMath.ComputeCompensatedArcVelocity(origin, rim, 3.5f, gravity, damping, dt);
+        Assert.IsTrue(TrajectoryMath.TrySimulateDescendingCrossing(origin, compensated, rim.y, gravity, damping, dt, out Vector3 hit, out _));
+        Assert.Less(FlatDistance(hit, rim), 0.02f);
+    }
+
+    [Test]
+    public void CompensatedArc_ZeroFixedStep_EqualsAnalyticArc()
+    {
+        Vector3 a = TrajectoryMath.ComputeArcVelocity(Vector3.zero, new Vector3(4f, 1f, 0f), 1f, -9.81f);
+        Vector3 b = TrajectoryMath.ComputeCompensatedArcVelocity(Vector3.zero, new Vector3(4f, 1f, 0f), 1f, -9.81f, 0.05f, 0f);
+        Assert.AreEqual(a, b);
+    }
+
+    private static float FlatDistance(Vector3 a, Vector3 b) => new Vector2(a.x - b.x, a.z - b.z).magnitude;
 }

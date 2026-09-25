@@ -1,21 +1,21 @@
-using System;
 using UnityEngine;
 using Basket.Core;
 
 namespace Basket.Gameplay
 {
-    public class ShootingSystem : MonoBehaviour
+    public sealed class ShootingSystem
     {
-        private BallController ball;
-        private ShotConfig config;
-        private Transform rimTarget;
-        private readonly System.Random rng = new();
+        private readonly BallController ball;
+        private readonly ShotConfig config;
+        private readonly Vector3 rimCenter;
+        private readonly System.Random rng;
 
-        public void Configure(BallController ballController, ShotConfig shotConfig, Transform rim)
+        public ShootingSystem(BallController ballController, ShotConfig shotConfig, Vector3 rimCenter, System.Random random = null)
         {
             ball = ballController;
             config = shotConfig;
-            rimTarget = rim;
+            this.rimCenter = rimCenter;
+            rng = random ?? new System.Random();
         }
 
         public bool TryShoot(Transform shooter)
@@ -23,7 +23,8 @@ namespace Basket.Gameplay
             if (ball.CurrentState != BallState.Held || ball.CurrentHolder != shooter) return false;
 
             Vector3 origin = ball.Position;
-            Vector3 velocity = TrajectoryMath.ComputeArcVelocity(origin, rimTarget.position, config.arcHeight, Physics.gravity.y);
+            Vector3 velocity = TrajectoryMath.ComputeCompensatedArcVelocity(origin, rimCenter, config.arcHeight,
+                Physics.gravity.y, ball.LinearDamping, Time.fixedDeltaTime);
             velocity += ShotMath.ComputeMissOffset(config.baseAccuracyRadius, config.defaultShooterRating, rng);
 
             ball.Release(BallState.Shooting, velocity);

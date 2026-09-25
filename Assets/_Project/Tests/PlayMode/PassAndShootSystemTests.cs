@@ -9,6 +9,7 @@ public class PassAndShootSystemTests
 {
     private GameObject ballGo, shooterGo, targetGo;
     private BallController ball;
+    private BallConfig ballConfig;
 
     [SetUp]
     public void SetUp()
@@ -16,7 +17,8 @@ public class PassAndShootSystemTests
         ballGo = new GameObject("TestBall");
         ballGo.AddComponent<Rigidbody>();
         ball = ballGo.AddComponent<BallController>();
-        ball.SetConfigForTest(ScriptableObject.CreateInstance<BallConfig>());
+        ballConfig = ScriptableObject.CreateInstance<BallConfig>();
+        ball.SetConfigForTest(ballConfig);
 
         shooterGo = new GameObject("Shooter");
         targetGo = new GameObject("Target");
@@ -36,17 +38,14 @@ public class PassAndShootSystemTests
     {
         yield return null;
         ball.Catch(shooterGo.transform);
-
-        var passSystemGo = new GameObject("PassSystem");
-        var passSystem = passSystemGo.AddComponent<PassSystem>();
-        passSystem.Configure(ball, ScriptableObject.CreateInstance<BallConfig>());
+        var passSystem = new PassSystem(ball, ballConfig);
 
         bool result = passSystem.TryPass(shooterGo.transform, targetGo.transform);
 
         Assert.IsTrue(result);
-        Assert.AreEqual(BallState.Free, ball.CurrentState);
-        Assert.Greater(ballGo.GetComponent<Rigidbody>().linearVelocity.magnitude, 0f);
-        Object.Destroy(passSystemGo);
+        Assert.AreEqual(BallState.Passing, ball.CurrentState);
+        Vector3 v = ballGo.GetComponent<Rigidbody>().linearVelocity;
+        Assert.Greater(v.x, 0f, "heads toward the target");
     }
 
     [UnityTest]
@@ -54,29 +53,23 @@ public class PassAndShootSystemTests
     {
         yield return null;
         ball.Catch(shooterGo.transform);
-
-        var shootGo = new GameObject("ShootingSystem");
-        var shootSystem = shootGo.AddComponent<ShootingSystem>();
-        shootSystem.Configure(ball, ScriptableObject.CreateInstance<ShotConfig>(), targetGo.transform);
+        var shootSystem = new ShootingSystem(ball, ScriptableObject.CreateInstance<ShotConfig>(), targetGo.transform.position + Vector3.up * 3f);
 
         bool result = shootSystem.TryShoot(shooterGo.transform);
 
         Assert.IsTrue(result);
-        Assert.AreEqual(BallState.Free, ball.CurrentState);
-        Object.Destroy(shootGo);
+        Assert.AreEqual(BallState.Shooting, ball.CurrentState);
+        Assert.Greater(ballGo.GetComponent<Rigidbody>().linearVelocity.y, 0f);
     }
 
     [UnityTest]
     public IEnumerator TryPass_WhileNotHolding_ReturnsFalse()
     {
         yield return null;
-        var passSystemGo = new GameObject("PassSystem");
-        var passSystem = passSystemGo.AddComponent<PassSystem>();
-        passSystem.Configure(ball, ScriptableObject.CreateInstance<BallConfig>());
+        var passSystem = new PassSystem(ball, ballConfig);
 
         bool result = passSystem.TryPass(shooterGo.transform, targetGo.transform);
 
         Assert.IsFalse(result);
-        Object.Destroy(passSystemGo);
     }
 }

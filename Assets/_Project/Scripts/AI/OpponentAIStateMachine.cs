@@ -6,6 +6,13 @@ namespace Basket.AI
 {
     public sealed class OpponentAIStateMachine
     {
+        private readonly AIConfig config;
+
+        public OpponentAIStateMachine(AIConfig aiConfig = null)
+        {
+            config = aiConfig != null ? aiConfig : ScriptableObject.CreateInstance<AIConfig>();
+        }
+
         public AIState CurrentState { get; private set; } = AIState.Idle;
         public event Action<AIState, AIState> OnStateChanged;
 
@@ -19,14 +26,16 @@ namespace Basket.AI
             OnStateChanged?.Invoke(prev, next);
         }
 
-        private static AIState DecideNextState(AIPerception p)
+        private AIState DecideNextState(AIPerception p)
         {
+            if (p.SelfHasBall) return AIState.Attack;
             if (p.OpponentHasBall)
             {
                 float distToOpponent = Vector3.Distance(p.SelfPosition, p.OpponentPosition);
-                return distToOpponent < 2.5f ? AIState.ContestShot : AIState.Guard;
+                return distToOpponent < config.contestDistance ? AIState.ContestShot : AIState.Guard;
             }
-            if (p.SelfHasBall) return AIState.Idle;
+            // Off-ball offense (spacing, cuts, screens) belongs to the teammate AI stage.
+            if (p.TeammateHasBall) return AIState.Idle;
             return AIState.Chase;
         }
     }

@@ -1,4 +1,4 @@
 namespace Basket.Core
 {
-    public enum MatchPhase { WaitingForInbound, Live, Scored }
+    public enum MatchPhase { WaitingForInbound, Live, Scored, Ended }
 }

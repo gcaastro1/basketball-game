@@ -3,12 +3,12 @@ using Basket.Core;
 
 namespace Basket.Gameplay
 {
-    public class PassSystem : MonoBehaviour
+    public sealed class PassSystem
     {
-        private BallController ball;
-        private BallConfig config;
+        private readonly BallController ball;
+        private readonly BallConfig config;
 
-        public void Configure(BallController ballController, BallConfig ballConfig)
+        public PassSystem(BallController ballController, BallConfig ballConfig)
         {
             ball = ballController;
             config = ballConfig;
@@ -18,9 +18,12 @@ namespace Basket.Gameplay
         {
             if (ball.CurrentState != BallState.Held || ball.CurrentHolder != passer) return false;
 
-            Vector3 origin = passer.position + Vector3.up * config.handHeightOffset;
-            Vector3 destination = target.position + Vector3.up * config.handHeightOffset;
-            Vector3 velocity = TrajectoryMath.ComputeArcVelocity(origin, destination, apexHeight: 1.2f, gravity: Physics.gravity.y);
+            Vector3 origin = ball.Position;
+            Vector3 destination = target.TryGetComponent<PlayerEntity>(out var receiver)
+                ? receiver.FeetPosition + Vector3.up * config.holdHeightAboveFeet
+                : target.position + Vector3.up * config.handHeightOffset;
+            Vector3 velocity = TrajectoryMath.ComputeCompensatedArcVelocity(origin, destination, config.passApexHeight,
+                Physics.gravity.y, ball.LinearDamping, Time.fixedDeltaTime);
 
             ball.Release(BallState.Passing, velocity);
             return true;

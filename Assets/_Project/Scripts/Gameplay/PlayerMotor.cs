@@ -17,6 +17,11 @@ namespace Basket.Gameplay
             controller = GetComponent<CharacterController>();
         }
 
+        public void Configure(PlayerMovementConfig movementConfig)
+        {
+            config = movementConfig;
+        }
+
         public void Tick(Vector2 moveInput, bool sprint, float dt)
         {
             Vector3 desiredDir = new Vector3(moveInput.x, 0f, moveInput.y);
@@ -52,9 +57,17 @@ namespace Basket.Gameplay
             controller.Move(motion);
         }
 
-        internal void SetConfigForTest(PlayerMovementConfig testConfig)
+        // Moving a CharacterController's transform directly is overwritten by its internal
+        // state on the next Move(); it has to be disabled while repositioning.
+        public void Teleport(Vector3 position, Quaternion rotation)
         {
-            config = testConfig;
+            bool wasEnabled = controller.enabled;
+            controller.enabled = false;
+            transform.SetPositionAndRotation(position, rotation);
+            controller.enabled = wasEnabled;
+            velocity = Vector3.zero;
         }
+
+        internal void SetConfigForTest(PlayerMovementConfig testConfig) => Configure(testConfig);
     }
 }

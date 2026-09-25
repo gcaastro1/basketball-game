@@ -4,8 +4,13 @@ using Basket.Core;
 
 namespace Basket.Input
 {
-    public class HumanInputProvider : MonoBehaviour, IPlayerAgent
+    // Keyboard + gamepad polling. Rebindable Input Actions (the .inputactions asset) and
+    // input buffering are Etapa 2 work; this keeps the same bindings as the first slice.
+    public sealed class HumanInputProvider : IAgentController
     {
+        public PlayerCommand Decide(MatchSnapshot snapshot, int selfIndex) =>
+            new PlayerCommand(GetMoveInput(), WantsSprint(), WantsPass(), WantsShoot());
+
         public Vector2 GetMoveInput()
         {
             Vector2 kb = Vector2.zero;
@@ -24,8 +29,6 @@ namespace Basket.Input
         public bool WantsSprint() =>
             (Keyboard.current != null && Keyboard.current.leftShiftKey.isPressed) ||
             (Gamepad.current != null && Gamepad.current.leftStickButton.isPressed);
-
-        public bool WantsDribbleAction() => false;
 
         public bool WantsPass() =>
             (Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame) ||

@@ -1,27 +1,18 @@
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.InputSystem.LowLevel;
 using Basket.Input;
 
 public class HumanInputProviderTests : InputTestFixture
 {
     private Keyboard keyboard;
     private HumanInputProvider provider;
-    private GameObject go;
 
     public override void Setup()
     {
         base.Setup();
         keyboard = InputSystem.AddDevice<Keyboard>();
-        go = new GameObject("TestInput");
-        provider = go.AddComponent<HumanInputProvider>();
-    }
-
-    public override void TearDown()
-    {
-        Object.DestroyImmediate(go);
-        base.TearDown();
+        provider = new HumanInputProvider();
     }
 
     [Test]
@@ -37,5 +28,14 @@ public class HumanInputProviderTests : InputTestFixture
     {
         Press(keyboard.spaceKey);
         Assert.IsTrue(provider.WantsShoot());
+    }
+
+    [Test]
+    public void Decide_WPressed_CommandMovesForward()
+    {
+        Press(keyboard.wKey);
+        var command = provider.Decide(snapshot: null, selfIndex: 0);
+        Assert.Greater(command.Move.y, 0f);
+        Assert.IsFalse(command.Shoot);
     }
 }

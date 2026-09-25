@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using Basket.Core;
 using Basket.Gameplay;
@@ -7,83 +8,113 @@ using Basket.UI;
 
 namespace Basket.Bootstrap
 {
+    // Composition root only: builds the arena, spawns the roster from MatchSetup, picks a
+    // controller per slot, wires systems together, then forwards Update to the
+    // simulation. No gameplay logic lives here.
+    // Any config left unassigned falls back to that config's code defaults, so the scene
+    // stays valid even before the assets are wired.
     public class GameBootstrap : MonoBehaviour
     {
-        [SerializeField] private PlayerMotor humanMotor;
-        [SerializeField] private HumanInputProvider humanInput;
-        [SerializeField] private PlayerMotor aiMotor;
-        [SerializeField] private AIOpponentController aiController;
-        [SerializeField] private BallController ball;
-        [SerializeField] private PassSystem passSystem;
-        [SerializeField] private ShootingSystem shootingSystem;
-        [SerializeField] private DribbleSystem dribbleSystem;
-        [SerializeField] private MatchManager matchManager;
-        [SerializeField] private ScoreTrigger scoreTrigger;
-        [SerializeField] private CameraController cameraController;
-        [SerializeField] private DebugHud debugHud;
+        private static readonly Color HomeColor = new Color(0.2f, 0.4f, 0.9f);
+        private static readonly Color AwayColor = new Color(0.9f, 0.25f, 0.2f);
+        private static readonly Color HumanMarker = new Color(1f, 0.9f, 0.1f);
+        private static readonly Color AIMarker = new Color(0.15f, 0.15f, 0.15f);
+
+        [SerializeField] private MatchSetup matchSetup;
+        [SerializeField] private MatchRules matchRules;
+        [SerializeField] private CourtConfig courtConfig;
         [SerializeField] private BallConfig ballConfig;
         [SerializeField] private ShotConfig shotConfig;
-        [SerializeField] private Transform rimTarget;
+        [SerializeField] private PlayerMovementConfig movementConfig;
+        [SerializeField] private CameraConfig cameraConfig;
+        [SerializeField] private AIConfig aiConfig;
+
+        public MatchSimulation Simulation { get; private set; }
 
         private void Awake()
         {
-            matchManager.Configure(ball);
-            scoreTrigger.Configure(ball);
-            passSystem.Configure(ball, ballConfig);
-            shootingSystem.Configure(ball, shotConfig, rimTarget);
-            dribbleSystem.Configure(ball);
-            cameraController.Configure(humanMotor.transform);
-            debugHud.Configure(matchManager.State, ball, aiController);
+            EnsureConfigs();
+
+            Arena arena = PlaceholderArenaBuilder.Build(courtConfig, ballConfig, matchRules.threePointRadius);
+
+            var players = new List<PlayerEntity>();
+            var controllers = new List<IAgentController>();
+            var aiControllers = new List<IAIController>();
+            PlayerEntity cameraTarget = null;
+
+            for (int i = 0; i < matchSetup.slots.Count; i++)
+            {
+                MatchSetup.PlayerSlot slot = matchSetup.slots[i];
+                bool human = slot.control == AgentControlType.Human;
+                PlayerEntity player = PlaceholderPlayerFactory.Create(
+                    $"{slot.team}_{i}_{slot.control}", slot.team, movementConfig,
+                    slot.team == TeamId.Home ? HomeColor : AwayColor, human ? HumanMarker : AIMarker);
+                players.Add(player);
+
+                if (human)
+                {
+                    controllers.Add(new HumanInputProvider());
+                    if (cameraTarget == null) cameraTarget = player;
+                }
+                else
+                {
+                    var ai = new AIAgentController(aiConfig);
+                    controllers.Add(ai);
+                    aiControllers.Add(ai);
+                }
+            }
+
+            Simulation = new MatchSimulation(players, controllers, arena.Ball, arena.Hoop,
+                courtConfig, matchRules, ballConfig, shotConfig);
+
+            if (cameraTarget == null && players.Count > 0) cameraTarget = players[0];
+            BuildCamera(cameraTarget != null ? cameraTarget.transform : arena.Ball.transform);
+
+            var hud = new GameObject("DebugHud").AddComponent<DebugHud>();
+            hud.Configure(Simulation.Match.State, arena.Ball, aiControllers);
+
+            Simulation.Begin();
         }
 
         private void Update()
         {
-            float dt = Time.deltaTime;
-
-            var perception = new AIPerception(
-                selfPosition: aiMotor.transform.position,
-                opponentPosition: humanMotor.transform.position,
-                ballPosition: ball.Position,
-                opponentHasBall: ball.CurrentHolder == humanMotor.transform,
-                selfHasBall: ball.CurrentHolder == aiMotor.transform);
-            aiController.Tick(perception);
-
-            TickAgent(humanInput, humanMotor, humanMotor.transform, aiMotor.transform, dt);
-            TickAgent(aiController, aiMotor, aiMotor.transform, humanMotor.transform, dt);
-
-            // Reliable pickup path for a loose ball -- see the comment on
-            // BallController.TryCatchNearby for why this can't be left to
-            // OnCollisionEnter alone when a CharacterController is involved.
-            ball.TryCatchNearby(humanMotor.transform);
-            ball.TryCatchNearby(aiMotor.transform);
+            Simulation?.Tick(Time.deltaTime);
         }
 
-        private void TickAgent(IPlayerAgent agent, PlayerMotor motor, Transform self, Transform other, float dt)
+        private void OnDestroy()
         {
-            motor.Tick(agent.GetMoveInput(), agent.WantsSprint(), dt);
-
-            // DribbleSystem is a single shared instance ticked from both agents' calls this
-            // method makes every frame. Gating on "am I the current holder" (like the
-            // pass/shoot calls below already do) is required, not optional: without it, the
-            // non-holder's call runs dribbleSystem.Tick with its OWN movement state every
-            // frame too, and since DribbleSystem only checks ball.CurrentState (not which
-            // agent holds it), the non-holder's call would either reset the holder's bounce
-            // offset to zero (if the non-holder is stationary) or double the bounce
-            // frequency (if both are moving) -- a real, silent bug, found during Task 18's
-            // integration review.
-            if (ball.CurrentHolder == self)
-            {
-                dribbleSystem.Tick(agent.GetMoveInput().sqrMagnitude > 0.01f, dt);
-            }
-
-            if (agent.WantsPass() && ball.CurrentHolder == self)
-            {
-                passSystem.TryPass(self, other);
-            }
-            if (agent.WantsShoot() && ball.CurrentHolder == self)
-            {
-                shootingSystem.TryShoot(self);
-            }
+            Simulation?.Dispose();
         }
+
+        private void BuildCamera(Transform target)
+        {
+            Camera cam = Camera.main;
+            if (cam == null)
+            {
+                var camGo = new GameObject("MainCamera") { tag = "MainCamera" };
+                cam = camGo.AddComponent<Camera>();
+                camGo.AddComponent<AudioListener>();
+            }
+            if (!cam.TryGetComponent<CameraController>(out var controller))
+            {
+                controller = cam.gameObject.AddComponent<CameraController>();
+            }
+            controller.Configure(target, cameraConfig);
+        }
+
+        private void EnsureConfigs()
+        {
+            matchSetup = OrDefault(matchSetup);
+            matchRules = OrDefault(matchRules);
+            courtConfig = OrDefault(courtConfig);
+            ballConfig = OrDefault(ballConfig);
+            shotConfig = OrDefault(shotConfig);
+            movementConfig = OrDefault(movementConfig);
+            cameraConfig = OrDefault(cameraConfig);
+            aiConfig = OrDefault(aiConfig);
+        }
+
+        private static T OrDefault<T>(T asset) where T : ScriptableObject =>
+            asset != null ? asset : ScriptableObject.CreateInstance<T>();
     }
 }
