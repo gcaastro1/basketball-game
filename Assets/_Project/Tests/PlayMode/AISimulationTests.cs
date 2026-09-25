@@ -12,8 +12,11 @@ using Basket.Gameplay;
 // for balancing.
 public class AISimulationTests
 {
-    private const float SimulatedSeconds = 60f;
+    // Two minutes: the required rates are per minute; over 60 s alone, shot counts ranged
+    // 4-14 across CI runs around a mean of ~9, so an 8-per-minute bar failed on noise.
+    private const float SimulatedSeconds = 120f;
     private const float TimeScale = 4f;
+    private const float Minutes = SimulatedSeconds / 60f;
 
     [UnityTest]
     public IEnumerator AIvsAI_3v3_PlaysBasketball()
@@ -66,9 +69,10 @@ public class AISimulationTests
         int rebounds = h.OffensiveRebounds + h.DefensiveRebounds + a.OffensiveRebounds + a.DefensiveRebounds;
         int points = match.Sim.Match.State.ScoreHome + match.Sim.Match.State.ScoreAway;
 
-        Assert.GreaterOrEqual(shots, 8, "the AI takes shots");
-        Assert.GreaterOrEqual(passes, 4, "the AI moves the ball");
-        Assert.GreaterOrEqual(rebounds, 2, "missed shots are rebounded");
+        // Same per-minute bars as ever: 8 shots, 4 passes, 2 rebounds.
+        Assert.GreaterOrEqual(shots, 8 * Minutes, "the AI takes shots");
+        Assert.GreaterOrEqual(passes, 4 * Minutes, "the AI moves the ball");
+        Assert.GreaterOrEqual(rebounds, 2 * Minutes, "missed shots are rebounded");
         Assert.Greater(points, 0, "somebody scores");
         Assert.Less(h.Turnovers + a.Turnovers, shots, "fewer turnovers than shots");
         Assert.Greater(h.FieldGoalsAttempted, 0, "both teams get shots up");
