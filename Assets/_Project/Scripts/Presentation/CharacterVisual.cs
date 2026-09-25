@@ -71,13 +71,13 @@ namespace Basket.Presentation
             var baked = new Mesh();
             foreach (SkinnedMeshRenderer skin in model.GetComponentsInChildren<SkinnedMeshRenderer>())
             {
-                // Baked in the renderer's unscaled local frame; its full localToWorld (with
-                // every parent's scale -- the fitted model's) takes it to the world. Baking
-                // "with scale" only applied the renderer's own scale: CI measured a 1.85 m
-                // model as 1.00 m.
+                // Measured in CI on the fitted Tripo model (scale s): BakeMesh(.., true) plus
+                // rotation+position gave the unscaled height, BakeMesh(.., false) plus the full
+                // TransformPoint gave height*s (scale applied twice). So BakeMesh(.., false)
+                // vertices already carry the scale: rotate and move them only.
                 skin.BakeMesh(baked, false);
                 Transform t = skin.transform;
-                foreach (Vector3 v in baked.vertices) Extend(t.TransformPoint(v), ref minY, ref maxY);
+                foreach (Vector3 v in baked.vertices) Extend(t.position + t.rotation * v, ref minY, ref maxY);
             }
             Destroy(baked);
             foreach (MeshFilter filter in model.GetComponentsInChildren<MeshFilter>())
