@@ -48,6 +48,20 @@ public class TeamAITests
     // ---------- floor reads ----------
 
     [Test]
+    public void ClearSpot_AfterABasket_GoesAroundTheDefenderAtTheArc()
+    {
+        var pos = Standard();
+        pos[0] = new Vector3(0f, 0f, 11.6f);   // inbounder under the basket
+        pos[3] = new Vector3(0f, 0f, 6.85f);   // picks him up at the arc, on the axis
+        var s = ThreeOnThree(pos, holder: 0);
+        Vector3 spot = TeamMath.ClearSpot(s, 0, 7.55f, config.clearSpotMaxAngle, config.clearSpotStepAngle, config.clearTravelWeight);
+
+        Assert.AreEqual(7.55f, TeamMath.FlatDistance(spot, RimFloor), 0.01f, "beyond the arc");
+        Assert.Greater(TeamMath.FlatDistance(spot, pos[3]), 2.5f, "not into the defender");
+        Assert.Less(spot.z, RimFloor.z, "toward the court, not the baseline");
+    }
+
+    [Test]
     public void ShotValue_OpenCloseShot_BeatsContestedLongShot()
     {
         var pos = Standard();

@@ -21,6 +21,38 @@ namespace Basket.AI
             return best;
         }
 
+        // 3x3 clear: of the spots `distance` from the rim within `maxAngle` of the court axis,
+        // the one with the most room from the defense, weighed against the run to get there.
+        // (Straight out along the axis runs into the defender who picks up the inbounder at
+        // the arc: AI-vs-AI possessions after a basket stalled there until the shot clock.)
+        public static Vector3 ClearSpot(MatchSnapshot s, int self, float distance, float maxAngle, float stepAngle, float travelWeight)
+        {
+            TeamId team = s.GetTeam(self);
+            Vector3 rim = Flat(s.GetAttackingHoop(team));
+            Vector3 axis = Flat(s.CourtCenter - rim);
+            axis = axis.sqrMagnitude < 0.0001f ? Vector3.back : axis.normalized;
+            Vector3 me = Flat(s.GetPosition(self));
+            Vector3 best = rim + axis * distance;
+            float bestScore = float.MinValue;
+            float step = Mathf.Max(1f, stepAngle);
+            for (float angle = -maxAngle; angle <= maxAngle + 0.01f; angle += step)
+            {
+                Vector3 spot = rim + Quaternion.AngleAxis(angle, Vector3.up) * axis * distance;
+                float room = float.MaxValue;
+                for (int i = 0; i < s.PlayerCount; i++)
+                {
+                    if (s.GetTeam(i) != team) room = Mathf.Min(room, FlatDistance(s.GetPosition(i), spot));
+                }
+                float score = room - travelWeight * FlatDistance(me, spot);
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    best = spot;
+                }
+            }
+            return best;
+        }
+
         // Which shooting attribute a shot from this distance uses (the AI's read).
         public static AttributeId ShotSkill(float distance, float threePointRadius)
         {

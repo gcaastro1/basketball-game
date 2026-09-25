@@ -42,6 +42,11 @@ namespace Basket.AI
         public float shotClockUrgencySeconds = 2.5f;
         // How far beyond the arc to take the ball when it must be cleared.
         public float clearMargin = 0.8f;
+        // Where to clear: spots within this angle of the court axis (degrees), every step...
+        public float clearSpotMaxAngle = 60f;
+        public float clearSpotStepAngle = 15f;
+        // ...scored by room from the defense minus this weight times the run to get there.
+        public float clearTravelWeight = 0.3f;
 
         [Header("Rebound")]
         // Jump for a descending loose ball this high above the feet...
