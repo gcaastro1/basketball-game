@@ -54,6 +54,7 @@ public sealed class TestMatch : IDisposable
             secondHoop: Arena.SecondHoop);
         Sim.OnMatchEvent += Events.Add;
         Sim.ShotReports.OnShotTaken += Shots.Add;
+        Sim.Match.OnBasketCounted += MarkMade;
         Sim.Begin();
     }
 
@@ -67,6 +68,48 @@ public sealed class TestMatch : IDisposable
             Sim.Tick(Time.deltaTime);
             elapsed += Time.deltaTime;
         }
+    }
+
+    // Which reported shots went in (a basket credits the scoring team's last shot).
+    public readonly HashSet<int> MadeShots = new HashSet<int>();
+
+    private void MarkMade(TeamId team, int points, ShotType? type)
+    {
+        if (type == null) return;
+        for (int i = Shots.Count - 1; i >= 0; i--)
+        {
+            if (Players[Shots[i].ShooterIndex].Team != team) continue;
+            if (Shots[i].Type == type.Value || (type.Value == ShotType.Layup && Shots[i].Type == ShotType.Dunk)) MadeShots.Add(i);
+            return;
+        }
+    }
+
+    // Per shot type: attempts, makes and the averages that drive the aim error -- for
+    // calibrating accuracy from the AI-vs-AI runs.
+    public string ShotSummary()
+    {
+        var sb = new System.Text.StringBuilder("SHOTS type: made/att  dist  |timing|  contest  errorRadius\n");
+        foreach (ShotType t in Enum.GetValues(typeof(ShotType)))
+        {
+            int n = 0, made = 0;
+            float dist = 0f, timing = 0f, contest = 0f, error = 0f;
+            for (int i = 0; i < Shots.Count; i++)
+            {
+                ShotReport r = Shots[i];
+                if (r.Type != t) continue;
+                n++;
+                if (MadeShots.Contains(i)) made++;
+                dist += r.Distance; timing += Mathf.Abs(r.TimingError); contest += r.Contest; error += r.ErrorRadius;
+            }
+            if (n == 0) continue;
+            sb.AppendLine($"  {t}: {made}/{n}  {dist / n:0.00}m  {timing / n:0.000}s  {contest / n:0.00}  {error / n:0.000}m");
+        }
+        for (int i = 0; i < Shots.Count; i++)
+        {
+            ShotReport r = Shots[i];
+            sb.AppendLine($"    #{i} p{r.ShooterIndex} {r.Type} d={r.Distance:0.0} t={r.TimingError:+0.00;-0.00} c={r.Contest:0.00} e={r.ErrorRadius:0.000}{(MadeShots.Contains(i) ? " MADE" : "")}");
+        }
+        return sb.ToString();
     }
 
     public bool HasEvent(string prefix) => Events.Exists(e => e.StartsWith(prefix));

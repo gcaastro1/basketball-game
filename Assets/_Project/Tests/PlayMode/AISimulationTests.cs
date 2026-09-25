@@ -59,7 +59,7 @@ public class AISimulationTests
 
         TeamStats h = match.Sim.Stats.Get(TeamId.Home);
         TeamStats a = match.Sim.Stats.Get(TeamId.Away);
-        Debug.Log($"AI vs AI {SimulatedSeconds}s: HOME {match.Sim.Match.State.ScoreHome} - {match.Sim.Match.State.ScoreAway} AWAY\nHOME {h}\nAWAY {a}");
+        Debug.Log($"AI vs AI {SimulatedSeconds}s: HOME {match.Sim.Match.State.ScoreHome} - {match.Sim.Match.State.ScoreAway} AWAY\nHOME {h}\nAWAY {a}\n{match.ShotSummary()}");
 
         int shots = h.FieldGoalsAttempted + a.FieldGoalsAttempted;
         int passes = h.Passes + a.Passes;

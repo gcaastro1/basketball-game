@@ -162,7 +162,7 @@ public class FullCourtTests
 
         TeamStats hs = match.Sim.Stats.Get(TeamId.Home);
         TeamStats a = match.Sim.Stats.Get(TeamId.Away);
-        Debug.Log($"AI vs AI 5v5 {SimulatedSeconds}s: HOME {match.Sim.Match.State.ScoreHome} - {match.Sim.Match.State.ScoreAway} AWAY\nHOME {hs}\nAWAY {a}\n"
+        Debug.Log($"AI vs AI 5v5 {SimulatedSeconds}s: HOME {match.Sim.Match.State.ScoreHome} - {match.Sim.Match.State.ScoreAway} AWAY\nHOME {hs}\nAWAY {a}\n" + match.ShotSummary() + "\n"
             + string.Join("\n", match.Events.GetRange(0, Mathf.Min(40, match.Events.Count))));
 
         Assert.IsTrue(crossed.Contains(TeamId.Home), "HOME brings the ball past midcourt");
