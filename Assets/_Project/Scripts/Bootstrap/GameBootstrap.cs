@@ -117,6 +117,9 @@ namespace Basket.Bootstrap
             Simulation = new MatchSimulation(players, controllers, arena.Ball, arena.Hoop,
                 courtConfig, matchRules, ballConfig, shotConfig, defenseConfig, rng, attributeTuning, arena.SecondHoop);
 
+            var profileHud = new GameObject("ProfileHud").AddComponent<ProfileHud>();
+            profileHud.Configure(profileService.Profile);
+
             // Meta (Etapa 8.5): recompensa de partida pros personagens que jogaram, ao fim da
             // partida. Simulation.Match (o MatchManager) já existe aqui.
             Simulation.Match.OnMatchEnded += finalState =>
@@ -124,7 +127,8 @@ namespace Basket.Bootstrap
                 IEnumerable<string> playedIds = matchSetup.slots
                     .Where(s => s.character != null)
                     .Select(s => s.character.characterId);
-                profileService.ApplyMatchReward(finalState.ScoreHome, finalState.ScoreAway, playedIds);
+                MatchRewardSummary summary = profileService.ApplyMatchReward(finalState.ScoreHome, finalState.ScoreAway, playedIds);
+                profileHud.ShowMatchReward(summary);
             };
 
             // Character models (Etapa 6): presentation only, attached once the simulation exists.
