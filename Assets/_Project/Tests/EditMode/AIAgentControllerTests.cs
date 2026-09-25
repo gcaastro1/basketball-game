@@ -136,23 +136,6 @@ public class AIAgentControllerTests
     }
 
     [Test]
-    public void OnBallDefender_SprintsToRecover_OffBallDefenderDoesNot()
-    {
-        Vector3 man = new Vector3(0f, 0f, 5f);
-        Vector3 self = new Vector3(3f, 0f, 6.5f);   // 3 m off his spot, beyond contest range
-        var onBall = new AIAgentController(Config());
-        var cmd = onBall.Decide(new AIPerception(self, man, man, opponentHasBall: true, selfHasBall: false,
-            attackHoop: Hoop, defendHoop: Hoop, focusHasBall: true));
-        Assert.AreEqual(AIState.Guard, onBall.CurrentState);
-        Assert.IsTrue(cmd.Sprint, "stays with a handler who got away");
-
-        var offBall = new AIAgentController(Config());
-        cmd = offBall.Decide(new AIPerception(self, man, Vector3.zero, opponentHasBall: true, selfHasBall: false,
-            attackHoop: Hoop, defendHoop: Hoop, focusHasBall: false));
-        Assert.IsFalse(cmd.Sprint, "off the ball, only far away is worth a sprint");
-    }
-
-    [Test]
     public void Decide_FromSnapshot_UsesPerceptionOfThatPlayer()
     {
         var s = new MatchSnapshot(2);

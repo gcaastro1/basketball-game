@@ -23,8 +23,6 @@ namespace Basket.AI
         private readonly TeamBrain brain;
         private MatchSnapshot snapshot;
         private int selfIndex = -1;
-        // Where this possession's ball is being cleared to (kept so the handler doesn't dither).
-        private Vector3? clearTarget;
         private TeamOrder order = TeamOrder.None;
         private readonly AITendencies tendencies;
 
@@ -79,7 +77,6 @@ namespace Basket.AI
                 drivingThisPossession = rng.NextDouble() < config.driveChance;
             }
             if (!p.SelfHasBall) shotInProgress = false;
-            if (!p.SelfHasBall || !p.MustClear) clearTarget = null;
 
             return state switch
             {
@@ -105,13 +102,6 @@ namespace Basket.AI
                 return new PlayerCommand(Vector2.zero, shootHeld: !release);
             }
 
-            if (p.MustClear && snapshot != null)
-            {
-                // 3x3: take the ball beyond the arc, to the open side, before looking to score.
-                clearTarget ??= TeamMath.ClearSpot(snapshot, selfIndex, p.ThreePointRadius + config.clearMargin,
-                    config.clearSpotMaxAngle, config.clearSpotStepAngle, config.clearTravelWeight);
-                return new PlayerCommand(Steer(p, clearTarget.Value, config.arrivalDistance, -1), sprint: true);
-            }
             if (p.MustClear)
             {
                 // 3x3: take the ball beyond the arc before looking to score.
@@ -203,13 +193,9 @@ namespace Basket.AI
                 case TeamOrderKind.Crash:
                     return new PlayerCommand(Steer(p, order.Target, config.arrivalDistance, -1), sprint: true);
                 default:
-                    // Get back on defense: sprint when far from where we need to be (on the ball,
-                    // as soon as the handler gets away).
+                    // Get back on defense: sprint when far from where we need to be.
                     Vector3 spot = GuardSpot(p.OpponentPosition, p.DefendHoop, config.guardDistance);
-                    float away = FlatDistance(p.SelfPosition, spot);
-                    bool onBall = p.OpponentHasBall && p.FocusHasBall;
-                    return Defend(p, spot, config.arrivalDistance,
-                        sprint: away > config.sprintDistance || (onBall && away > config.onBallSprintDistance));
+                    return Defend(p, spot, config.arrivalDistance, sprint: FlatDistance(p.SelfPosition, spot) > config.sprintDistance);
             }
         }
 
