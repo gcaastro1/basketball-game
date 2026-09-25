@@ -49,9 +49,9 @@ namespace Basket.AI
             if (s.BallState == BallState.Passing && s.PassTargetIndex == self)
             {
                 Vector3 me = s.GetPosition(self);
-                Vector3 ballAhead = s.BallPosition + new Vector3(s.BallVelocity.x, 0f, s.BallVelocity.z) * config.meetPassLookAhead;
+                Vector3 meet = PassArrival(s.BallPosition, s.BallVelocity, config.meetPassCatchHeight);
                 snapshot = null;
-                return new PlayerCommand(MoveToward(me, new Vector3(ballAhead.x, me.y, ballAhead.z), 0.2f), sprint: true);
+                return new PlayerCommand(MoveToward(me, new Vector3(meet.x, me.y, meet.z), 0.2f), sprint: true);
             }
             int focus = -1;
             if (brain != null)
@@ -194,6 +194,20 @@ namespace Basket.AI
                     Vector3 spot = GuardSpot(p.OpponentPosition, p.DefendHoop, config.guardDistance);
                     return Defend(p, spot, config.arrivalDistance, sprint: FlatDistance(p.SelfPosition, spot) > config.sprintDistance);
             }
+        }
+
+        // Where a ball in flight comes down through `height` (ballistic, ignoring drag):
+        // the receiver goes there rather than to where the ball is now (passes that passed
+        // 1.1-1.2 m from a receiver chasing the ball's current position hit the floor).
+        public static Vector3 PassArrival(Vector3 position, Vector3 velocity, float height)
+        {
+            float g = Mathf.Abs(Physics.gravity.y);
+            float dy = position.y - height;
+            // y(t) = y0 + vy t - g t^2 / 2 = height, descending root.
+            float disc = velocity.y * velocity.y + 2f * g * dy;
+            float t = disc > 0f ? (velocity.y + Mathf.Sqrt(disc)) / g : 0f;
+            t = Mathf.Max(0f, t);
+            return new Vector3(position.x + velocity.x * t, height, position.z + velocity.z * t);
         }
 
         // A jump shooter stops and sets their feet before rising (a jumper taken at full

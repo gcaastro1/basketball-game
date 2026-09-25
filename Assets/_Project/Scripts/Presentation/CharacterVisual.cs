@@ -71,10 +71,13 @@ namespace Basket.Presentation
             var baked = new Mesh();
             foreach (SkinnedMeshRenderer skin in model.GetComponentsInChildren<SkinnedMeshRenderer>())
             {
-                // Baked with the renderer's scale, in its local frame: rotate and move only.
-                skin.BakeMesh(baked, true);
+                // Baked in the renderer's unscaled local frame; its full localToWorld (with
+                // every parent's scale -- the fitted model's) takes it to the world. Baking
+                // "with scale" only applied the renderer's own scale: CI measured a 1.85 m
+                // model as 1.00 m.
+                skin.BakeMesh(baked, false);
                 Transform t = skin.transform;
-                foreach (Vector3 v in baked.vertices) Extend(t.position + t.rotation * v, ref minY, ref maxY);
+                foreach (Vector3 v in baked.vertices) Extend(t.TransformPoint(v), ref minY, ref maxY);
             }
             Destroy(baked);
             foreach (MeshFilter filter in model.GetComponentsInChildren<MeshFilter>())

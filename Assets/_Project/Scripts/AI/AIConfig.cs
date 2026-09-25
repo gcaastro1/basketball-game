@@ -34,8 +34,8 @@ namespace Basket.AI
         // A jump shot starts only once the shooter has slowed below this (m/s): they stop
         // and set their feet instead of shooting on the run.
         public float setFeetSpeed = 1.0f;
-        // A receiver meets an incoming pass at where the ball will be this far ahead (s).
-        public float meetPassLookAhead = 0.3f;
+        // A receiver meets an incoming pass where it comes down to this height (m).
+        public float meetPassCatchHeight = 1.0f;
 
         [Header("Rules awareness")]
         // Shoot from wherever when the shot clock drops below this.

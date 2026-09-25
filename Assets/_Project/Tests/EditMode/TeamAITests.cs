@@ -312,6 +312,19 @@ public class TeamAITests
     }
 
     [Test]
+    public void PassArrival_IsWhereTheBallComesDownToCatchHeight()
+    {
+        Vector3 at = AIAgentController.PassArrival(new Vector3(0f, 2f, 0f), new Vector3(4f, 0f, 0f), 1f);
+        float t = Mathf.Sqrt(2f / Mathf.Abs(Physics.gravity.y));
+        Assert.AreEqual(4f * t, at.x, 1e-3f);
+        Assert.AreEqual(1f, at.y, 1e-5f);
+
+        // Rising ball: the descending crossing, not the rising one.
+        Vector3 lob = AIAgentController.PassArrival(new Vector3(0f, 1.5f, 0f), new Vector3(0f, 3f, 5f), 1.5f);
+        Assert.AreEqual(5f * 2f * 3f / Mathf.Abs(Physics.gravity.y), lob.z, 1e-3f);
+    }
+
+    [Test]
     public void AutoStrategy_FollowsWeights()
     {
         config.spacingPlayWeight = 0f;

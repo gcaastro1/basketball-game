@@ -509,7 +509,11 @@ namespace Basket.Gameplay
             if (offense.Count == 0) return;
 
             Vector3 center = court.CourtCenter;
-            float sideX = (court.width * 0.5f - 0.3f) * (ball.Position.x >= 0f ? 1f : -1f);
+            // The placeholder arena's walls stand on the lines: the inbounder stays far enough
+            // inside that the ball leaves their hands clear of the wall (at 0.3 m inbound
+            // passes hit the wall on release -- AI-vs-AI log).
+            const float inboundMargin = 0.8f;
+            float sideX = (court.width * 0.5f - inboundMargin) * (ball.Position.x >= 0f ? 1f : -1f);
             Vector3 spot;
             switch (kind)
             {
@@ -518,7 +522,7 @@ namespace Basket.Gameplay
                     Vector3 hoop = snapshot.GetDefendedHoop(offense[0].Team);
                     Vector3 hoopFloor = new Vector3(hoop.x, 0f, hoop.z);
                     Vector3 towardBaseline = (hoopFloor - center).normalized;
-                    spot = Clamp(hoopFloor + towardBaseline * 0.9f, 0.3f);
+                    spot = Clamp(hoopFloor + towardBaseline * 0.9f, inboundMargin);
                     break;
                 case RestartKind.MidcourtInbound:
                     spot = new Vector3(sideX, 0f, center.z);
