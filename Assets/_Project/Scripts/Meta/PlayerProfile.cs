@@ -1,12 +1,13 @@
 using System;
 using System.Collections.Generic;
 using Basket.Characters;
+using Basket.Core;
 
 namespace Basket.Meta
 {
     // The live player: inventory + economy + gacha memory + settings/story, built from a
     // PlayerSave and written back to one. Screens and the match flow talk to this.
-    public sealed class PlayerProfile
+    public sealed class PlayerProfile : IPlayerProfileReadOnly
     {
         public Inventory Inventory { get; }
         public EconomyService Economy { get; }
@@ -52,6 +53,27 @@ namespace Basket.Meta
 
         public string GetSetting(string key, string fallback = null) => extra.GetSetting(key, fallback);
         public void SetSetting(string key, string value) => extra.SetSetting(key, value);
+
+        // IPlayerProfileReadOnly — read-only surface for the UI (which only knows Core).
+        public IEnumerable<KeyValuePair<string, long>> Items => Inventory.Items;
+
+        public long Amount(string itemId) => Inventory.Amount(itemId);
+
+        public bool OwnsCharacter(string characterId) => Inventory.Owns(characterId);
+
+        public IEnumerable<string> OwnedCharacterIds
+        {
+            get
+            {
+                foreach (var character in Inventory.Characters) yield return character.characterId;
+            }
+        }
+
+        public int CharacterLevel(string characterId)
+        {
+            var character = Inventory.GetCharacter(characterId);
+            return character?.level ?? 0;
+        }
 
         public GachaService CreateGacha(ProgressionConfig progression, CharacterObtainRules rules, Random rng = null) =>
             new GachaService(Economy, Inventory, progression, rules, Gacha, rng);
