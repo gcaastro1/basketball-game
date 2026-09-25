@@ -28,7 +28,7 @@ public class VerticalSliceIntegrationTests
         yield return SceneManager.LoadSceneAsync(SliceScene, LoadSceneMode.Single);
         yield return null;
 
-        var bootstrap = Object.FindFirstObjectByType<GameBootstrap>();
+        var bootstrap = Object.FindAnyObjectByType<GameBootstrap>();
         Assert.IsNotNull(bootstrap, "GameBootstrap should exist in the scene.");
         MatchSimulation sim = bootstrap.Simulation;
         Assert.IsNotNull(sim);
@@ -49,7 +49,7 @@ public class VerticalSliceIntegrationTests
     {
         using var match = new TestMatch();
         match.Start((TeamId.Away, TestMatch.ShootAtApex()));
-        Assert.AreEqual(match.Players[0].transform, match.Sim.Ball.CurrentHolder, "solo team keeps the check ball");
+        Assert.AreSame(match.Players[0].transform, match.Sim.Ball.CurrentHolder, "solo team keeps the check ball");
 
         yield return match.RunUntil(() => match.Sim.Match.State.ScoreAway > 0, 6f);
         Assert.AreEqual(3, match.Sim.Match.State.ScoreAway, "check spot is beyond the arc");

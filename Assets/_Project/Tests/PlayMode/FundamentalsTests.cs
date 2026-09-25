@@ -106,7 +106,7 @@ public class FundamentalsTests
         yield return match.RunUntil(() => match.HasEvent("STEAL"), 2f);
 
         Assert.IsTrue(match.HasEvent("STEAL"));
-        Assert.AreNotEqual(handler.transform, match.Sim.Ball.CurrentHolder);
+        Assert.AreNotSame(handler.transform, match.Sim.Ball.CurrentHolder);
         Assert.AreEqual(TeamId.Away, match.Sim.Ball.LastTouchTeam);
     }
 
@@ -121,7 +121,7 @@ public class FundamentalsTests
             (TeamId.Away, (s, self) => new PlayerCommand(Vector2.zero, steal: true)));
         yield return match.RunUntil(() => false, 0.5f);
 
-        Assert.AreEqual(match.Players[0].transform, match.Sim.Ball.CurrentHolder, "a failed reach does not take the ball");
+        Assert.AreSame(match.Players[0].transform, match.Sim.Ball.CurrentHolder, "a failed reach does not take the ball");
         Assert.IsFalse(match.HasEvent("STEAL"));
     }
 }

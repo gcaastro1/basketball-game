@@ -5,9 +5,11 @@ namespace Basket.Gameplay
     [RequireComponent(typeof(CharacterController))]
     public class PlayerMotor : MonoBehaviour
     {
-        // Small constant downward speed while grounded so CharacterController keeps
-        // reporting ground contact on flat floors.
-        private const float GroundStickSpeed = 1f;
+        // While grounded, every Move() pushes this far down so CharacterController keeps
+        // reporting ground contact. It is a distance, not a speed: a dt-scaled push becomes
+        // sub-millimetre at high frame rates and ground contact then flickers every frame
+        // (found in CI, where batchmode frames are tiny).
+        private const float GroundSnapDistance = 0.05f;
 
         [SerializeField] private PlayerMovementConfig config;
 
@@ -26,6 +28,8 @@ namespace Basket.Gameplay
         private void Awake()
         {
             controller = GetComponent<CharacterController>();
+            // Default 1 mm threshold silently drops small per-frame moves at high frame rates.
+            controller.minMoveDistance = 0f;
         }
 
         public void Configure(PlayerMovementConfig movementConfig)
@@ -56,10 +60,19 @@ namespace Basket.Gameplay
 
             // Move() (not SimpleMove) so displacement uses exactly the dt given: tests that
             // drive Tick() with a synthetic dt get deterministic results.
-            if (grounded && verticalVelocity <= 0f) verticalVelocity = -GroundStickSpeed;
-            else verticalVelocity += Physics.gravity.y * dt;
+            Vector3 motion = horizontalVelocity * dt;
+            if (grounded && verticalVelocity <= 0f)
+            {
+                verticalVelocity = 0f;
+                motion.y = -GroundSnapDistance;
+            }
+            else
+            {
+                verticalVelocity += Physics.gravity.y * dt;
+                motion.y = verticalVelocity * dt;
+            }
 
-            CollisionFlags flags = controller.Move((horizontalVelocity + Vector3.up * verticalVelocity) * dt);
+            CollisionFlags flags = controller.Move(motion);
             bool hitGround = (flags & CollisionFlags.Below) != 0;
             if ((flags & CollisionFlags.Above) != 0 && verticalVelocity > 0f) verticalVelocity = 0f;
 
