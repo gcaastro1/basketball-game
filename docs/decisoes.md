@@ -345,6 +345,10 @@ várias direções, crossovers/giros/fintas, deslizes de defesa, corridas e sina
 - Drible padrão: `basketball_forward_dribble_06_02` (drible em movimento, na camada de cima do corpo).
 - Importação: clipe de um só take recebe o nome do arquivo; arremessos, fintas, giros, paradas e curvas
   não repetem.
+- Os 69 FBX declaram "30 fps drop-frame" (TimeMode 7), que o Unity não suporta ("Framerate was set to
+  0.00, it's been reset to 1.0"). `Editor/FbxFrameRateFixer.cs` troca para 30 fps (TimeMode 6, um byte,
+  dados intactos) ao abrir o editor e reimporta; os arquivos corrigidos são commitados de uma máquina
+  local (o ambiente do Claude na nuvem não consegue enviar arquivos novos ao Git LFS).
 
 **Consequências.** Crossovers, giros, fintas e dribles laterais/de costas ficam disponíveis para uma
 etapa de movimentos com a bola (hoje o jogo não tem esses comandos). Os valores das janelas são

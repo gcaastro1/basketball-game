@@ -109,4 +109,36 @@ public class AnimationClipLogicTests
         Assert.IsFalse(ActionClipTiming.IsDriven(1f), "after the release the clip plays on");
         Assert.IsFalse(ActionClipTiming.IsDriven(-1f), "not shooting");
     }
+
+    // FBX GlobalSettings "TimeMode" property as the binary format stores it.
+    private static byte[] FbxWithTimeMode(int mode)
+    {
+        var bytes = new System.Collections.Generic.List<byte> { 1, 2, 3 };
+        foreach (string s in new[] { "TimeMode", "enum", "", "" })
+        {
+            bytes.Add((byte)'S');
+            bytes.AddRange(System.BitConverter.GetBytes(s.Length));
+            foreach (char c in s) bytes.Add((byte)c);
+        }
+        bytes.Add((byte)'I');
+        bytes.AddRange(System.BitConverter.GetBytes(mode));
+        bytes.AddRange(new byte[] { 9, 9 });
+        return bytes.ToArray();
+    }
+
+    [Test]
+    public void FbxFixer_DropFrame30_Becomes30Fps_OtherModesUntouched()
+    {
+        byte[] drop = FbxWithTimeMode(FbxFrameRateFixer.Frames30Drop);
+        int length = drop.Length;
+        Assert.IsTrue(FbxFrameRateFixer.TryFix(drop));
+        Assert.AreEqual(length, drop.Length, "same size: only the value changes");
+        CollectionAssert.AreEqual(FbxWithTimeMode(FbxFrameRateFixer.Frames30), drop);
+        Assert.IsFalse(FbxFrameRateFixer.TryFix(drop), "already fixed");
+
+        byte[] mixamo = FbxWithTimeMode(3);
+        Assert.IsFalse(FbxFrameRateFixer.TryFix(mixamo));
+        CollectionAssert.AreEqual(FbxWithTimeMode(3), mixamo);
+        Assert.IsFalse(FbxFrameRateFixer.TryFix(new byte[] { 1, 2, 3 }));
+    }
 }

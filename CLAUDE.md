@@ -48,6 +48,9 @@ Controle de jogador = `Core/IAgentController` (humano, IA, teste). Regras = `Mat
   instale o Git LFS; o CI baixa com `lfs: true`. Clipes em `Assets/TripoModels/**/Animations/` são
   configurados por `Editor/CharacterAnimationImporter.cs` e ligados ao personagem por
   `Editor/CharacterClipBinder.cs` (menu **Basket → Bind Character Animations**).
+  FBX com "30 fps drop-frame" são corrigidos por `Editor/FbxFrameRateFixer.cs` (menu **Basket → Fix
+  FBX Frame Rates**). Sessões na nuvem não conseguem enviar arquivos novos ao LFS: mudanças em
+  `.fbx`/texturas precisam ser commitadas de uma máquina local.
 - O personagem modelo tem **1,68 m** (`Data/Characters/DefaultCharacterVisual.asset`, só visual;
   o corpo de gameplay continua com 1,9 m).
 
