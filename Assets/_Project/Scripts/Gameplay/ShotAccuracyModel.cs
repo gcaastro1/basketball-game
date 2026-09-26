@@ -101,6 +101,16 @@ namespace Basket.Gameplay
             return 1f + c.timingPenaltyPerSecond * beyondWindow;
         }
 
+        // approachSpeed: horizontal speed toward the rim (m/s; negative when moving away).
+        public static ShotType Classify(float distanceToRim, bool sprinting, float reachAtApex, float rimHeight, ShotConfig c,
+            float approachSpeed)
+        {
+            ShotType type = Classify(distanceToRim, sprinting, reachAtApex, rimHeight, c);
+            if (type == ShotType.JumpShot && distanceToRim <= c.drivingLayupRange && approachSpeed >= c.drivingLayupMinApproachSpeed)
+                return ShotType.Layup;
+            return type;
+        }
+
         public static ShotType Classify(float distanceToRim, bool sprinting, float reachAtApex, float rimHeight, ShotConfig c)
         {
             bool canReachRim = reachAtApex >= rimHeight + c.dunkReachClearance;

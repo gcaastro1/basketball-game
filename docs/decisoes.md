@@ -596,3 +596,14 @@ técnico e o `AIAgentController` o jogador; NavMeshAgent passaria por cima do `P
   Sem layout, os pontos saem do arco como antes. Dados no lugar de Transforms de cena: a cena só tem o
   bootstrap (D-003), e os mesmos pontos servem às duas cestas.
 
+## D-024 (adendo) — Bandeja em infiltração
+
+**Contexto.** "Se o jogador arremessa correndo em direção à cesta, perto dela, quero que ative uma
+animação de bandeja." Antes, só a distância decidia: bandeja até 2,6 m, arremesso além disso.
+
+**Decisão.** `ShotAccuracyModel.Classify(..., approachSpeed)`: arremessar indo em direção ao aro a pelo
+menos `drivingLayupMinApproachSpeed` (2,5 m/s) de até `drivingLayupRange` (4,2 m) é bandeja (a
+infiltração leva o jogador até o aro; animação `Lay_Up_124_06`, soltura automática no ápice, sem
+medidor). Parado, de lado ou se afastando continua arremesso; a enterrada continua tendo prioridade.
+Valores em `ShotConfig` (provisórios).
+

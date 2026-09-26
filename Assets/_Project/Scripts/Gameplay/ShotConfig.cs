@@ -21,6 +21,10 @@ namespace Basket.Gameplay
         [Header("Shot selection by horizontal distance to the rim")]
         public float layupRange = 2.6f;
         public float dunkRange = 2.2f;
+        // Shooting while running at the rim (at least this fast toward it) from within this
+        // distance is a layup, not a jump shot: the drive carries the player in.
+        public float drivingLayupRange = 4.2f;
+        public float drivingLayupMinApproachSpeed = 2.5f;
         // Reach at the jump apex must clear the rim by this much to dunk.
         public float dunkReachClearance = 0.1f;
         // Horizontal distance from the raised hand to the rim center at the apex to finish a dunk.

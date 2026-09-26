@@ -147,6 +147,13 @@ namespace Basket.Gameplay
 
         private static Vector3 RimFor(MatchSnapshot s, PlayerEntity p) => s.GetAttackingHoop(p.Team);
 
+        // Horizontal speed toward the rim.
+        private static float ApproachSpeed(PlayerMotor motor, Vector3 feet, Vector3 rim)
+        {
+            Vector3 toRim = new Vector3(rim.x - feet.x, 0f, rim.z - feet.z);
+            return toRim.sqrMagnitude > 0.0001f ? Vector3.Dot(motor.HorizontalVelocity, toRim.normalized) : 0f;
+        }
+
         private void Begin(int index, PlayerEntity player, PlayerCommand command, MatchSnapshot snapshot, float time)
         {
             Vector3 rimCenter = RimFor(snapshot, player);
@@ -156,7 +163,7 @@ namespace Basket.Gameplay
             float reachAtApex = feet.y + player.StandingReach + motor.JumpHeight;
             ShotType shotType = index == freeThrowShooter
                 ? ShotType.FreeThrow
-                : ShotAccuracyModel.Classify(distance, command.Sprint, reachAtApex, rimCenter.y, config);
+                : ShotAccuracyModel.Classify(distance, command.Sprint, reachAtApex, rimCenter.y, config, ApproachSpeed(motor, feet, rimCenter));
             // Dunking takes the Dunk attribute as well as the reach.
             if (shotType == ShotType.Dunk && Attr(player, AttributeId.Dunk) < tuning.minDunkAttribute) shotType = ShotType.Layup;
 

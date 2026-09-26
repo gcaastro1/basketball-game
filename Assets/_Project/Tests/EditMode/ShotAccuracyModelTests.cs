@@ -109,4 +109,15 @@ public class ShotAccuracyModelTests
         Assert.AreEqual(1f, ShotAccuracyModel.EstimatedMakeChance(r * 0.5f, config));
         Assert.AreEqual(0.25f, ShotAccuracyModel.EstimatedMakeChance(r * 2f, config), 1e-5f);
     }
+
+    [Test]
+    public void RunningAtTheRim_FromCloseRange_IsALayup()
+    {
+        const float rim = 3.05f;
+        Assert.AreEqual(ShotType.Layup, ShotAccuracyModel.Classify(3.8f, false, 3.0f, rim, config, approachSpeed: 4f), "driving in from 3.8 m");
+        Assert.AreEqual(ShotType.JumpShot, ShotAccuracyModel.Classify(3.8f, false, 3.0f, rim, config, approachSpeed: 0.5f), "standing: jumper");
+        Assert.AreEqual(ShotType.JumpShot, ShotAccuracyModel.Classify(3.8f, false, 3.0f, rim, config, approachSpeed: -4f), "running away: fadeaway jumper");
+        Assert.AreEqual(ShotType.JumpShot, ShotAccuracyModel.Classify(6f, false, 3.0f, rim, config, approachSpeed: 4f), "too far for a layup");
+        Assert.AreEqual(ShotType.Dunk, ShotAccuracyModel.Classify(1.5f, true, 3.25f, rim, config, approachSpeed: 4f), "a dunk stays a dunk");
+    }
 }
