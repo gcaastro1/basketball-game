@@ -152,7 +152,9 @@ public class CharacterVisualTests
 
         Assert.AreEqual(AnimPose.Locomotion, visual.Driver.CurrentPose);
         Debug.Log($"Stride: feet gap {min:0.00}..{max:0.00} m");
-        Assert.Greater(max - min, 0.25f, "legs swing past each other");
+        // A real stride puts the feet ~0.5-1 m apart along the run; a clip turned sideways to
+        // the movement (mocap facing its own way) barely separates them along it.
+        Assert.Greater(max - min, 0.5f, "legs swing past each other along the run");
     }
 
     // Dribbling while running: the legs keep running (upper-body layer when the dribble is
@@ -188,7 +190,7 @@ public class CharacterVisualTests
 
         Debug.Log($"Dribble run ({(visual.Driver.UsesClips ? "clips" : "procedural")}): {dribbleFrames} frames, feet gap {min:0.00}..{max:0.00} m, hand-ball closest {closest:0.00} m");
         Assert.Greater(dribbleFrames, 10, "the ball handler dribbles while moving");
-        Assert.Greater(max - min, 0.25f, "legs keep running while dribbling");
+        Assert.Greater(max - min, 0.5f, "legs keep running while dribbling");
         Assert.Less(closest, ball.Radius + 0.15f, "the hand meets the ball at the top of the bounce");
     }
 }

@@ -24,7 +24,7 @@ namespace Basket.EditorTools
 
         public const string Marker = "/Animations/";
 
-        public override uint GetVersion() => 3;
+        public override uint GetVersion() => 4;
 
         public static bool Handles(string path) =>
             path.StartsWith(TripoHumanoidImporter.TripoFolder) && path.Contains(Marker);
@@ -58,7 +58,7 @@ namespace Basket.EditorTools
                 clip.lockRootRotation = true;
                 clip.lockRootHeightY = true;
                 clip.lockRootPositionXZ = false;
-                clip.keepOriginalOrientation = true;
+                clip.keepOriginalOrientation = !IsMocap(clip.takeName);
                 clip.keepOriginalPositionY = true;
             }
             importer.clipAnimations = AddMirror(clips);
@@ -101,9 +101,15 @@ namespace Basket.EditorTools
             bool changed = false;
             foreach (ModelImporterClipAnimation clip in clips)
             {
-                if (first == clip.firstFrame && last == clip.lastFrame) continue;
+                // Each recording faces its own way (the run heads +X, the dribble +Z): the root
+                // rotation follows the body so every clip faces forward -- based on the original
+                // orientation, the character ran sideways.
+                bool oriented = clip.lockRootRotation && !clip.keepOriginalOrientation;
+                if (first == clip.firstFrame && last == clip.lastFrame && oriented) continue;
                 clip.firstFrame = first;
                 clip.lastFrame = last;
+                clip.lockRootRotation = true;
+                clip.keepOriginalOrientation = false;
                 changed = true;
             }
             return changed;
