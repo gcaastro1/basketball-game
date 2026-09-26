@@ -28,7 +28,6 @@ namespace Basket.Presentation
         private readonly LocomotionLayer free, ball, guard;
         private readonly LoopPlayer upperDribble;
         private readonly ActionPlayer action;
-        private readonly float tempo;
         private float ballWeight, guardWeight, upperWeight;
         private AnimPose lastPose = AnimPose.Locomotion;
         private int jumpShotCount;
@@ -37,7 +36,6 @@ namespace Basket.Presentation
         {
             if (clips == null || !clips.HasLocomotion) throw new ArgumentException("Clip backend needs the free set's idle and run.");
             this.clips = clips;
-            tempo = clips.playbackSpeed > 0.01f ? clips.playbackSpeed : 1f;
             graph = PlayableGraph.Create("CharacterAnimation");
             graph.SetTimeUpdateMode(DirectorUpdateMode.GameTime);
             var output = AnimationPlayableOutput.Create(graph, "Animation", animator);
@@ -87,6 +85,8 @@ namespace Basket.Presentation
             sets.SetInputWeight(1, ballWeight);
             sets.SetInputWeight(2, guardWeight);
 
+            // Read every frame: playbackSpeed can be tuned in the Inspector while playing.
+            float tempo = clips.playbackSpeed > 0.01f ? clips.playbackSpeed : 1f;
             float step = dt * tempo;
             free.Update(move, step);
             LocomotionMix ballMix = ball.Update(move, step);

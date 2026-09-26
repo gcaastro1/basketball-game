@@ -444,3 +444,15 @@ StarterAssetsInputs, Cinemachine).
   contrato. Ideias aproveitáveis: suavização de giro (SmoothDampAngle) e aceleração no motor;
   Cinemachine para a câmera (colisão, amortecimento) numa etapa de polimento.
 
+## D-022 (adendo 4) — Ritmo do drible
+
+**Contexto.** "Os personagens batem a bola numa velocidade muito rápida." O quique usava |sen| com
+`dribbleFrequency` 2,2 "ciclos" por segundo — dois quiques por ciclo: 4,4 quiques/s. Nas gravações o
+braço do drible faz ~1,0–1,4 ciclos/s (medido na rotação do antebraço). Além disso, o drible para
+frente escolhido (`06_04`) é com a mão esquerda, e a bola fica na direita.
+
+**Decisão.** `dribbleFrequency` passa a ser quiques por segundo (padrão 1,2, o das gravações); drible
+para frente e da parte de cima do corpo = `06_05` (mão direita); drible para a esquerda = `06_08` de trás
+para frente (espelhado, driblaria com a esquerda); o binder troca os clipes antigos também em assets já
+ligados. `playbackSpeed` é lido a cada quadro (ajuste no Inspector durante o Play).
+

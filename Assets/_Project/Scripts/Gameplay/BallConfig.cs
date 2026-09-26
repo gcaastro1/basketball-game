@@ -27,7 +27,9 @@ namespace Basket.Gameplay
 
         [Header("Dribble")]
         public float dribbleBounceHeight = 0.85f;
-        public float dribbleFrequency = 2.2f;
+        [Tooltip("Bounces per second. The recorded dribbles bounce ~1.2 times a second; the old value " +
+                 "(2.2 cycles of |sin| = 4.4 bounces/s) looked fast-forwarded.")]
+        public float dribbleFrequency = 1.2f;
 
         [Header("Pass")]
         public float passApexHeight = 0.6f;

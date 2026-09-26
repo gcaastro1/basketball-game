@@ -62,15 +62,21 @@ namespace Basket.EditorTools
             // With the ball: holding it (free-throw routine before the shot), dribbling in every
             // direction at walking pace, running legs + upper-body dribble above that.
             n += Loop(ref c.withBall.idle, "Basketball_Free_Throw_124_04", 0.1f, 0.95f);
-            n += Loop(ref c.withBall.forward, "basketball_forward_dribble_06_04", 0.5f, 2.8f);
+            // Right-handed dribbles (the ball is carried on the right): 06_04 dribbles with the
+            // left hand, so it is replaced where an earlier binding used it.
+            n += Loop(ref c.withBall.forward, "basketball_forward_dribble_06_05", 0.5f, 2.7f,
+                replacing: "basketball_forward_dribble_06_04");
             n += Loop(ref c.withBall.backward, "basketball_backward_dribble_06_06", 0.5f, 2.9f);
             n += Loop(ref c.withBall.right, "basketball_sideways_dribble_06_08", 0.4f, 2.5f);
-            n += Loop(ref c.withBall.left, "basketball_sideways_dribble_06_08", 0.4f, 2.5f, mirror: true);
+            // Left: the same right-handed slide played backwards (mirrored, it would dribble left-handed).
+            n += Loop(ref c.withBall.left, "basketball_sideways_dribble_06_08", 0.4f, 2.5f, reverse: true,
+                replacing: "basketball_sideways_dribble_06_08" + CharacterAnimationImporter.MirrorSuffix);
             n += Loop(ref c.withBall.run, "RunningStraight_102_05");
             n += Loop(ref c.withBall.runTurnLeft, "RunningWideLeft_102_07");
             n += Loop(ref c.withBall.runTurnRight, "RunningWideRight_102_06");
             n += Speeds(c.withBall, 1.3f, 4f);
-            n += Loop(ref c.dribbleUpperBody, "basketball_forward_dribble_06_04", 0.5f, 2.8f);
+            n += Loop(ref c.dribbleUpperBody, "basketball_forward_dribble_06_05", 0.5f, 2.7f,
+                replacing: "basketball_forward_dribble_06_04");
 
             // Defensive guard: the stance (first frame of a stop-to-stop slide), side slides both
             // ways, forward shuffle (backwards for backing up).
@@ -103,10 +109,13 @@ namespace Basket.EditorTools
             return n;
         }
 
+        // Fills the slot while empty, or while it still holds the `replacing` clip (a binding
+        // made by an earlier version of this mapping).
         private static int Loop(ref LoopClip slot, string file, float fromSeconds = -1f, float toSeconds = -1f,
-            bool mirror = false, bool reverse = false)
+            bool mirror = false, bool reverse = false, string replacing = null)
         {
-            if (slot.clip != null) return 0;
+            bool outdated = replacing != null && slot.clip != null && slot.clip.name == replacing;
+            if (slot.clip != null && !outdated) return 0;
             AnimationClip clip = FindClip(Folder + file + ".fbx", mirror ? file + CharacterAnimationImporter.MirrorSuffix : file);
             if (clip == null || !Trimmed(Folder + file + ".fbx", clip)) return 0;
             slot = fromSeconds < 0f

@@ -13,7 +13,8 @@ namespace Basket.Presentation
     public class PlayerAnimationDriver : MonoBehaviour
     {
         private const float StrideLengthMeters = 2.2f;
-        private const float DribbleHz = 2.2f;
+        // Cycles of the procedural pump (|sin|: two pumps per cycle) = 1.2 bounces/s, the ball's.
+        private const float DribbleHz = 0.6f;
         private const float TwoPi = Mathf.PI * 2f;
         private const float ToeHeight = 0.03f;
         private const float OverlayFadeSeconds = 0.15f;
