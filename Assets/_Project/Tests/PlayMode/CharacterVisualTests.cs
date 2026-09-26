@@ -7,7 +7,7 @@ using Basket.Core;
 using Basket.Gameplay;
 using Basket.Presentation;
 
-// Etapa 6: the Tripo character replaces the capsule without changing gameplay.
+// Etapa 6: the character model (DefaultCharacterVisual) replaces the capsule without changing gameplay.
 public class CharacterVisualTests
 {
     private const string VisualPath = "Assets/_Project/Data/Characters/DefaultCharacterVisual.asset";
@@ -17,7 +17,7 @@ public class CharacterVisualTests
 #if UNITY_EDITOR
         var visual = UnityEditor.AssetDatabase.LoadAssetAtPath<CharacterVisualDefinition>(VisualPath);
         Assert.IsNotNull(visual, VisualPath);
-        Assert.IsNotNull(visual.modelPrefab, "the visual points at the Tripo model");
+        Assert.IsNotNull(visual.modelPrefab, "the visual points at a character model");
         return visual;
 #else
         Assert.Ignore("needs the editor asset database");

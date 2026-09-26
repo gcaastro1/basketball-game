@@ -30,6 +30,7 @@ de troca.
 | D-022 | Clipes reais + procedural híbridos (Etapa 6.5): locomoção por velocidade (parado/andar/correr/de costas) com playback na velocidade real; drible/segurar bola numa camada só da parte de cima (máscara), pernas continuam; procedural por cima só nas poses sem clipe; clipes ligados por script de editor (IDs internos do FBX) | Aceita (mapeamento pose → clipe: **provisório**, trocável no Inspector) |
 | D-023 | Câmera de transmissão: atrás e acima do jogador seguido, sempre virada para a cesta atacada pelo time com a bola; vira suavemente (só no ângulo horizontal) quando o ataque troca de lado | Aceita (valores em `DefaultCameraConfig`: **provisórios**) |
 | D-024 | Guarda defensiva por botão (Ctrl / LT, segurado, sem a bola): mais devagar (×0,75), sem sprint, de frente para a bola; IA entra em guarda ao marcar a bola a ≤ 3 m. Arremessador vira para a cesta. Velocidade 4,5 m/s (sprint ×1,45 = 6,5) | Aceita (valores: **provisórios**) |
+| D-025 | Personagem padrão Banana Man (1,8 m, provisório); materiais convertidos para URP um a um. Starter Assets (controles 1ª/3ª pessoa) e Cinemachine ficam como referência: o jogo mantém motor/input/câmera próprios | Aceita |
 | P-001 | Modo B (controle do time) | **Pendente** — ponto de encaixe pronto: `ITeamStrategy` (e `IAgentController`) |
 | P-003 | Gacha definitivo (raridades, taxas, pity, custos, moedas) | **Provisória**: 3 níveis genéricos, 3/17/80%, pity 80 (soft 65, +6%), 50/50 com garantia, multi de 10 com garantia de nível 2 — tudo em `Data/Meta/StandardBanner.asset` |
 | P-002 | Semântica dos Limit Breaks | **Provisória**: 4 LBs (20→40, 40→50, 50→60, "Awakening" no 60 sem novo teto), tudo em `DefaultProgressionConfig` |
@@ -425,4 +426,21 @@ quadro de calibração.
   drives, dribles com curva de 90°, pivô, sinais de árbitro, dança, calibração — pedem comandos novos
   (etapa de movimentos com a bola).
 - Clipes do Mixamo e da UAL deixam de ser usados (continuam no projeto).
+
+## D-025 — Banana Man e Starter Assets
+
+**Contexto.** O usuário trouxe o Banana Man (modelo humanoide, materiais Body/Joints no shader
+Standard antigo) e os Starter Assets da Unity (ThirdPersonController/FirstPersonController,
+StarterAssetsInputs, Cinemachine).
+
+**Decisão.**
+- Banana Man vira o modelo do `DefaultCharacterVisual` (altura 1,8 m, provisória); os clipes de
+  basquete continuam os mesmos (retargeting humanoide). `CharacterVisual` converte cada material para o
+  Lit do URP mantendo textura e cor (antes: uma textura só para todos os materiais).
+- Starter Assets **não** substituem o controle do jogo: o `ThirdPersonController` move o
+  CharacterController direto a partir do próprio input e anima um Animator Controller próprio,
+  enquanto aqui o `MatchSimulation` comanda o `PlayerMotor` com `PlayerCommand` de qualquer controlador
+  (humano, IA, teste, futuro Modo B/rede) e a apresentação só lê o jogo. Usá-lo quebraria esse
+  contrato. Ideias aproveitáveis: suavização de giro (SmoothDampAngle) e aceleração no motor;
+  Cinemachine para a câmera (colisão, amortecimento) numa etapa de polimento.
 

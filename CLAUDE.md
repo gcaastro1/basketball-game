@@ -51,8 +51,12 @@ Controle de jogador = `Core/IAgentController` (humano, IA, teste). Regras = `Mat
   FBX com "30 fps drop-frame" são corrigidos por `Editor/FbxFrameRateFixer.cs` (menu **Basket → Fix
   FBX Frame Rates**). Sessões na nuvem não conseguem enviar arquivos novos ao LFS: mudanças em
   `.fbx`/texturas precisam ser commitadas de uma máquina local.
-- O personagem modelo tem **1,68 m** (`Data/Characters/DefaultCharacterVisual.asset`, só visual;
-  o corpo de gameplay continua com 1,9 m).
+- Personagem padrão: **Banana Man** (`Assets/Plugins/Banana Yellow Games`), 1,8 m em
+  `Data/Characters/DefaultCharacterVisual.asset` (só visual; o corpo de gameplay tem 1,9 m). O modelo
+  Tripo (1,68 m) continua em `Assets/TripoModels`. Materiais do Standard antigo são convertidos para o
+  Lit do URP em runtime, um a um (`CharacterVisual`).
+- `Assets/Starter Assets` (controles 1ª/3ª pessoa da Unity) + Cinemachine: referência, não usados pelo
+  jogo (o jogo tem motor, input e câmera próprios — D-025).
 
 ## Como verificar
 
