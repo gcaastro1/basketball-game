@@ -9,6 +9,7 @@
         "Basket.Input",
         "Basket.Bootstrap",
         "Basket.Presentation",
+        "Basket.Meta",
         "Unity.InputSystem",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
