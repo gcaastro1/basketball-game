@@ -43,7 +43,8 @@ namespace Basket.Input
             bool ability = actions.Ability.WasPressedThisFrame();
             return holding
                 ? new PlayerCommand(move, sprint, pass: secondaryBuffer.IsBuffered(time), shootHeld: actions.Primary.IsPressed(), ability: ability)
-                : new PlayerCommand(move, sprint, jump: primaryBuffer.IsBuffered(time), steal: secondaryBuffer.IsBuffered(time), ability: ability);
+                : new PlayerCommand(move, sprint, jump: primaryBuffer.IsBuffered(time), steal: secondaryBuffer.IsBuffered(time), ability: ability,
+                    guard: actions.Guard.IsPressed());
         }
 
         public Vector2 GetMoveInput() => Vector2.ClampMagnitude(actions.Move.ReadValue<Vector2>(), 1f);

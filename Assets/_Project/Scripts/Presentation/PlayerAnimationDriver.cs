@@ -29,6 +29,8 @@ namespace Basket.Presentation
         private float stridePhase, dribblePhase;
         private float sincePass = 99f, sinceScored = 99f;
         private float overlayWeight;
+        private float lastYaw;
+        private bool hasYaw;
 
         public AnimPose CurrentPose { get; private set; }
         public bool UsesClips => clipBackend != null;
@@ -99,6 +101,7 @@ namespace Basket.Presentation
                 SincePass = sincePass,
                 SinceTeamScored = sinceScored,
                 Defending = possession.HasValue && possession.Value != player.Team,
+                Guarding = player.IsGuarding,
             };
             PlayerAnimOutput output = AnimationStateMapper.Map(input);
             CurrentPose = output.Pose;
@@ -113,8 +116,19 @@ namespace Basket.Presentation
             if (clipBackend != null)
             {
                 Vector3 velocity = motor.HorizontalVelocity;
-                float forward = Vector3.Dot(velocity, player.transform.forward);
-                clipBackend.Update(output.Pose, input.Speed, forward, dt, shooting ? shotProgress : -1f);
+                Transform body = player.transform;
+                float yaw = body.eulerAngles.y;
+                float yawRate = hasYaw && dt > 0f ? Mathf.DeltaAngle(lastYaw, yaw) / dt : 0f;
+                lastYaw = yaw;
+                hasYaw = true;
+                var move = new LocomotionInput
+                {
+                    Speed = input.Speed,
+                    Forward = Vector3.Dot(velocity, body.forward),
+                    Right = Vector3.Dot(velocity, body.right),
+                    YawRate = yawRate,
+                };
+                clipBackend.Update(output.Pose, move, dt, shooting ? shotProgress : -1f);
                 // Procedural only where the clips have nothing: fade it in and out.
                 bool covered = output.Pose == AnimPose.Locomotion || clipBackend.HasClipFor(output.Pose);
                 overlayWeight = Mathf.MoveTowards(overlayWeight, covered ? 0f : 1f, dt / OverlayFadeSeconds);

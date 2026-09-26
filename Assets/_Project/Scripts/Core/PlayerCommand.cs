@@ -18,9 +18,12 @@ namespace Basket.Core
         public readonly bool Steal;
         // Activate the character's active ability.
         public readonly bool Ability;
+        // Level: defensive stance while held (without the ball) -- slower, facing the ball.
+        public readonly bool Guard;
 
-        public PlayerCommand(Vector2 move, bool sprint = false, bool pass = false, bool shootHeld = false, bool jump = false, bool steal = false, bool ability = false)
+        public PlayerCommand(Vector2 move, bool sprint = false, bool pass = false, bool shootHeld = false, bool jump = false, bool steal = false, bool ability = false, bool guard = false)
         {
+            Guard = guard;
             Ability = ability;
             Move = move;
             Sprint = sprint;

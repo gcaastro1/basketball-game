@@ -13,23 +13,43 @@ namespace Basket.EditorTools
     //   for shots, starts, landings or turns.
     // - Rotation and height baked into the pose; horizontal root motion left on the root,
     //   which the character's Animator never applies (applyRootMotion = false): in place.
-    // Only fills clips that were never configured, so manual tweaks in the Inspector stay.
+    // - Frame range = the file's real motion (FbxCurveSpan): the mocap takes declare far longer
+    //   spans than their curves (a 0.93 s run inside a 88.5 s take). Their first frame is a
+    //   calibration pose ("*_remap" takes), skipped. A range past the curves is always trimmed.
+    // - 30 fps drop-frame files are fixed first (FbxFrameRateFixer), so frames are 1/30 s.
+    // Other settings are only filled for clips never configured, so Inspector tweaks stay.
     public sealed class CharacterAnimationImporter : AssetPostprocessor
     {
+        public const float FramesPerSecond = 30f;
+
         public const string Marker = "/Animations/";
 
-        public override uint GetVersion() => 2;
+        public override uint GetVersion() => 3;
 
         public static bool Handles(string path) =>
             path.StartsWith(TripoHumanoidImporter.TripoFolder) && path.Contains(Marker);
+
+        private void OnPreprocessModel()
+        {
+            if (!Handles(assetPath) || !File.Exists(assetPath)) return;
+            byte[] data = File.ReadAllBytes(assetPath);
+            if (FbxFrameRateFixer.TryFix(data)) File.WriteAllBytes(assetPath, data);
+        }
 
         private void OnPreprocessAnimation()
         {
             if (!Handles(assetPath)) return;
             var importer = (ModelImporter)assetImporter;
-            if (importer.clipAnimations != null && importer.clipAnimations.Length > 0) return;
-            ModelImporterClipAnimation[] clips = importer.defaultClipAnimations;
+            bool configured = importer.clipAnimations != null && importer.clipAnimations.Length > 0;
+            ModelImporterClipAnimation[] clips = configured ? importer.clipAnimations : importer.defaultClipAnimations;
             if (clips == null || clips.Length == 0) return;
+            bool changed = TrimToMotion(clips);
+            if (configured)
+            {
+                ModelImporterClipAnimation[] withMirror = AddMirror(clips);
+                if (changed || withMirror != clips) importer.clipAnimations = withMirror;
+                return;
+            }
             string file = Path.GetFileNameWithoutExtension(assetPath);
             foreach (ModelImporterClipAnimation clip in clips)
             {
@@ -41,7 +61,62 @@ namespace Basket.EditorTools
                 clip.keepOriginalOrientation = true;
                 clip.keepOriginalPositionY = true;
             }
-            importer.clipAnimations = clips;
+            importer.clipAnimations = AddMirror(clips);
+        }
+
+        public const string MirrorSuffix = "_Mirror";
+
+        // Mocap takes also come mirrored ("<name>_Mirror"): a slide or turn to one side gives
+        // the other side too.
+        private static ModelImporterClipAnimation[] AddMirror(ModelImporterClipAnimation[] clips)
+        {
+            if (clips.Length != 1 || !IsMocap(clips[0].takeName)) return clips;
+            ModelImporterClipAnimation c = clips[0];
+            var mirror = new ModelImporterClipAnimation
+            {
+                name = c.name + MirrorSuffix,
+                takeName = c.takeName,
+                firstFrame = c.firstFrame,
+                lastFrame = c.lastFrame,
+                loopTime = c.loopTime,
+                lockRootRotation = c.lockRootRotation,
+                lockRootHeightY = c.lockRootHeightY,
+                lockRootPositionXZ = c.lockRootPositionXZ,
+                keepOriginalOrientation = c.keepOriginalOrientation,
+                keepOriginalPositionY = c.keepOriginalPositionY,
+                mirror = true,
+            };
+            return new[] { c, mirror };
+        }
+
+        // Mocap takes ("*_remap", 30 fps once fixed): the clip covers the curves only, minus the
+        // calibration frame.
+        // Always reset: ranges saved while the file still read as 1 fps are meaningless, and
+        // narrowing a clip is done with the character's clip windows, not here.
+        private bool TrimToMotion(ModelImporterClipAnimation[] clips)
+        {
+            if (clips.Length == 0 || clips.Length > 2 || !IsMocap(clips[0].takeName)) return false;
+            if (!FbxCurveSpan.TryRead(assetPath, out double start, out double end)) return false;
+            (float first, float last) = FrameRange(start, end, skipCalibration: true);
+            bool changed = false;
+            foreach (ModelImporterClipAnimation clip in clips)
+            {
+                if (first == clip.firstFrame && last == clip.lastFrame) continue;
+                clip.firstFrame = first;
+                clip.lastFrame = last;
+                changed = true;
+            }
+            return changed;
+        }
+
+        public static bool IsMocap(string takeName) => takeName != null && takeName.EndsWith("_remap");
+
+        // Frames (at 30 fps) covering curves from start to end seconds.
+        public static (float first, float last) FrameRange(double start, double end, bool skipCalibration)
+        {
+            float first = (float)System.Math.Round(start * FramesPerSecond) + (skipCalibration ? 1f : 0f);
+            float last = (float)System.Math.Round(end * FramesPerSecond);
+            return (first, last > first ? last : first + 1f);
         }
 
         public static string ClipName(string takeName, string file, int takes)

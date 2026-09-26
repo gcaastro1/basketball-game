@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e60049a2268d98045b2ca17a281ea201, type: 3}
   m_Name: DefaultPlayerMovementConfig
   m_EditorClassIdentifier: Basket.Gameplay::Basket.Gameplay.PlayerMovementConfig
-  maxSpeed: 6
-  sprintMultiplier: 1.6
+  maxSpeed: 4.5
+  sprintMultiplier: 1.45
   acceleration: 30
   deceleration: 40
   turnSpeedDegrees: 720

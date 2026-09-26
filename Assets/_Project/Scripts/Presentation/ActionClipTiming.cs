@@ -16,6 +16,16 @@ namespace Basket.Presentation
             return clipLength * (s + (r - s) * p);
         }
 
+        // Seconds into the clip `elapsed` seconds after starting at `from` (normalized), holding
+        // at `until` (normalized): one-shot actions, and a shot's follow-through after release.
+        public static float Play(float from, float until, float elapsed, float clipLength)
+        {
+            float f = Clamp01(from), u = Clamp01(until);
+            if (u < f) u = f;
+            float t = f * clipLength + (elapsed > 0f ? elapsed : 0f);
+            return t < u * clipLength ? t : u * clipLength;
+        }
+
         // Driven while the shot is on its way to the release; after it the clip plays freely.
         public static bool IsDriven(float progress) => progress >= 0f && progress < 1f;
 

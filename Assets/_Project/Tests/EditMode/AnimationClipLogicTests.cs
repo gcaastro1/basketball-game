@@ -7,17 +7,24 @@ public class AnimationClipLogicTests
 {
     private const float Walk = 1.5f, Run = 4.5f;
 
-    private static LocomotionWeights Blend(float speed, float forward, bool walk = true, bool back = true) =>
-        LocomotionBlend.Compute(speed, forward, Walk, Run, walk, back);
-
-    private static float Sum(LocomotionWeights w) => w.Idle + w.Walk + w.Run + w.Back;
+    private static LocomotionMix Blend(float speed, float forward, float right = 0f, float yawRate = 0f,
+        bool walk = true, bool back = true, bool sides = true, bool turns = true)
+    {
+        var i = new LocomotionInput
+        {
+            Speed = speed, Forward = forward, Right = right, YawRate = yawRate, MoveSpeed = Walk, RunSpeed = Run,
+            HasForward = walk, HasBackward = back, HasLeft = sides, HasRight = sides, HasRun = true,
+            HasTurnLeft = turns, HasTurnRight = turns,
+        };
+        return LocomotionBlend.Compute(i);
+    }
 
     [Test]
     public void Standing_IsAllIdle()
     {
         var w = Blend(0f, 0f);
         Assert.AreEqual(1f, w.Idle, 1e-4f);
-        Assert.AreEqual(1f, Sum(w), 1e-4f);
+        Assert.AreEqual(1f, w.Sum, 1e-4f);
     }
 
     [Test]
@@ -25,41 +32,61 @@ public class AnimationClipLogicTests
     {
         var slow = Blend(0.75f, 0.75f);
         Assert.AreEqual(0.5f, slow.Idle, 1e-4f);
-        Assert.AreEqual(0.5f, slow.Walk, 1e-4f);
+        Assert.AreEqual(0.5f, slow.Forward, 1e-4f);
 
         var mid = Blend(3f, 3f);
         Assert.AreEqual(0f, mid.Idle, 1e-4f);
         Assert.AreEqual(0.5f, mid.Run, 1e-4f);
-        Assert.AreEqual(0.5f, mid.Walk, 1e-4f);
+        Assert.AreEqual(0.5f, mid.Forward, 1e-4f);
 
         var fast = Blend(6f, 6f);
         Assert.AreEqual(1f, fast.Run, 1e-4f);
-        Assert.AreEqual(1f, Sum(fast), 1e-4f);
+        Assert.AreEqual(1f, fast.Sum, 1e-4f);
     }
 
     [Test]
-    public void WithoutWalkClip_IdleBlendsStraightToRun()
+    public void WithoutWalkClip_ForwardMovementRuns()
     {
-        var w = Blend(2.25f, 2.25f, walk: false);
-        Assert.AreEqual(0f, w.Walk);
+        var w = Blend(0.75f, 0.75f, walk: false);
+        Assert.AreEqual(0f, w.Forward);
         Assert.AreEqual(0.5f, w.Run, 1e-4f);
         Assert.AreEqual(0.5f, w.Idle, 1e-4f);
     }
 
     [Test]
-    public void MovingBackward_UsesTheBackpedal_SidewaysDoesNot()
+    public void Direction_PicksBackwardAndSideClips()
     {
-        var back = Blend(3f, -3f);
-        Assert.AreEqual(1f, back.Back, 1e-4f);
-        Assert.AreEqual(0f, back.Run + back.Walk, 1e-4f);
+        var back = Blend(1.5f, -1.5f);
+        Assert.AreEqual(1f, back.Backward, 1e-4f);
+        var right = Blend(1.5f, 0f, right: 1.5f);
+        Assert.AreEqual(1f, right.Right, 1e-4f);
+        var left = Blend(1.5f, 0f, right: -1.5f);
+        Assert.AreEqual(1f, left.Left, 1e-4f);
+        var diagonal = Blend(1.5f, 1.06f, right: 1.06f);
+        Assert.AreEqual(0.5f, diagonal.Forward, 1e-2f);
+        Assert.AreEqual(0.5f, diagonal.Right, 1e-2f);
+        Assert.AreEqual(1f, diagonal.Sum, 1e-4f);
+    }
 
-        var side = Blend(3f, 0f);
-        Assert.AreEqual(0f, side.Back, 1e-4f);
-        Assert.AreEqual(1f, Sum(side), 1e-4f);
+    [Test]
+    public void MissingClips_HandTheirShareToTheNearestOne()
+    {
+        var noSides = Blend(1.5f, 0f, right: 1.5f, sides: false);
+        Assert.AreEqual(1f, noSides.Forward, 1e-4f);
+        var noBack = Blend(1.5f, -1.5f, back: false);
+        Assert.AreEqual(1f, noBack.Forward, 1e-4f);
+        Assert.AreEqual(1f, noBack.Sum, 1e-4f);
+    }
 
-        var noClip = Blend(3f, -3f, back: false);
-        Assert.AreEqual(0f, noClip.Back);
-        Assert.AreEqual(1f, Sum(noClip), 1e-4f);
+    [Test]
+    public void Running_BendsIntoTheTurnClips()
+    {
+        var right = Blend(6f, 6f, yawRate: 90f);
+        Assert.AreEqual(0.5f, right.TurnRight, 1e-4f);
+        Assert.AreEqual(0.5f, right.Run, 1e-4f);
+        var hardLeft = Blend(6f, 6f, yawRate: -400f);
+        Assert.AreEqual(1f, hardLeft.TurnLeft, 1e-4f);
+        Assert.AreEqual(1f, Blend(6f, 6f, yawRate: 90f, turns: false).Run, 1e-4f);
     }
 
     [Test]
@@ -68,8 +95,7 @@ public class AnimationClipLogicTests
         Assert.AreEqual(1f, Blend(Run, Run).RunRate, 1e-4f, "at the clip's own speed");
         Assert.AreEqual(5f / Run, Blend(5f, 5f).RunRate, 1e-4f, "a bit faster when faster");
         Assert.AreEqual(LocomotionBlend.MaxRate, Blend(9f, 9f).RunRate, 1e-4f, "a sprint is not fast-forwarded");
-        Assert.AreEqual(LocomotionBlend.MaxRate, Blend(20f, 20f).RunRate, 1e-4f);
-        Assert.AreEqual(LocomotionBlend.MinRate, Blend(0.1f, 0.1f).WalkRate, 1e-4f);
+        Assert.AreEqual(LocomotionBlend.MinRate, Blend(0.1f, 0.1f).MoveRate, 1e-4f);
     }
 
     [Test]
@@ -141,5 +167,40 @@ public class AnimationClipLogicTests
         Assert.IsFalse(FbxFrameRateFixer.TryFix(mixamo));
         CollectionAssert.AreEqual(FbxWithTimeMode(3), mixamo);
         Assert.IsFalse(FbxFrameRateFixer.TryFix(new byte[] { 1, 2, 3 }));
+    }
+
+    // Mocap takes declare spans far longer than their motion; the clip covers the motion only.
+    [Test]
+    public void Importer_FrameRange_CoversTheMotion_WithoutTheCalibrationFrame()
+    {
+        (float first, float last) = CharacterAnimationImporter.FrameRange(0.0, 0.9333, skipCalibration: true);
+        Assert.AreEqual(1f, first);
+        Assert.AreEqual(28f, last);
+        (first, last) = CharacterAnimationImporter.FrameRange(0.0, 6.6, skipCalibration: false);
+        Assert.AreEqual(0f, first);
+        Assert.AreEqual(198f, last);
+        Assert.IsTrue(CharacterAnimationImporter.IsMocap("CharacterArmature|102_05_remap"));
+        Assert.IsFalse(CharacterAnimationImporter.IsMocap("mixamo.com"));
+    }
+
+    [Test]
+    public void CurveSpan_OfTheShippedMocapClips()
+    {
+        const string folder = "Assets/TripoModels/anime_character_3d_model/Animations/Basquete/";
+        if (!System.IO.File.Exists(folder + "RunningStraight_102_05.fbx")) Assert.Ignore("mocap clips not in this checkout");
+        Assert.IsTrue(FbxCurveSpan.TryRead(folder + "RunningStraight_102_05.fbx", out double start, out double end));
+        Assert.AreEqual(0.0, start, 1e-3);
+        Assert.AreEqual(0.933, end, 0.01, "not the 88.5 s the take declares");
+        Assert.IsTrue(FbxCurveSpan.TryRead(folder + "Basketball_Jump_Shot_124_05.fbx", out start, out end));
+        Assert.AreEqual(6.6, end, 0.01);
+        Assert.IsFalse(FbxCurveSpan.TryRead(new byte[] { 1, 2, 3 }, out _, out _));
+    }
+
+    [Test]
+    public void OneShotAction_PlaysThroughItsWindow_AndHolds()
+    {
+        Assert.AreEqual(3.0f, ActionClipTiming.Play(0.5f, 0.6f, 0f, 6f), 1e-4f, "starts at the window start");
+        Assert.AreEqual(3.3f, ActionClipTiming.Play(0.5f, 0.6f, 0.3f, 6f), 1e-4f);
+        Assert.AreEqual(3.6f, ActionClipTiming.Play(0.5f, 0.6f, 5f, 6f), 1e-4f, "holds the window end");
     }
 }

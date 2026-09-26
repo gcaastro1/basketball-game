@@ -168,7 +168,24 @@ namespace Basket.Gameplay
             PlayerEntity player = players[index];
             bool holding = ball.CurrentHolder == player.transform;
             UpdateCharacter(index, player, command, holding, live, dt);
-            player.Motor.Tick(command.Move, command.Sprint, dt);
+            // Shooters square up to the basket; a defender in guard faces the ball, slides slower
+            // and cannot sprint.
+            bool guarding = command.Guard && !holding && live;
+            player.IsGuarding = guarding;
+            Vector3? face = null;
+            float speedMultiplier = 1f;
+            bool sprint = command.Sprint;
+            if (shotSystem.IsShooting(index))
+            {
+                face = snapshot.GetAttackingHoop(player.Team);
+            }
+            else if (guarding)
+            {
+                face = ball.Position;
+                speedMultiplier = player.Motor.Config.guardSpeedMultiplier;
+                sprint = false;
+            }
+            player.Motor.Tick(command.Move, sprint, dt, face, speedMultiplier);
 
             if (live || freeThrow) shotSystem.Tick(index, player, command, snapshot, time);
             if (shotSystem.IsShooting(index)) return;

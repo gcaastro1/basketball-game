@@ -34,6 +34,8 @@ namespace Basket.Presentation
         public float SinceTeamScored;
         // The other team has the ball.
         public bool Defending;
+        // Holding the defensive guard stance (Guard button / AI on the ball).
+        public bool Guarding;
     }
 
     public readonly struct PlayerAnimOutput
@@ -77,7 +79,7 @@ namespace Basket.Presentation
             if (i.SincePass < PassPoseSeconds) return AnimPose.Pass;
             if (!i.Grounded) return i.Defending ? AnimPose.Block : AnimPose.Airborne;
             if (i.HasBall) return speedRatio > DribbleSpeedRatio ? AnimPose.Dribble : AnimPose.HoldBall;
-            if (i.Defending) return AnimPose.Defense;
+            if (i.Guarding) return AnimPose.Defense;
             if (i.SinceTeamScored < CelebrateSeconds && speedRatio < 0.5f) return AnimPose.Celebrate;
             return AnimPose.Locomotion;
         }

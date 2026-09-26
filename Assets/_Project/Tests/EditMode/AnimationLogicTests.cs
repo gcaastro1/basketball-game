@@ -43,10 +43,12 @@ public class AnimationLogicTests
     }
 
     [Test]
-    public void Mapper_Defender_StancesOnTheGroundAndBlocksInTheAir()
+    public void Mapper_Defender_StancesOnlyInGuard_AndBlocksInTheAir()
     {
         var i = Standing();
         i.Defending = true;
+        Assert.AreEqual(AnimPose.Locomotion, AnimationStateMapper.Map(i).Pose, "no stance without the guard button");
+        i.Guarding = true;
         Assert.AreEqual(AnimPose.Defense, AnimationStateMapper.Map(i).Pose);
         i.Grounded = false;
         Assert.AreEqual(AnimPose.Block, AnimationStateMapper.Map(i).Pose);

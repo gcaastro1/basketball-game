@@ -1,75 +1,89 @@
 namespace Basket.Presentation
 {
-    // Weights and playback rates of the locomotion clips for a given ground speed: idle ->
-    // walk -> run by speed, with the backward clip taking over as the movement turns away
-    // from where the body faces. Playback follows the real speed only a little (0.8-1.15x):
-    // scaling it all the way (up to 1.6x) made every run and sprint look fast-forwarded.
-    public readonly struct LocomotionWeights
+    // How a locomotion clip set is mixed for the body's movement:
+    //   idle -> moving by speed (full at the set's moveSpeed);
+    //   moving split by direction relative to the facing: forward / backward / left / right;
+    //   the forward share turns into running above moveSpeed (or at any speed when the set has
+    //   no forward walk clip), and running bends into the turn clips by the turning rate.
+    // Missing clips hand their share to the closest one that exists. Playback follows the real
+    // speed only a little (0.8-1.15x): scaling it all the way made runs look fast-forwarded.
+    public struct LocomotionInput
     {
-        public readonly float Idle, Walk, Run, Back;
-        public readonly float WalkRate, RunRate, BackRate;
+        public float Speed;        // horizontal m/s
+        public float Forward;      // m/s along the facing
+        public float Right;        // m/s to the body's right
+        public float YawRate;      // degrees/s, positive = turning right
+        public float MoveSpeed;
+        public float RunSpeed;
+        public bool HasForward, HasBackward, HasLeft, HasRight, HasRun, HasTurnLeft, HasTurnRight;
+    }
 
-        public LocomotionWeights(float idle, float walk, float run, float back, float walkRate, float runRate, float backRate)
-        {
-            Idle = idle;
-            Walk = walk;
-            Run = run;
-            Back = back;
-            WalkRate = walkRate;
-            RunRate = runRate;
-            BackRate = backRate;
-        }
+    public struct LocomotionMix
+    {
+        public float Idle, Forward, Backward, Left, Right, Run, TurnLeft, TurnRight;
+        public float MoveRate, RunRate;
+
+        public float Sum => Idle + Forward + Backward + Left + Right + Run + TurnLeft + TurnRight;
+        public float Running => Run + TurnLeft + TurnRight;
     }
 
     public static class LocomotionBlend
     {
         public const float MinRate = 0.8f;
         public const float MaxRate = 1.15f;
+        // Turning this fast (degrees/s) or more while running uses the turn clip alone.
+        public const float FullTurnRate = 180f;
 
-        // speed: horizontal m/s; forward: its component along the body's facing (m/s).
-        public static LocomotionWeights Compute(float speed, float forward, float walkSpeed, float runSpeed, bool hasWalk, bool hasBack)
+        public static LocomotionMix Compute(in LocomotionInput i)
         {
-            speed = speed < 0f ? 0f : speed;
-            walkSpeed = walkSpeed > 0.1f ? walkSpeed : 1.5f;
-            runSpeed = runSpeed > walkSpeed ? runSpeed : walkSpeed + 1f;
-
-            // Forward (or sideways) gait: idle -> walk -> run.
-            float idle, walk = 0f, run;
-            if (hasWalk)
+            var mix = new LocomotionMix { MoveRate = 1f, RunRate = 1f };
+            float moveSpeed = i.MoveSpeed > 0.1f ? i.MoveSpeed : 1.5f;
+            float runSpeed = i.RunSpeed > moveSpeed ? i.RunSpeed : moveSpeed + 1f;
+            float speed = i.Speed > 0f ? i.Speed : 0f;
+            if (speed < 0.01f)
             {
-                if (speed <= walkSpeed)
-                {
-                    walk = speed / walkSpeed;
-                    idle = 1f - walk;
-                    run = 0f;
-                }
-                else
-                {
-                    run = Clamp01((speed - walkSpeed) / (runSpeed - walkSpeed));
-                    walk = 1f - run;
-                    idle = 0f;
-                }
-            }
-            else
-            {
-                run = Clamp01(speed / runSpeed);
-                idle = 1f - run;
+                mix.Idle = 1f;
+                return mix;
             }
 
-            // Backpedal: share of the moving weight that goes to the backward clip.
-            float back = 0f;
-            if (hasBack && speed > 0.01f)
-            {
-                float away = Clamp01(-forward / speed);          // 1 straight back, 0 sideways
-                back = Clamp01((away - 0.3f) / 0.5f) * (1f - idle);
-                float keep = 1f - idle > 0.0001f ? (1f - idle - back) / (1f - idle) : 1f;
-                walk *= keep;
-                run *= keep;
-            }
+            float moving = Clamp01(speed / moveSpeed);
+            mix.Idle = 1f - moving;
 
-            float walkRate = Rate(speed, walkSpeed);
-            float runRate = Rate(speed, runSpeed);
-            return new LocomotionWeights(idle, walk, run, back, walkRate, runRate, runRate);
+            // Direction shares (cosine lobes), missing clips folded into the nearest.
+            float cf = Clamp(i.Forward / speed, -1f, 1f), cr = Clamp(i.Right / speed, -1f, 1f);
+            float f = Max0(cf), b = Max0(-cf), r = Max0(cr), l = Max0(-cr);
+            bool canForward = i.HasForward || i.HasRun;
+            if (!i.HasRight) { if (cf >= 0f || !i.HasBackward) f += r; else b += r; r = 0f; }
+            if (!i.HasLeft) { if (cf >= 0f || !i.HasBackward) f += l; else b += l; l = 0f; }
+            if (!i.HasBackward) { f += b; b = 0f; }
+            if (!canForward) { b += f; f = 0f; }
+            float total = f + b + l + r;
+            if (total < 0.0001f)
+            {
+                mix.Idle = 1f;
+                return mix;
+            }
+            f *= moving / total;
+            b *= moving / total;
+            l *= moving / total;
+            r *= moving / total;
+
+            // Forward share: walk clip below moveSpeed, run above (always run without a walk clip).
+            float runShare = !i.HasRun ? 0f : !i.HasForward ? 1f : Clamp01((speed - moveSpeed) / (runSpeed - moveSpeed));
+            float run = f * runShare;
+            mix.Forward = f - run;
+            mix.Backward = b;
+            mix.Left = l;
+            mix.Right = r;
+
+            float turn = Clamp(i.YawRate / FullTurnRate, -1f, 1f);
+            mix.TurnRight = i.HasTurnRight ? run * Max0(turn) : 0f;
+            mix.TurnLeft = i.HasTurnLeft ? run * Max0(-turn) : 0f;
+            mix.Run = run - mix.TurnRight - mix.TurnLeft;
+
+            mix.MoveRate = Rate(speed, moveSpeed);
+            mix.RunRate = Rate(speed, runSpeed);
+            return mix;
         }
 
         private static float Rate(float speed, float clipSpeed)
@@ -78,6 +92,8 @@ namespace Basket.Presentation
             return r < MinRate ? MinRate : (r > MaxRate ? MaxRate : r);
         }
 
+        private static float Max0(float v) => v > 0f ? v : 0f;
         private static float Clamp01(float v) => v < 0f ? 0f : (v > 1f ? 1f : v);
+        private static float Clamp(float v, float lo, float hi) => v < lo ? lo : (v > hi ? hi : v);
     }
 }

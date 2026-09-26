@@ -55,7 +55,7 @@ namespace Basket.UI
             {
                 for (int i = 0; i < ais.Count; i++) Line(ref y, $"AI {i}: {ais[i].CurrentState}");
             }
-            Line(ref y, "WASD move | Shift sprint | Space: shoot (hold, release at top) / jump | E: pass / steal");
+            Line(ref y, "WASD move | Shift sprint | Space: shoot (hold, release at top) / jump | E: pass / steal | Ctrl (hold): defensive guard | Q: ability");
             if (stats != null && showStats)
             {
                 y += 6f;

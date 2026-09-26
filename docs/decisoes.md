@@ -29,6 +29,7 @@ de troca.
 | D-021 | Ligação do meta ao jogo (Etapa 8.5): `IPlayerProfileReadOnly` em Core (UI continua só conhecendo Core, mesmo padrão do gameplay); `CharacterCatalog` novo para `characterId → CharacterDefinition`; coordenador `ProfileRuntimeService` é POCO em `Basket.Meta`, não lógica no `GameBootstrap` | Aceita |
 | D-022 | Clipes reais + procedural híbridos (Etapa 6.5): locomoção por velocidade (parado/andar/correr/de costas) com playback na velocidade real; drible/segurar bola numa camada só da parte de cima (máscara), pernas continuam; procedural por cima só nas poses sem clipe; clipes ligados por script de editor (IDs internos do FBX) | Aceita (mapeamento pose → clipe: **provisório**, trocável no Inspector) |
 | D-023 | Câmera de transmissão: atrás e acima do jogador seguido, sempre virada para a cesta atacada pelo time com a bola; vira suavemente (só no ângulo horizontal) quando o ataque troca de lado | Aceita (valores em `DefaultCameraConfig`: **provisórios**) |
+| D-024 | Guarda defensiva por botão (Ctrl / LT, segurado, sem a bola): mais devagar (×0,75), sem sprint, de frente para a bola; IA entra em guarda ao marcar a bola a ≤ 3 m. Arremessador vira para a cesta. Velocidade 4,5 m/s (sprint ×1,45 = 6,5) | Aceita (valores: **provisórios**) |
 | P-001 | Modo B (controle do time) | **Pendente** — ponto de encaixe pronto: `ITeamStrategy` (e `IAgentController`) |
 | P-003 | Gacha definitivo (raridades, taxas, pity, custos, moedas) | **Provisória**: 3 níveis genéricos, 3/17/80%, pity 80 (soft 65, +6%), 50/50 com garantia, multi de 10 com garantia de nível 2 — tudo em `Data/Meta/StandardBanner.asset` |
 | P-002 | Semântica dos Limit Breaks | **Provisória**: 4 LBs (20→40, 40→50, 50→60, "Awakening" no 60 sem novo teto), tudo em `DefaultProgressionConfig` |
@@ -400,4 +401,28 @@ até 1,6× (jogador a 6 m/s, sprint a 9,6 m/s).
 velocidade, em vez de parecer acelerado) e `playbackSpeed` global no `CharacterAnimationClips` para
 ajuste no Inspector. A velocidade de movimento do jogo (`maxSpeed` 6, `sprintMultiplier` 1,6) fica
 como está até decisão do usuário.
+
+## D-022 (adendo 3) — Só animações de basquete, em conjuntos
+
+**Contexto.** Teste do usuário: "ainda está muito acelerado"; usar todas as animações da pasta
+`Basquete` e apenas elas; andar em defesa estranho. Análise dos FBX: as takes declaram durações muito
+maiores que o movimento (corrida: take de 88,5 s, curvas até 0,93 s; jump shot 11 s vs 6,6 s) e o
+Unity dimensiona o clipe pela take (a corrida mexia 1 s e ficava parada 87); todo take começa com um
+quadro de calibração.
+
+**Decisão.**
+- `FbxCurveSpan` (leitor de FBX binário) + importador v3: cada take de captura (`*_remap`) vira um
+  clipe do primeiro ao último quadro-chave, sem o quadro de calibração, mais uma cópia espelhada
+  (`<nome>_Mirror`) para o outro lado. Taxa "30 fps drop-frame" corrigida antes da importação.
+- Clipes em três conjuntos de locomoção (sem bola / com bola / em guarda), cada um com parado,
+  frente, costas, esquerda, direita, corrida e curvas de corrida (`LocomotionBlend` por velocidade,
+  direção relativa ao corpo e giro); tempo de cada clipe controlado pelo código, com janelas de loop
+  para usar trechos de tomadas longas (`LoopClip`).
+- Arremessos com variações: parado (jump shot, shoot) e em movimento (drible+arremesso, crossover+
+  arremesso), um por arremesso, em rodízio; bandeja; enterrada = bandeja; lance livre; pulo sem bola e
+  toco = o pulo do jump shot. Janelas em segundos da gravação medidas nas curvas.
+- Sem clipe na pasta: passe e comemoração (procedurais). Não usados ainda: fintas, giros, crossovers,
+  drives, dribles com curva de 90°, pivô, sinais de árbitro, dança, calibração — pedem comandos novos
+  (etapa de movimentos com a bola).
+- Clipes do Mixamo e da UAL deixam de ser usados (continuam no projeto).
 

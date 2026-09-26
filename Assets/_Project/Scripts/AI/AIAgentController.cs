@@ -265,7 +265,8 @@ namespace Basket.AI
                 float aggression = tendencies.stealAggression > 0.01f ? tendencies.stealAggression : 1f;
                 nextStealTime = p.Time + config.stealIntervalSeconds / aggression * (0.5f + (float)rng.NextDouble());
             }
-            return new PlayerCommand(MoveToward(p.SelfPosition, target, arrival), sprint: sprint, jump: block, steal: steal);
+            bool stance = onBall && !sprint && p.SelfGrounded && toHandler <= config.guardStanceDistance;
+            return new PlayerCommand(MoveToward(p.SelfPosition, target, arrival), sprint: sprint, jump: block, steal: steal, guard: stance);
         }
 
         // Standard normal sample (Box-Muller).
