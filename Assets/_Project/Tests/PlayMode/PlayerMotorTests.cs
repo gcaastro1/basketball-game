@@ -62,10 +62,10 @@ public class PlayerMotorTests
     // A body in the air cannot twist around: steering mid-jump bends the path a little but
     // the facing stays (it used to swing sideways right after a shot).
     [UnityTest]
-    public IEnumerator Airborne_SteeringDoesNotTurnTheBody()
+    public IEnumerator Airborne_SteeringDoesNotTurnTheBody_LandingDoes()
     {
         var floor = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        floor.transform.localScale = new Vector3(10f, 0.2f, 10f);
+        floor.transform.localScale = new Vector3(40f, 0.2f, 40f); // wide: the air drift must land on it
         floor.transform.position = new Vector3(0f, -0.1f, 0f);
         var config = ScriptableObject.CreateInstance<PlayerMovementConfig>();
         PlayerEntity player = PlaceholderPlayerFactory.Create("Jumper", Basket.Core.TeamId.Home, config, Color.gray, Color.yellow);
@@ -84,6 +84,9 @@ public class PlayerMotorTests
         }
         Assert.Less(maxTurn, 1f, "no twisting in the air");
         Debug.Log($"Airborne steering: max turn {maxTurn:0.0} deg, landed {motor.IsGrounded} at {player.transform.position}");
+        Assert.IsTrue(motor.IsGrounded, "lands");
+        for (int i = 0; i < 25; i++) motor.Tick(new Vector2(1f, 0f), false, 0.02f);
+        Assert.Greater(Quaternion.Angle(start, player.transform.rotation), 30f, "turns once on the floor");
 
         Object.Destroy(player.gameObject);
         Object.Destroy(floor);

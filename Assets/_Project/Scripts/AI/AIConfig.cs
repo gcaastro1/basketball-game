@@ -34,6 +34,10 @@ namespace Basket.AI
         public float driveFinishDistance = 1.8f;
         // Minimum time holding the ball before a shot (no instant catch-and-fire loops).
         public float minHoldSecondsBeforeShot = 0.5f;
+        // After clearing the ball (3x3), the offense sets up this long before the handler's
+        // shoot / pass / drive decision (it counts as holding from the clear): clearing and
+        // shooting at once, before any defender could close out, left 3x3 without passes.
+        public float settleAfterClearSeconds = 1.0f;
         // Std-dev of release timing around the jump apex (0 = perfect every time).
         public float releaseTimingJitterSeconds = 0.06f;
         // A jump shot starts only once the shooter has slowed below this (m/s): they stop

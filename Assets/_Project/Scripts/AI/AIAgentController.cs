@@ -15,6 +15,7 @@ namespace Basket.AI
         private readonly System.Random rng;
 
         private float attackStartTime;
+        private bool wasClearing;
         private bool drivingThisPossession;
         private bool shotInProgress;
         private float releaseOffsetSeconds;
@@ -118,6 +119,10 @@ namespace Basket.AI
                 return new PlayerCommand(Vector2.zero, shootHeld: !release);
             }
 
+            // Done clearing: the team sets up from here (see settleAfterClearSeconds).
+            if (wasClearing && !p.MustClear)
+                attackStartTime = p.Time + config.settleAfterClearSeconds - config.minHoldSecondsBeforeShot;
+            wasClearing = p.MustClear;
             if (p.MustClear)
             {
                 // 3x3: take the ball beyond the arc before looking to score.
