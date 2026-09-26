@@ -12,21 +12,202 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e0d6fa20df61451995f2d7b25ff9523f, type: 3}
   m_Name: DefaultCharacterVisual
   m_EditorClassIdentifier: Basket.Characters::Basket.Characters.CharacterVisualDefinition
-  modelPrefab: {fileID: 919132149155446097, guid: c7d2d4c156ce1b740af5b12613ddbac7, type: 3}
-  modelHeight: 1.68
+  modelPrefab: {fileID: 919132149155446097, guid: 81bb9eea30387e442899949a80011e55, type: 3}
+  modelHeight: 1.8
   yawOffsetDegrees: 0
   overrideMaterials: 1
-  baseMap: {fileID: 2800000, guid: 659c53d79d0b3534e81e670da8f8c874, type: 3}
+  baseMap: {fileID: 0}
   clips:
-    idle: {fileID: 0}
-    run: {fileID: 0}
-    dribble: {fileID: 0}
-    holdBall: {fileID: 0}
-    defense: {fileID: 0}
-    jumpShot: {fileID: 0}
-    layup: {fileID: 0}
-    dunk: {fileID: 0}
-    pass: {fileID: 0}
-    block: {fileID: 0}
-    airborne: {fileID: 0}
-    celebrate: {fileID: 0}
+    free:
+      idle:
+        clip: {fileID: -1695994301879622127, guid: 7f8a490c2c0b8234c923af103e25fa09, type: 3}
+        from: 0.6840101
+        to: 0.7601522
+        reverse: 0
+      forward:
+        clip: {fileID: 0}
+        from: 0
+        to: 0
+        reverse: 0
+      backward:
+        clip: {fileID: 0}
+        from: 0
+        to: 0
+        reverse: 0
+      left:
+        clip: {fileID: 0}
+        from: 0
+        to: 0
+        reverse: 0
+      right:
+        clip: {fileID: 0}
+        from: 0
+        to: 0
+        reverse: 0
+      run:
+        clip: {fileID: 1276554151355037085, guid: 9c07d8e8c0ef1f545bc09d7a38909119, type: 3}
+        from: 0
+        to: 1
+        reverse: 0
+      runTurnLeft:
+        clip: {fileID: -5966854608649423899, guid: d5447f9d54799984eb4052e0ff2965b8, type: 3}
+        from: 0
+        to: 1
+        reverse: 0
+      runTurnRight:
+        clip: {fileID: -7911303198779574586, guid: a6f80bd16c9f68d4484e912a3761b4f1, type: 3}
+        from: 0
+        to: 1
+        reverse: 0
+      moveSpeed: 1.5
+      runSpeed: 4
+    withBall:
+      idle:
+        clip: {fileID: -7719264907022405827, guid: 5ff65d368f38c23449a90d98e41e6d3f, type: 3}
+        from: 0.011049723
+        to: 0.15193368
+        reverse: 0
+      forward:
+        clip: {fileID: 2690570975491581429, guid: 344723d4013ce2f44ae68e8b7a1a8c41, type: 3}
+        from: 0.14285713
+        to: 0.8469387
+        reverse: 0
+      backward:
+        clip: {fileID: -7115244112544354414, guid: 343d90f55377fc24999dcd1f49082454, type: 3}
+        from: 0.13999999
+        to: 0.86
+        reverse: 0
+      left:
+        clip: {fileID: -9023232736527643687, guid: 32516bb50deaf214b8ad11976b7646c2, type: 3}
+        from: 0.12941176
+        to: 0.8705882
+        reverse: 0
+      right:
+        clip: {fileID: -2762197070796644060, guid: 32516bb50deaf214b8ad11976b7646c2, type: 3}
+        from: 0.12941176
+        to: 0.8705882
+        reverse: 0
+      run:
+        clip: {fileID: 1276554151355037085, guid: 9c07d8e8c0ef1f545bc09d7a38909119, type: 3}
+        from: 0
+        to: 1
+        reverse: 0
+      runTurnLeft:
+        clip: {fileID: -5966854608649423899, guid: d5447f9d54799984eb4052e0ff2965b8, type: 3}
+        from: 0
+        to: 1
+        reverse: 0
+      runTurnRight:
+        clip: {fileID: -7911303198779574586, guid: a6f80bd16c9f68d4484e912a3761b4f1, type: 3}
+        from: 0
+        to: 1
+        reverse: 0
+      moveSpeed: 1.3
+      runSpeed: 4
+    guard:
+      idle:
+        clip: {fileID: -5929955989667048688, guid: 6977f06cb82877c4cbf450ef6d1843ce, type: 3}
+        from: 0.0068493146
+        to: 0.0068493146
+        reverse: 0
+      forward:
+        clip: {fileID: -1042902737736466554, guid: aa82b954eb01cc443b09215eda5f4732, type: 3}
+        from: 0.13114753
+        to: 0.8688523
+        reverse: 0
+      backward:
+        clip: {fileID: -1042902737736466554, guid: aa82b954eb01cc443b09215eda5f4732, type: 3}
+        from: 0.13114753
+        to: 0.8688523
+        reverse: 1
+      left:
+        clip: {fileID: 7666564788384608844, guid: 8b5a0c3df148d864cba152aa9ae75c44, type: 3}
+        from: 0.047619045
+        to: 0.9404761
+        reverse: 0
+      right:
+        clip: {fileID: -5757149613676430384, guid: 8b5a0c3df148d864cba152aa9ae75c44, type: 3}
+        from: 0.047619045
+        to: 0.9404761
+        reverse: 0
+      run:
+        clip: {fileID: 0}
+        from: 0
+        to: 0
+        reverse: 0
+      runTurnLeft:
+        clip: {fileID: 0}
+        from: 0
+        to: 0
+        reverse: 0
+      runTurnRight:
+        clip: {fileID: 0}
+        from: 0
+        to: 0
+        reverse: 0
+      moveSpeed: 2.5
+      runSpeed: 4
+    dribbleUpperBody:
+      clip: {fileID: 2690570975491581429, guid: 344723d4013ce2f44ae68e8b7a1a8c41, type: 3}
+      from: 0.14285713
+      to: 0.8469387
+      reverse: 0
+    holdBall:
+      clip: {fileID: 0}
+      from: 0
+      to: 0
+      reverse: 0
+    jumpShots:
+    - clip: {fileID: 7100330683614207621, guid: 6b6af349b1f7dc9469c94292dc1d610f, type: 3}
+      window:
+        start: 0.45634514
+        release: 0.5172589
+    - clip: {fileID: -9079710841767445568, guid: c82a4faf3973a334a9fa74c868cac483, type: 3}
+      window:
+        start: 0.47458333
+        release: 0.51708335
+    jumpShotsMoving:
+    - clip: {fileID: -7580858245864702808, guid: a552e5456bf968741821775598084843, type: 3}
+      window:
+        start: 0.5529411
+        release: 0.6323529
+    - clip: {fileID: -5472612865768438084, guid: 2a389faae8ca27543b569b9c896693f2, type: 3}
+      window:
+        start: 0.5210084
+        release: 0.5966387
+    layup:
+      clip: {fileID: -3657674074738342631, guid: 2aa010f4a37be7443a1f40c89878e5ab, type: 3}
+      window:
+        start: 0.49710983
+        release: 0.58901733
+    dunk:
+      clip: {fileID: -3657674074738342631, guid: 2aa010f4a37be7443a1f40c89878e5ab, type: 3}
+      window:
+        start: 0.49710983
+        release: 0.58901733
+    freeThrow:
+      clip: {fileID: -7719264907022405827, guid: 5ff65d368f38c23449a90d98e41e6d3f, type: 3}
+      window:
+        start: 0.66906077
+        release: 0.735359
+    pass:
+      clip: {fileID: 0}
+      window:
+        start: 0
+        release: 0
+    block:
+      clip: {fileID: 7100330683614207621, guid: 6b6af349b1f7dc9469c94292dc1d610f, type: 3}
+      window:
+        start: 0.45634514
+        release: 0.58883244
+    airborne:
+      clip: {fileID: 7100330683614207621, guid: 6b6af349b1f7dc9469c94292dc1d610f, type: 3}
+      window:
+        start: 0.45634514
+        release: 0.58883244
+    celebrate:
+      clip: {fileID: 0}
+      window:
+        start: 0
+        release: 0
+    playbackSpeed: 1

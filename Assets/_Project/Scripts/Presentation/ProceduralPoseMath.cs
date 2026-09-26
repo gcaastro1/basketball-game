@@ -63,6 +63,7 @@ namespace Basket.Presentation
                     c.KneeBendR = Max(c.KneeBendR, 0.45f);
                     break;
                 case AnimPose.JumpShot:
+                case AnimPose.FreeThrow:
                     // Gather low, rise with the ball overhead, extend the elbows at release.
                     SetArms(ref c, raise: Lerp(0.55f, 1f, t), elbow: Lerp(0.85f, 0.1f, t), swing: 0.5f);
                     c.ArmRaiseL = Lerp(0.5f, 0.85f, t);

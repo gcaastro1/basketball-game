@@ -35,7 +35,8 @@ namespace Basket.Gameplay
                 ball.SetHeldLocalOffset(Vector3.zero);
                 return;
             }
-            phase += dt * config.dribbleFrequency * Mathf.PI * 2f;
+            // |sin| bounces twice per 2*pi: advance pi per bounce so the setting is bounces/s.
+            phase += dt * config.dribbleFrequency * Mathf.PI;
             float offsetY = DribbleMath.ComputeBounceOffsetY(phase, config.dribbleBounceHeight);
             ball.SetHeldLocalOffset(Vector3.up * offsetY);
         }

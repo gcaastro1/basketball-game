@@ -60,7 +60,7 @@ public class VerticalSliceIntegrationTests
         Assert.AreEqual(MatchPhase.Live, sim.Match.State.Phase);
         Assert.AreEqual(6, sim.Players.Count, "the scene plays 3v3");
         Assert.AreEqual(BallState.Held, sim.Ball.CurrentState, "match starts with a check ball");
-        Assert.AreEqual(6, Object.FindObjectsByType<CharacterVisual>(FindObjectsSortMode.None).Length, "every player has a character model");
+        Assert.AreEqual(6, CountInScene<CharacterVisual>(), "every player has a character model");
 
         float elapsed = 0f;
         while (elapsed < 10f)
@@ -81,7 +81,7 @@ public class VerticalSliceIntegrationTests
         MatchSimulation sim = bootstrap.Simulation;
         Assert.IsNotNull(sim);
         Assert.AreEqual(10, sim.Players.Count, "the scene plays 5v5");
-        Assert.AreEqual(2, Object.FindObjectsByType<HoopController>(FindObjectsSortMode.None).Length, "full court: two baskets");
+        Assert.AreEqual(2, CountInScene<HoopController>(), "full court: two baskets");
         Assert.AreEqual(BallState.Free, sim.Ball.CurrentState, "the game starts with a jump ball");
 
         float elapsed = 0f;
@@ -107,5 +107,15 @@ public class VerticalSliceIntegrationTests
         yield return match.RunUntil(() => match.Sim.Match.State.Phase == MatchPhase.Live, 2f);
         Assert.AreEqual(MatchPhase.Live, match.Sim.Match.State.Phase);
         Assert.AreEqual(BallState.Held, match.Sim.Ball.CurrentState, "possession restarted with a check ball");
+    }
+
+    // Components of type T in the loaded scene (FindObjectsByType's sort-mode overload is
+    // obsolete in Unity 6.x and its replacement does not exist in older versions).
+    private static int CountInScene<T>() where T : Component
+    {
+        int n = 0;
+        foreach (GameObject root in SceneManager.GetActiveScene().GetRootGameObjects())
+            n += root.GetComponentsInChildren<T>(true).Length;
+        return n;
     }
 }

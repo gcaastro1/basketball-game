@@ -26,6 +26,8 @@ namespace Basket.Gameplay
         public AttributeTuning Tuning { get; private set; }
         // 0..1 tank; see AttributeTuning stamina.
         public float Stamina { get; set; } = 1f;
+        // In defensive guard this tick (Guard held without the ball): presentation shows the stance.
+        public bool IsGuarding { get; set; }
 
         public void SetCharacter(string characterName, IPlayerAttributes attributes, PlayerAbilities abilities, AITendencies tendencies)
         {

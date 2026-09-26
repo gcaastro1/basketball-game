@@ -12,5 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 26086e76d2b45734b96acda56d802bf7, type: 3}
   m_Name: DefaultCameraConfig
   m_EditorClassIdentifier: Basket.Gameplay::Basket.Gameplay.CameraConfig
-  offset: {x: 0, y: 6, z: -8}
+  distance: 7
+  height: 3.6
+  lookHeight: 1.4
+  lookAhead: 0.35
+  maxLookAhead: 4
+  aimAtHoop: 0.3
+  turnSmoothing: 3
+  fieldOfView: 55
   followSmoothing: 8
+  offset: {x: 0, y: 6, z: -8}

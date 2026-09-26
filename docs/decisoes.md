@@ -27,6 +27,10 @@ de troca.
 | D-019 | Visual em assembly próprio (`Presentation`) que só lê o gameplay; modelo Humanoid; animação procedural por músculos até existirem clipes; clipes por Playables (sem Animator Controller) | Aceita (valores do procedural: **provisórios**) |
 | D-020 | Meta em assembly próprio (`Basket.Meta`, só Core + Characters): dados (SO), regras puras e serviços separados; apresentação fora; save versionado com checksum, escrita atômica e backup | Aceita |
 | D-021 | Ligação do meta ao jogo (Etapa 8.5): `IPlayerProfileReadOnly` em Core (UI continua só conhecendo Core, mesmo padrão do gameplay); `CharacterCatalog` novo para `characterId → CharacterDefinition`; coordenador `ProfileRuntimeService` é POCO em `Basket.Meta`, não lógica no `GameBootstrap` | Aceita |
+| D-022 | Clipes reais + procedural híbridos (Etapa 6.5): locomoção por velocidade (parado/andar/correr/de costas) com playback na velocidade real; drible/segurar bola numa camada só da parte de cima (máscara), pernas continuam; procedural por cima só nas poses sem clipe; clipes ligados por script de editor (IDs internos do FBX) | Aceita (mapeamento pose → clipe: **provisório**, trocável no Inspector) |
+| D-023 | Câmera de transmissão: atrás e acima do jogador seguido, sempre virada para a cesta atacada pelo time com a bola; vira suavemente (só no ângulo horizontal) quando o ataque troca de lado | Aceita (valores em `DefaultCameraConfig`: **provisórios**) |
+| D-024 | Guarda defensiva por botão (Ctrl / LT, segurado, sem a bola): mais devagar (×0,75), sem sprint, de frente para a bola; IA entra em guarda ao marcar a bola a ≤ 3 m. Arremessador vira para a cesta. Velocidade 4,5 m/s (sprint ×1,45 = 6,5) | Aceita (valores: **provisórios**) |
+| D-025 | Personagem padrão Banana Man (1,8 m, provisório); materiais convertidos para URP um a um. Starter Assets (controles 1ª/3ª pessoa) e Cinemachine ficam como referência: o jogo mantém motor/input/câmera próprios | Aceita |
 | P-001 | Modo B (controle do time) | **Pendente** — ponto de encaixe pronto: `ITeamStrategy` (e `IAgentController`) |
 | P-003 | Gacha definitivo (raridades, taxas, pity, custos, moedas) | **Provisória**: 3 níveis genéricos, 3/17/80%, pity 80 (soft 65, +6%), 50/50 com garantia, multi de 10 com garantia de nível 2 — tudo em `Data/Meta/StandardBanner.asset` |
 | P-002 | Semântica dos Limit Breaks | **Provisória**: 4 LBs (20→40, 40→50, 50→60, "Awakening" no 60 sem novo teto), tudo em `DefaultProgressionConfig` |
@@ -302,3 +306,153 @@ primeiro slot humano em `matchSetup.slots`), não de um lado fixo.
 humano no time Away sem ajustar essa suposição em `GameBootstrap` vai inverter silenciosamente
 vitória/derrota nas recompensas de partida — ponto de atenção para quem tocar isso antes desta
 decisão ser revisitada.
+
+## D-022 — Clipes reais + procedural híbridos (Etapa 6.5)
+
+**Contexto.** Chegaram clipes reais (Mixamo: Idle, Offensive Idle, Walking, Running, Running
+Backward, Dribble; Universal Animation Library, CC0) mas não os de arremesso/passe/bandeja/enterrada
+(pacote a comprar). O backend de clipes da Etapa 6 era tudo-ou-nada e trocava o corpo inteiro por
+ação (um drible pararia as pernas).
+
+**Decisão.**
+- Camada 0 (corpo inteiro): locomoção misturada por velocidade (`LocomotionBlend`, puro): parado →
+  andar → correr, e "de costas" conforme o movimento se afasta da frente do corpo; playback escalado
+  para os pés andarem na velocidade real (0,6–1,6×). Clipes de ação de corpo inteiro por cima.
+- Camada 1 (máscara: tronco, braços, cabeça): drible e segurar a bola sobre a locomoção.
+- Poses sem clipe continuam procedurais, misturadas por cima dos clipes (`ProceduralHumanoidAnimator.Apply(..., weight)`).
+- Importação (`CharacterAnimationImporter`): loops para idle/andar/correr/drible/`*_Loop`; rotação e
+  altura na pose; movimento horizontal fica na raiz e nunca é aplicado (no lugar).
+- Ligação dos clipes (`CharacterClipBinder`): os clipes dentro do FBX têm IDs gerados pelo Unity, então
+  um script de editor preenche os slots vazios do `DefaultCharacterVisual` (ao importar, ao abrir o
+  editor e pelo menu **Basket → Bind Character Animations**); o que for posto no Inspector prevalece.
+
+**Consequências.** O pacote comprado entra só preenchendo slots (`jumpShot`, `layup`, `dunk`, `pass`,
+`block`...), sem código. Gameplay continua sem ler nada da apresentação.
+
+### D-022 (adendo) — Animações de basquete (captura de movimento)
+
+**Contexto.** Chegaram 69 clipes de basquete em `Animations/Basquete` (captura de movimento, um só
+esqueleto `CharacterArmature`, mapeado como Humanoid): arremessos, bandeja, lance livre, dribles em
+várias direções, crossovers/giros/fintas, deslizes de defesa, corridas e sinais de árbitro. São longos
+(o jump shot tem 6,5 s, com segundos de parado e drible antes do arremesso).
+
+**Decisão.**
+- Pose própria para lance livre (`AnimPose.FreeThrow`; proceduralmente igual ao jump shot).
+- Arremessos (jump shot, bandeja, enterrada, lance livre) tocam **em sincronia com o arremesso do
+  jogo**: o progresso do arremesso (0 = início, 1 = soltura no ápice) leva o clipe do agachamento
+  (`start`) até a soltura (`release`), numa janela por clipe (`ClipWindow`, `ActionClipTiming`); depois
+  da soltura o clipe segue sozinho. Janelas medidas na altura do quadril de cada clipe (lendo as curvas
+  do FBX): jump shot 0,464–0,526; bandeja 0,503–0,595; lance livre 0,824–0,905.
+- Defesa: `defenseMove` (deslize lateral) quando o defensor se move, `defense` (postura) parado.
+- Drible padrão: `basketball_forward_dribble_06_02` (drible em movimento, na camada de cima do corpo).
+- Importação: clipe de um só take recebe o nome do arquivo; arremessos, fintas, giros, paradas e curvas
+  não repetem.
+- Os 69 FBX declaram "30 fps drop-frame" (TimeMode 7), que o Unity não suporta ("Framerate was set to
+  0.00, it's been reset to 1.0"). `Editor/FbxFrameRateFixer.cs` troca para 30 fps (TimeMode 6, um byte,
+  dados intactos) ao abrir o editor e reimporta; os arquivos corrigidos são commitados de uma máquina
+  local (o ambiente do Claude na nuvem não consegue enviar arquivos novos ao Git LFS).
+
+**Consequências.** Crossovers, giros, fintas e dribles laterais/de costas ficam disponíveis para uma
+etapa de movimentos com a bola (hoje o jogo não tem esses comandos). Os valores das janelas são
+ajustáveis no Inspector do `DefaultCharacterVisual`.
+
+## D-023 — Câmera de transmissão
+
+**Contexto.** Pedido do usuário: câmera "PRO" como nos jogos de basquete, acompanhando o jogador e
+sempre virada para a direção do ataque.
+
+**Decisão.** `CameraRigMath` (puro): direção = eixo da quadra rumo à cesta atacada, girada em direção ao
+aro por `aimAtHoop` (0 = transmissão, 1 = atrás da linha jogador→aro); câmera `distance` atrás e
+`height` acima do jogador, olhando um pouco à frente dele rumo à cesta (nunca além dela).
+`CameraController` suaviza posição e rotação e vira só no ângulo horizontal. A cesta vem do
+`GameBootstrap`: a atacada pelo time com a bola (a do time do jogador quando ninguém tem a bola).
+
+**Consequências.** Em meia quadra (3x3) a câmera sempre olha para a mesma cesta; em quadra inteira ela
+dá a volta quando a posse muda. Ajustes em `Data/DefaultCameraConfig.asset`.
+
+## D-010 (revisão 2) — Arco do arremesso pelo ângulo de entrada
+
+**Contexto.** Teste do usuário: "os arremessos estão indo muito alto". O arco era fixo: topo 3,5 m acima
+do aro em qualquer distância (~6,5 m de altura, entrada a ~63°).
+
+**Decisão.** `ShotArc`: o topo fica H = D·tan(θ)/4 acima do aro (D = distância horizontal), com θ =
+`entryAngleDegrees` 47° (arremessadores reais: ~45°), entre `minArcHeight` 0,9 m e `maxArcHeight` 2,6 m:
+~1,1 m no lance livre, ~1,9 m na bola de 3. Bandeja mantém `layupArcHeight`. Habilidades continuam
+multiplicando o arco.
+
+**Consequências.** Entrada mais rasa deixa o aro "menor" para a bola: a curva de acerto física
+(`ShotCalibrationTests`) muda e os raios de erro/`calibratedMakeRadius` podem precisar de reajuste
+com os números do CI (**provisório**).
+
+## D-023 (adendo) — Movimento relativo à câmera
+
+**Contexto.** No 5v5, quando a câmera vira para a outra cesta, "para frente" continuava sendo +z do
+mundo: o jogador ia para o lado errado.
+
+**Decisão.** `HumanInputProvider.SetView`: o direcional é girado pela direção da câmera no chão
+(`CameraRelativeMove`); o `GameBootstrap` liga a câmera principal. "Para cima" é sempre para onde a
+câmera olha (o passe mirado pelo direcional segue junto).
+
+## D-022 (adendo 2) — Ritmo das animações
+
+**Contexto.** "As animações parecem em 2x." O playback da locomoção acompanhava a velocidade do jogo
+até 1,6× (jogador a 6 m/s, sprint a 9,6 m/s).
+
+**Decisão.** Playback entre 0,8× e 1,15× da velocidade do clipe (pés podem deslizar um pouco em alta
+velocidade, em vez de parecer acelerado) e `playbackSpeed` global no `CharacterAnimationClips` para
+ajuste no Inspector. A velocidade de movimento do jogo (`maxSpeed` 6, `sprintMultiplier` 1,6) fica
+como está até decisão do usuário.
+
+## D-022 (adendo 3) — Só animações de basquete, em conjuntos
+
+**Contexto.** Teste do usuário: "ainda está muito acelerado"; usar todas as animações da pasta
+`Basquete` e apenas elas; andar em defesa estranho. Análise dos FBX: as takes declaram durações muito
+maiores que o movimento (corrida: take de 88,5 s, curvas até 0,93 s; jump shot 11 s vs 6,6 s) e o
+Unity dimensiona o clipe pela take (a corrida mexia 1 s e ficava parada 87); todo take começa com um
+quadro de calibração.
+
+**Decisão.**
+- `FbxCurveSpan` (leitor de FBX binário) + importador v3: cada take de captura (`*_remap`) vira um
+  clipe do primeiro ao último quadro-chave, sem o quadro de calibração, mais uma cópia espelhada
+  (`<nome>_Mirror`) para o outro lado. Taxa "30 fps drop-frame" corrigida antes da importação.
+- Clipes em três conjuntos de locomoção (sem bola / com bola / em guarda), cada um com parado,
+  frente, costas, esquerda, direita, corrida e curvas de corrida (`LocomotionBlend` por velocidade,
+  direção relativa ao corpo e giro); tempo de cada clipe controlado pelo código, com janelas de loop
+  para usar trechos de tomadas longas (`LoopClip`).
+- Arremessos com variações: parado (jump shot, shoot) e em movimento (drible+arremesso, crossover+
+  arremesso), um por arremesso, em rodízio; bandeja; enterrada = bandeja; lance livre; pulo sem bola e
+  toco = o pulo do jump shot. Janelas em segundos da gravação medidas nas curvas.
+- Sem clipe na pasta: passe e comemoração (procedurais). Não usados ainda: fintas, giros, crossovers,
+  drives, dribles com curva de 90°, pivô, sinais de árbitro, dança, calibração — pedem comandos novos
+  (etapa de movimentos com a bola).
+- Clipes do Mixamo e da UAL deixam de ser usados (continuam no projeto).
+
+## D-025 — Banana Man e Starter Assets
+
+**Contexto.** O usuário trouxe o Banana Man (modelo humanoide, materiais Body/Joints no shader
+Standard antigo) e os Starter Assets da Unity (ThirdPersonController/FirstPersonController,
+StarterAssetsInputs, Cinemachine).
+
+**Decisão.**
+- Banana Man vira o modelo do `DefaultCharacterVisual` (altura 1,8 m, provisória); os clipes de
+  basquete continuam os mesmos (retargeting humanoide). `CharacterVisual` converte cada material para o
+  Lit do URP mantendo textura e cor (antes: uma textura só para todos os materiais).
+- Starter Assets **não** substituem o controle do jogo: o `ThirdPersonController` move o
+  CharacterController direto a partir do próprio input e anima um Animator Controller próprio,
+  enquanto aqui o `MatchSimulation` comanda o `PlayerMotor` com `PlayerCommand` de qualquer controlador
+  (humano, IA, teste, futuro Modo B/rede) e a apresentação só lê o jogo. Usá-lo quebraria esse
+  contrato. Ideias aproveitáveis: suavização de giro (SmoothDampAngle) e aceleração no motor;
+  Cinemachine para a câmera (colisão, amortecimento) numa etapa de polimento.
+
+## D-022 (adendo 4) — Ritmo do drible
+
+**Contexto.** "Os personagens batem a bola numa velocidade muito rápida." O quique usava |sen| com
+`dribbleFrequency` 2,2 "ciclos" por segundo — dois quiques por ciclo: 4,4 quiques/s. Nas gravações o
+braço do drible faz ~1,0–1,4 ciclos/s (medido na rotação do antebraço). Além disso, o drible para
+frente escolhido (`06_04`) é com a mão esquerda, e a bola fica na direita.
+
+**Decisão.** `dribbleFrequency` passa a ser quiques por segundo (padrão 1,2, o das gravações); drible
+para frente e da parte de cima do corpo = `06_05` (mão direita); drible para a esquerda = `06_08` de trás
+para frente (espelhado, driblaria com a esquerda); o binder troca os clipes antigos também em assets já
+ligados. `playbackSpeed` é lido a cada quadro (ajuste no Inspector durante o Play).
+

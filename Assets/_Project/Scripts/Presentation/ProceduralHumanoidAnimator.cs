@@ -4,7 +4,8 @@ using UnityEngine;
 namespace Basket.Presentation
 {
     // Drives a humanoid through Unity's muscle space (HumanPoseHandler): the same code
-    // animates any humanoid avatar, whatever its bone axes. Placeholder until real clips.
+    // animates any humanoid avatar, whatever its bone axes. Alone until real clips exist, then
+    // only for the poses that still have no clip, blended over them.
     //
     // Muscle values are Unity's normalized humanoid space (-1..1). The table below is the
     // only place that knows them; tune it here if a pose reads wrong on a model.
@@ -57,24 +58,28 @@ namespace Basket.Presentation
             chest = Muscle("Chest Front-Back");
         }
 
-        public void Apply(in PoseChannels c)
+        // weight 1: the procedural pose alone (no clips). Below 1 it is blended over the pose
+        // the clips already put the body in (actions without a clip, e.g. a jump shot).
+        public void Apply(in PoseChannels c, float weight = 1f)
         {
+            if (weight <= 0f) return;
             handler.GetHumanPose(ref pose);
             float[] m = pose.muscles;
-            Set(m, legL, LegStraight + LegSwingRange * c.LegSwingL + HipFlexPerCrouch * c.Crouch);
-            Set(m, legR, LegStraight + LegSwingRange * c.LegSwingR + HipFlexPerCrouch * c.Crouch);
-            Set(m, kneeL, KneeStraight - KneeBendRange * c.KneeBendL);
-            Set(m, kneeR, KneeStraight - KneeBendRange * c.KneeBendR);
-            Set(m, armL, ArmRaise(c.ArmRaiseL));
-            Set(m, armR, ArmRaise(c.ArmRaiseR));
-            Set(m, armFbL, ArmFrontNeutral + ArmSwingRange * c.ArmSwingL);
-            Set(m, armFbR, ArmFrontNeutral + ArmSwingRange * c.ArmSwingR);
-            Set(m, elbowL, ElbowStraight - ElbowBendRange * c.ElbowBendL);
-            Set(m, elbowR, ElbowStraight - ElbowBendRange * c.ElbowBendR);
-            Set(m, spine, SpineLeanRange * c.SpineLean);
-            Set(m, chest, SpineLeanRange * 0.5f * c.SpineLean);
-            pose.bodyPosition = restBodyPosition + Vector3.down * (CrouchDrop * c.Crouch);
-            pose.bodyRotation = restBodyRotation;
+            Set(m, legL, LegStraight + LegSwingRange * c.LegSwingL + HipFlexPerCrouch * c.Crouch, weight);
+            Set(m, legR, LegStraight + LegSwingRange * c.LegSwingR + HipFlexPerCrouch * c.Crouch, weight);
+            Set(m, kneeL, KneeStraight - KneeBendRange * c.KneeBendL, weight);
+            Set(m, kneeR, KneeStraight - KneeBendRange * c.KneeBendR, weight);
+            Set(m, armL, ArmRaise(c.ArmRaiseL), weight);
+            Set(m, armR, ArmRaise(c.ArmRaiseR), weight);
+            Set(m, armFbL, ArmFrontNeutral + ArmSwingRange * c.ArmSwingL, weight);
+            Set(m, armFbR, ArmFrontNeutral + ArmSwingRange * c.ArmSwingR, weight);
+            Set(m, elbowL, ElbowStraight - ElbowBendRange * c.ElbowBendL, weight);
+            Set(m, elbowR, ElbowStraight - ElbowBendRange * c.ElbowBendR, weight);
+            Set(m, spine, SpineLeanRange * c.SpineLean, weight);
+            Set(m, chest, SpineLeanRange * 0.5f * c.SpineLean, weight);
+            Vector3 body = restBodyPosition + Vector3.down * (CrouchDrop * c.Crouch);
+            pose.bodyPosition = weight >= 1f ? body : Vector3.Lerp(pose.bodyPosition, body, weight);
+            pose.bodyRotation = weight >= 1f ? restBodyRotation : Quaternion.Slerp(pose.bodyRotation, restBodyRotation, weight);
             handler.SetHumanPose(ref pose);
         }
 
@@ -83,9 +88,11 @@ namespace Basket.Presentation
             ? Mathf.Lerp(ArmDown, ArmHorizontal, raise * 2f)
             : Mathf.Lerp(ArmHorizontal, ArmOverhead, (raise - 0.5f) * 2f);
 
-        private static void Set(float[] muscles, int index, float value)
+        private static void Set(float[] muscles, int index, float value, float weight)
         {
-            if (index >= 0 && index < muscles.Length) muscles[index] = Mathf.Clamp(value, -1f, 1f);
+            if (index < 0 || index >= muscles.Length) return;
+            float target = Mathf.Clamp(value, -1f, 1f);
+            muscles[index] = weight >= 1f ? target : Mathf.Lerp(muscles[index], target, weight);
         }
 
         private static int Muscle(string name) => Array.IndexOf(HumanTrait.MuscleName, name);

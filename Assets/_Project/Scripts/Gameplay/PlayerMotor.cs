@@ -52,10 +52,12 @@ namespace Basket.Gameplay
             config = movementConfig;
         }
 
-        public void Tick(Vector2 moveInput, bool sprint, float dt)
+        // face: when set, the body turns toward this point instead of the movement (the basket
+        // while shooting, the ball in guard); speedMultiplier scales the top speed (guard).
+        public void Tick(Vector2 moveInput, bool sprint, float dt, Vector3? face = null, float speedMultiplier = 1f)
         {
             Vector3 desiredDir = new Vector3(moveInput.x, 0f, moveInput.y);
-            float speed = MaxSpeed * (sprint ? config.sprintMultiplier : 1f);
+            float speed = MaxSpeed * (sprint ? config.sprintMultiplier : 1f) * speedMultiplier;
             float acceleration = config.acceleration * accelerationScale;
 
             if (grounded)
@@ -68,7 +70,15 @@ namespace Basket.Gameplay
                 horizontalVelocity = PlayerMotorMath.ComputeVelocity(horizontalVelocity, desiredDir, speed, acceleration * config.airControl, 0f, dt);
             }
 
-            if (horizontalVelocity.sqrMagnitude > 0.0001f)
+            Vector3 toFace = face.HasValue ? face.Value - transform.position : Vector3.zero;
+            toFace.y = 0f;
+            if (toFace.sqrMagnitude > 0.0001f)
+            {
+                Quaternion targetRot = Quaternion.LookRotation(toFace.normalized, Vector3.up);
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRot,
+                    config.turnSpeedDegrees * config.faceTurnMultiplier * turnScale * dt);
+            }
+            else if (horizontalVelocity.sqrMagnitude > 0.0001f)
             {
                 Quaternion targetRot = Quaternion.LookRotation(horizontalVelocity.normalized, Vector3.up);
                 transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRot, config.turnSpeedDegrees * turnScale * dt);

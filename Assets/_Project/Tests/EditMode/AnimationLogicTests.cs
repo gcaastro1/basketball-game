@@ -35,7 +35,7 @@ public class AnimationLogicTests
         i.ShotType = ShotType.JumpShot;
         Assert.AreEqual(AnimPose.JumpShot, AnimationStateMapper.Map(i).Pose);
         i.ShotType = ShotType.FreeThrow;
-        Assert.AreEqual(AnimPose.JumpShot, AnimationStateMapper.Map(i).Pose);
+        Assert.AreEqual(AnimPose.FreeThrow, AnimationStateMapper.Map(i).Pose, "own clip slot (procedurally a jump shot)");
         i.ShotType = ShotType.Layup;
         Assert.AreEqual(AnimPose.Layup, AnimationStateMapper.Map(i).Pose);
         i.ShotType = ShotType.Dunk;
@@ -43,10 +43,12 @@ public class AnimationLogicTests
     }
 
     [Test]
-    public void Mapper_Defender_StancesOnTheGroundAndBlocksInTheAir()
+    public void Mapper_Defender_StancesOnlyInGuard_AndBlocksInTheAir()
     {
         var i = Standing();
         i.Defending = true;
+        Assert.AreEqual(AnimPose.Locomotion, AnimationStateMapper.Map(i).Pose, "no stance without the guard button");
+        i.Guarding = true;
         Assert.AreEqual(AnimPose.Defense, AnimationStateMapper.Map(i).Pose);
         i.Grounded = false;
         Assert.AreEqual(AnimPose.Block, AnimationStateMapper.Map(i).Pose);

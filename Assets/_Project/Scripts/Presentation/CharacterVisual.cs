@@ -106,9 +106,11 @@ namespace Basket.Presentation
             return Mathf.Clamp(Mathf.Min(l.position.y, r.position.y) - minY, 0f, 0.3f);
         }
 
-        // Tripo's generated material uses the Built-in Standard shader (pink under URP): use
-        // the active pipeline's default lit material -- the one primitives get -- with the
-        // model's texture.
+        // Imported models often use the Built-in Standard shader (Tripo's generated material,
+        // the Banana Man's Body/Joints), pink under URP: each material is rebuilt on the active
+        // pipeline's default lit material -- the one primitives get -- keeping its own texture
+        // and colour (a model with several materials keeps them apart). baseMap, when set,
+        // replaces the texture of every material (Tripo: one texture for the whole body).
         private static void ApplyMaterial(GameObject model, Texture2D baseMap)
         {
             if (litTemplate == null)
@@ -117,14 +119,37 @@ namespace Basket.Presentation
                 litTemplate = probe.GetComponent<Renderer>().sharedMaterial;
                 DestroyImmediate(probe);
             }
-            var material = new Material(litTemplate) { name = "CharacterLit", color = Color.white };
-            if (baseMap != null) material.mainTexture = baseMap;
+            var converted = new System.Collections.Generic.Dictionary<Material, Material>();
             foreach (Renderer r in model.GetComponentsInChildren<Renderer>())
             {
-                var shared = new Material[r.sharedMaterials.Length];
-                for (int i = 0; i < shared.Length; i++) shared[i] = material;
+                Material[] originals = r.sharedMaterials;
+                var shared = new Material[originals.Length];
+                for (int i = 0; i < shared.Length; i++)
+                {
+                    Material original = originals[i];
+                    if (original != null && converted.TryGetValue(original, out Material done))
+                    {
+                        shared[i] = done;
+                        continue;
+                    }
+                    shared[i] = Convert(original, baseMap);
+                    if (original != null) converted[original] = shared[i];
+                }
                 r.sharedMaterials = shared;
             }
+        }
+
+        private static Material Convert(Material original, Texture2D baseMap)
+        {
+            var material = new Material(litTemplate)
+            {
+                name = original != null ? original.name + " (Lit)" : "CharacterLit",
+                color = original != null && original.HasProperty("_Color") ? original.color : Color.white,
+            };
+            Texture texture = baseMap != null ? baseMap
+                : original != null && original.HasProperty("_MainTex") ? original.mainTexture : null;
+            if (texture != null) material.mainTexture = texture;
+            return material;
         }
 
         private static void HidePlaceholder(Transform root)

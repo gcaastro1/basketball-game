@@ -42,6 +42,7 @@ namespace Basket.Bootstrap
 
         public MatchSimulation Simulation { get; private set; }
         private readonly List<System.IDisposable> disposables = new List<System.IDisposable>();
+        private readonly List<HumanInputProvider> humanInputs = new List<HumanInputProvider>();
         private ProfileRuntimeService profileService;
 
         // Testes PlayMode que carregam as cenas reais (VerticalSliceIntegrationTests) setam isto
@@ -112,6 +113,7 @@ namespace Basket.Bootstrap
                 if (human)
                 {
                     var input = new HumanInputProvider();
+                    humanInputs.Add(input);
                     disposables.Add(input);
                     controllers.Add(input);
                     if (cameraTarget == null) cameraTarget = player;
@@ -166,7 +168,8 @@ namespace Basket.Bootstrap
             }
 
             if (cameraTarget == null && players.Count > 0) cameraTarget = players[0];
-            BuildCamera(cameraTarget != null ? cameraTarget.transform : arena.Ball.transform);
+            BuildCamera(cameraTarget != null ? cameraTarget.transform : arena.Ball.transform,
+                cameraTarget != null ? cameraTarget.Team : TeamId.Home);
 
             var hud = new GameObject("DebugHud").AddComponent<DebugHud>();
             hud.Configure(Simulation.Match.State, arena.Ball, aiControllers, Simulation, Simulation.Stats);
@@ -207,7 +210,9 @@ namespace Basket.Bootstrap
             disposables.Clear();
         }
 
-        private void BuildCamera(Transform target)
+        // Broadcast camera behind the followed player, facing the basket the team with the
+        // ball attacks (the player's own team's basket when nobody has it).
+        private void BuildCamera(Transform target, TeamId followedTeam)
         {
             Camera cam = Camera.main;
             if (cam == null)
@@ -220,7 +225,17 @@ namespace Basket.Bootstrap
             {
                 controller = cam.gameObject.AddComponent<CameraController>();
             }
-            controller.Configure(target, cameraConfig);
+            // Movement follows the camera: "forward" is where it looks, on either end of the court.
+            Transform view = cam.transform;
+            foreach (HumanInputProvider input in humanInputs) input.SetView(() => view.forward);
+
+            MatchSimulation sim = Simulation;
+            TeamId lastAttack = followedTeam;
+            controller.Configure(target, cameraConfig, () =>
+            {
+                if (sim.Match.State.PossessionTeam is TeamId team) lastAttack = team;
+                return sim.Snapshot.GetAttackingHoop(lastAttack);
+            }, courtConfig.CourtCenter);
         }
 
         private void EnsureConfigs()

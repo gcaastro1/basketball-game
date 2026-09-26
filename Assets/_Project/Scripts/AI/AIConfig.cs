@@ -12,6 +12,8 @@ namespace Basket.AI
         public float contestStandoff = 1.1f;
         // Positional guard: stand this far from the man, on the line to the hoop.
         public float guardDistance = 1.5f;
+        // Within this distance of the ball handler (not sprinting), the defender takes the guard stance.
+        public float guardStanceDistance = 3f;
         // Jump to block when the shooter is airborne within this distance...
         public float blockRange = 1.6f;
         // ...and their vertical speed has dropped below this (reaction delay).

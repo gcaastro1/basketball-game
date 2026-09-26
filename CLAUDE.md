@@ -44,14 +44,25 @@ Controle de jogador = `Core/IAgentController` (humano, IA, teste). Regras = `Mat
 - Modelos 3D vêm do **Tripo3D** (`Assets/TripoModels`); o pacote `com.tripo3d.unitybridge` aponta
   para um caminho local em `D:/` no `Packages/manifest.json` — **não remova** (só o CI o tira).
   `Editor/TripoHumanoidImporter.cs` importa novos FBX como Humanoid.
-- O personagem modelo tem **1,68 m** (`Data/Characters/DefaultCharacterVisual.asset`, só visual;
-  o corpo de gameplay continua com 1,9 m).
+- Modelos, clipes e texturas (`*.fbx`, `*.png`, `*.jpg`...) estão no **Git LFS** (`.gitattributes`):
+  instale o Git LFS; o CI baixa com `lfs: true`. Clipes em `Assets/TripoModels/**/Animations/` são
+  configurados por `Editor/CharacterAnimationImporter.cs` e ligados ao personagem por
+  `Editor/CharacterClipBinder.cs` (menu **Basket → Bind Character Animations**).
+  FBX com "30 fps drop-frame" são corrigidos por `Editor/FbxFrameRateFixer.cs` (menu **Basket → Fix
+  FBX Frame Rates**). Sessões na nuvem não conseguem enviar arquivos novos ao LFS: mudanças em
+  `.fbx`/texturas precisam ser commitadas de uma máquina local.
+- Personagem padrão: **Banana Man** (`Assets/Plugins/Banana Yellow Games`), 1,8 m em
+  `Data/Characters/DefaultCharacterVisual.asset` (só visual; o corpo de gameplay tem 1,9 m). O modelo
+  Tripo (1,68 m) continua em `Assets/TripoModels`. Materiais do Standard antigo são convertidos para o
+  Lit do URP em runtime, um a um (`CharacterVisual`).
+- `Assets/Starter Assets` (controles 1ª/3ª pessoa da Unity) + Cinemachine: referência, não usados pelo
+  jogo (o jogo tem motor, input e câmera próprios — D-025).
 
 ## Como verificar
 
 - **Unity Test Runner** (Window → General → Test Runner): EditMode (lógica pura) e PlayMode
-  (física, aro, partidas IA×IA). Estado atual: EditMode 258/258, PlayMode 52/53 (a única falha é
-  pré-existente e sensível à seed em `AISimulationTests.AIvsAI_3v3_PlaysBasketball`, ver
+  (física, aro, partidas IA×IA). Estado atual: EditMode 269/269, PlayMode 55/55 (a simulação 3v3 ainda pode falhar às vezes:
+  `AISimulationTests.AIvsAI_3v3_PlaysBasketball`, ver
   `docs/proximos-passos.md`, "Pendências menores conhecidas").
 - `tools/typecheck/check.sh` — compila tudo sem Unity (bash + mono; no Windows use WSL ou deixe
   para o CI). Se usar API nova de Unity/Editor/Input System, acrescente em `tools/typecheck/stubs/`.
