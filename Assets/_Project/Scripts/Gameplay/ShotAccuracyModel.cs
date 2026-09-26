@@ -67,6 +67,17 @@ namespace Basket.Gameplay
             return width * Mathf.Max(c.greenMinScale, scale);
         }
 
+        // Muito cedo / cedo / pouco cedo / perfeito / pouco tarde / tarde / muito tarde.
+        public static ShotTimingGrade Grade(float timingError, float greenHalfWidth, ShotConfig c)
+        {
+            if (IsGreen(timingError, greenHalfWidth)) return ShotTimingGrade.Perfect;
+            float beyond = Mathf.Abs(timingError) - Mathf.Max(0f, greenHalfWidth);
+            bool early = timingError < 0f;
+            if (beyond <= c.slightTimingMargin) return early ? ShotTimingGrade.SlightlyEarly : ShotTimingGrade.SlightlyLate;
+            if (beyond <= c.timingMargin) return early ? ShotTimingGrade.Early : ShotTimingGrade.Late;
+            return early ? ShotTimingGrade.VeryEarly : ShotTimingGrade.VeryLate;
+        }
+
         public static bool IsGreen(float timingError, float greenHalfWidth) =>
             greenHalfWidth > 0f && Mathf.Abs(timingError) <= greenHalfWidth;
 

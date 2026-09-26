@@ -64,6 +64,7 @@ namespace Basket.Gameplay
             shotSystem.TryGetMeter(index, players[index], snapshot, time, out reading);
         public bool TryGetLastShotRelease(int index, float within, out float timingError, out float greenHalfWidth) =>
             shotSystem.TryGetLastRelease(index, time, within, out timingError, out greenHalfWidth);
+        public ShotTimingGrade GradeRelease(float timingError, float greenHalfWidth) => shotSystem.Grade(timingError, greenHalfWidth);
 
         public MatchSimulation(IReadOnlyList<PlayerEntity> players, IReadOnlyList<IAgentController> controllers,
             BallController ball, HoopController hoop, CourtConfig court, MatchRules rules,
@@ -738,7 +739,7 @@ namespace Basket.Gameplay
         {
             bool timed = r.Type == ShotType.JumpShot || r.Type == ShotType.FreeThrow;
             string timing = !timed ? "auto"
-                : r.GreenWindow > 0f ? (r.IsGreen ? $"GREEN (+-{r.GreenWindow * 1000f:0} ms)" : r.TimingError < 0f ? $"early {-r.TimingError:0.00}s (green +-{r.GreenWindow * 1000f:0} ms)" : $"late {r.TimingError:0.00}s (green +-{r.GreenWindow * 1000f:0} ms)")
+                : r.GreenWindow > 0f ? $"{shotSystem.Grade(r.TimingError, r.GreenWindow)} {r.TimingError:+0.000;-0.000}s (green +-{r.GreenWindow * 1000f:0} ms)"
                 : Mathf.Abs(r.TimingError) <= 0.05f ? "PERFECT"
                 : r.TimingError < 0f ? $"early {-r.TimingError:0.00}s" : $"late {r.TimingError:0.00}s";
             Raise($"{r.Type} by {players[r.ShooterIndex].name}: {r.Distance:0.0} m, {timing}, contest {r.Contest:0.00}, error {r.ErrorRadius:0.00} m");

@@ -53,16 +53,19 @@ namespace Basket.EditorTools
             int n = 0;
 
             // Without the ball: standing (a quiet stretch of a signals take), running and its turns.
-            n += Loop(ref c.free.idle, "basketball_signals_32_07", 18.0f, 20.0f);
+            // Standing, arms hanging relaxed (forward kinematics over every clip: hands at the hips,
+            // still). 32_07 at 18-20 s, the earlier pick, is a referee signal with both hands up.
+            n += Loop(ref c.free.idle, "basketball_signals_27_06", 3.45f, 4.45f, replacing: "basketball_signals_32_07");
             n += Loop(ref c.free.run, "RunningStraight_102_05");
             n += Loop(ref c.free.runTurnLeft, "RunningWideLeft_102_07");
             n += Loop(ref c.free.runTurnRight, "RunningWideRight_102_06");
             n += Speeds(c.free, 1.5f, 4f);
 
-            // With the ball: holding it (one frame of the free-throw routine, set with the ball
-            // before the shot -- its start bounces the ball, the head bobbing with it), dribbling
+            // With the ball: holding it (one frame of the free-throw routine: 0.2 s, standing
+            // upright, hands 0.23 m apart at the waist -- the ball's width; its looped start went
+            // down into the bounce, the head bobbing with it), dribbling
             // in every direction at walking pace, running legs + upper-body dribble above that.
-            n += Loop(ref c.withBall.idle, "Basketball_Free_Throw_124_04", 3.8f, 3.8f);
+            n += Loop(ref c.withBall.idle, "Basketball_Free_Throw_124_04", 0.2f, 0.2f);
             // Right-handed dribbles (the ball is carried on the right): 06_04 dribbles with the
             // left hand, so it is replaced where an earlier binding used it.
             n += Loop(ref c.withBall.forward, "basketball_forward_dribble_06_05", 0.5f, 2.7f,

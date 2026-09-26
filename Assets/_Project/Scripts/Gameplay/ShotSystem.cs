@@ -98,6 +98,9 @@ namespace Basket.Gameplay
             return time - lastRelease[index] <= within;
         }
 
+        public ShotTimingGrade Grade(float timingError, float greenHalfWidth) =>
+            ShotAccuracyModel.Grade(timingError, greenHalfWidth, config);
+
         // During a free throw only this player shoots, and their shot is a free throw.
         public void SetFreeThrowShooter(int index) => freeThrowShooter = index;
 

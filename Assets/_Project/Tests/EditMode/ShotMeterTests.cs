@@ -63,4 +63,18 @@ public class ShotMeterTests
         var input = new ShotAccuracyInput(ShotType.JumpShot, 5f, 0f, 0f, 0f, 0.75f);
         Assert.AreEqual(ShotAccuracyModel.ErrorRadius(input, c), ShotAccuracyModel.ErrorRadius(input, 0f, c));
     }
+
+    [Test]
+    public void Grades_SevenSteps_FromVeryEarlyToVeryLate()
+    {
+        const float g = 0.015f;
+        Assert.AreEqual(ShotTimingGrade.Perfect, ShotAccuracyModel.Grade(0.01f, g, c));
+        Assert.AreEqual(ShotTimingGrade.Perfect, ShotAccuracyModel.Grade(-0.015f, g, c));
+        Assert.AreEqual(ShotTimingGrade.SlightlyEarly, ShotAccuracyModel.Grade(-(g + 0.02f), g, c));
+        Assert.AreEqual(ShotTimingGrade.SlightlyLate, ShotAccuracyModel.Grade(g + 0.02f, g, c));
+        Assert.AreEqual(ShotTimingGrade.Early, ShotAccuracyModel.Grade(-(g + 0.06f), g, c));
+        Assert.AreEqual(ShotTimingGrade.Late, ShotAccuracyModel.Grade(g + 0.06f, g, c));
+        Assert.AreEqual(ShotTimingGrade.VeryEarly, ShotAccuracyModel.Grade(-(g + 0.2f), g, c));
+        Assert.AreEqual(ShotTimingGrade.VeryLate, ShotAccuracyModel.Grade(g + 0.2f, g, c));
+    }
 }

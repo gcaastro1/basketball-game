@@ -1,12 +1,14 @@
 using UnityEngine;
+using Basket.Core;
 using Basket.Gameplay;
 
 namespace Basket.Presentation
 {
-    // NBA 2K-style shot meter beside the controlled player: a bar that fills from the jump
-    // (bottom) to the apex (the top of the green window's middle); the green window's size is
-    // the one this shot would have now (attribute, contest, distance, movement). After the
-    // release it shows where the release landed: GREEN / early / late.
+    // NBA 2K-style shot meter beside the controlled player: the bar rises from the jump
+    // (bottom) to the top at the jump apex, where the green window is; holding on past it the
+    // bar falls back down (late). The green's size is the one this shot would have now
+    // (attribute, contest, distance, movement). After the release it shows where the release
+    // landed: muito cedo / cedo / pouco cedo / perfeito / pouco tarde / tarde / muito tarde.
     public class ShotMeterView : MonoBehaviour
     {
         private const float ResultSeconds = 1.2f;
@@ -25,10 +27,30 @@ namespace Basket.Presentation
             player = followed;
         }
 
-        // Bar position (0 bottom .. 1 top) of a time since takeoff: the apex sits at 0.8, so the
-        // green window and a late release both stay on the bar.
-        public static float BarPosition(float elapsed, float apexTime) =>
-            apexTime > 0.0001f ? Mathf.Clamp01(elapsed / apexTime * 0.8f) : 1f;
+        // Bar level (0 bottom .. 1 top) at a time since takeoff: up to the top at the apex, then
+        // back down at the same pace (a late release shows as a falling bar).
+        public static float BarPosition(float elapsed, float apexTime)
+        {
+            if (apexTime <= 0.0001f) return 1f;
+            float up = elapsed / apexTime;
+            return Mathf.Clamp01(up <= 1f ? up : 2f - up);
+        }
+
+        // Green zone at the top of the bar: from the level of (apex - green) to the top.
+        public static float GreenBottom(float apexTime, float greenHalfWidth) =>
+            BarPosition(apexTime - greenHalfWidth, apexTime);
+
+        public static string Label(ShotTimingGrade grade) => grade switch
+        {
+            ShotTimingGrade.VeryEarly => "MUITO CEDO",
+            ShotTimingGrade.Early => "CEDO",
+            ShotTimingGrade.SlightlyEarly => "POUCO CEDO",
+            ShotTimingGrade.Perfect => "PERFEITO!",
+            ShotTimingGrade.SlightlyLate => "POUCO TARDE",
+            ShotTimingGrade.Late => "TARDE",
+            ShotTimingGrade.VeryLate => "MUITO TARDE",
+            _ => "",
+        };
 
         private void OnGUI()
         {
@@ -57,28 +79,33 @@ namespace Basket.Presentation
             ShotMeterReading r = live ? reading : lastReading;
 
             Draw(new Rect(bar.x - 2f, bar.y - 2f, bar.width + 4f, bar.height + 4f), new Color(0f, 0f, 0f, 0.6f));
-            // Green window around the apex.
-            float gTop = BarPosition(r.ApexTime + r.GreenHalfWidth, r.ApexTime);
-            float gBottom = BarPosition(r.ApexTime - r.GreenHalfWidth, r.ApexTime);
-            float gHeight = Mathf.Max(2f, (gTop - gBottom) * bar.height);
-            Draw(new Rect(bar.x, bar.yMax - gTop * bar.height, bar.width, gHeight), new Color(0.1f, 0.85f, 0.2f, 0.95f));
+            // Green window at the top.
+            float gBottom = GreenBottom(r.ApexTime, r.GreenHalfWidth);
+            float gHeight = Mathf.Max(3f, (1f - gBottom) * bar.height);
+            Draw(new Rect(bar.x, bar.y, bar.width, gHeight), new Color(0.1f, 0.85f, 0.2f, 0.95f));
 
-            if (live)
-            {
-                float fill = BarPosition(r.Elapsed, r.ApexTime);
-                Color c = Color.Lerp(new Color(0.9f, 0.2f, 0.1f, 0.85f), new Color(0.95f, 0.85f, 0.2f, 0.85f), fill / 0.8f);
-                Draw(new Rect(bar.x + 3f, bar.yMax - fill * bar.height, bar.width - 6f, fill * bar.height), c);
-                return;
-            }
+            float elapsed = live ? r.Elapsed : r.ApexTime + LastTiming();
+            float level = BarPosition(elapsed, r.ApexTime);
+            bool falling = elapsed > r.ApexTime;
+            Color fillColor = falling ? new Color(0.95f, 0.45f, 0.15f, 0.85f)
+                : Color.Lerp(new Color(0.9f, 0.2f, 0.1f, 0.85f), new Color(0.95f, 0.85f, 0.2f, 0.85f), level);
+            Draw(new Rect(bar.x + 3f, bar.yMax - level * bar.height, bar.width - 6f, level * bar.height), fillColor);
+            if (live) return;
 
             sim.TryGetLastShotRelease(player.Index, ResultSeconds, out float timing, out float green);
-            float at = BarPosition(r.ApexTime + timing, r.ApexTime);
-            Draw(new Rect(bar.x - 4f, bar.yMax - at * bar.height - 1.5f, bar.width + 8f, 3f), Color.white);
-            bool isGreen = green > 0f && Mathf.Abs(timing) <= green;
-            string label = isGreen ? "VERDE!" : timing < 0f ? "cedo" : "tarde";
+            ShotTimingGrade grade = sim.GradeRelease(timing, green);
+            Draw(new Rect(bar.x - 4f, bar.yMax - level * bar.height - 1.5f, bar.width + 8f, 3f), Color.white);
             var style = new GUIStyle(GUI.skin.label) { fontSize = 14, fontStyle = FontStyle.Bold };
-            style.normal.textColor = isGreen ? new Color(0.3f, 1f, 0.3f) : new Color(1f, 0.6f, 0.3f);
-            GUI.Label(new Rect(bar.xMax + 6f, bar.yMax - at * bar.height - 10f, 90f, 22f), label, style);
+            style.normal.textColor = grade == ShotTimingGrade.Perfect ? new Color(0.3f, 1f, 0.3f)
+                : grade == ShotTimingGrade.SlightlyEarly || grade == ShotTimingGrade.SlightlyLate ? new Color(1f, 0.9f, 0.3f)
+                : new Color(1f, 0.55f, 0.3f);
+            GUI.Label(new Rect(bar.xMax + 6f, bar.yMax - level * bar.height - 10f, 130f, 22f), Label(grade), style);
+        }
+
+        private float LastTiming()
+        {
+            sim.TryGetLastShotRelease(player.Index, ResultSeconds, out float timing, out _);
+            return timing;
         }
 
         private void Draw(Rect rect, Color color)

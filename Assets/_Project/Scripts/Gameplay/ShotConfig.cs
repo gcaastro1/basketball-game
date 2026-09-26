@@ -51,6 +51,10 @@ namespace Basket.Gameplay
         public float greenShrinkPerMeter = 0.06f;
         // ...never below this share of its size.
         [Range(0f, 1f)] public float greenMinScale = 0.25f;
+        // Grades outside the green (s beyond its edge): "slightly" up to the first margin,
+        // plain early/late up to the second, "very" beyond.
+        public float slightTimingMargin = 0.03f;
+        public float timingMargin = 0.08f;
 
         [Header("Accuracy: aim error radius (m) = base x modifiers")]
         // Calibrated against the physical rim (ShotCalibrationTests): shots within ~0.09 m

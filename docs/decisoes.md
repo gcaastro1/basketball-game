@@ -557,8 +557,23 @@ jogador e dos atributos relevantes para aquele arremesso (bandeja, 3 pontos, mei
   (3PT além da linha, meia distância, arremesso curto, lance livre); vezes (1 − 0,7 × marcação), (1 − 0,4 ×
   velocidade), (1 − 6 %/m além de 4,5 m), nunca abaixo de 25 %. Bandeja e enterrada soltam sozinhas: sem
   medidor (pode vir depois).
-- Tela: `ShotMeterView` ao lado do jogador humano (barra, janela verde do tamanho atual; depois de soltar:
-  marca onde soltou e "VERDE!" / "cedo" / "tarde"). O evento do arremesso passa a mostrar "GREEN (±N ms)".
+- Tela: `ShotMeterView` ao lado do jogador humano. A barra sobe do salto até o topo no ápice do pulo, onde
+  fica o verde; segurando além do ápice ela volta a descer (tarde). Depois de soltar, marca onde soltou e o
+  resultado em 7 níveis (`ShotAccuracyModel.Grade`): muito cedo / cedo / pouco cedo / perfeito / pouco
+  tarde / tarde / muito tarde — "pouco" até `slightTimingMargin` (0,03 s) além do verde, "muito" além de
+  `timingMargin` (0,08 s). O evento do arremesso mostra o nível e o tamanho do verde.
 - `useGreenWindow` = falso volta ao modelo antigo. A IA usa o mesmo verde (sua soltura tem uma variação
   que diminui com o QI ofensivo); isso aumenta um pouco o acerto dela nos arremessos livres.
+
+## D-022 (adendo 6) — Parado sem bola e segurando a bola, escolhidos por cinemática
+
+**Contexto.** "Após o arremesso o personagem fica com os braços pra cima." O parado sem bola era
+`basketball_signals_32_07` [18 s, 20 s]: calculando a posição das mãos pela cadeia de ossos (script de
+cinemática direta sobre os FBX), as duas mãos ficam acima dos ombros ali — um sinal de árbitro. E o
+quadro de "segurar" (lance livre, 3,8 s) era o jogador já subindo para o arremesso.
+
+**Decisão.** Varrer todos os clipes por quadros parados (quadril e mãos quase sem velocidade) com as
+mãos mais baixas: parado sem bola = `basketball_signals_27_06` [3,45 s, 4,45 s] (braços soltos, mãos na
+altura do quadril; o binder troca o 32_07 onde ainda estiver ligado). Segurar = lance livre em 0,2 s (em
+pé, mãos a 0,23 m uma da outra — a largura da bola — na altura da cintura).
 
