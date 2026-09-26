@@ -175,6 +175,9 @@ namespace Basket.Bootstrap
             }
 
             if (cameraTarget == null && players.Count > 0) cameraTarget = players[0];
+            // Shot meter (NBA 2K style) beside the human player.
+            if (humanInputs.Count > 0 && cameraTarget != null)
+                new GameObject("ShotMeter").AddComponent<ShotMeterView>().Configure(Simulation, cameraTarget);
             if (practiceTools) practice = gameObject.AddComponent<PracticeTools>();
             CameraController cameraController = BuildCamera(cameraTarget != null ? cameraTarget.transform : arena.Ball.transform,
                 cameraTarget != null ? cameraTarget.Team : TeamId.Home);

@@ -77,4 +77,38 @@ public class LiveShotTests
             match.Dispose();
         }
     }
+
+    // Shot meter: a release in the green is a perfect shot -- no aim error, and it goes in
+    // (the green is widened here so every apex release lands in it).
+    [UnityTest]
+    public IEnumerator GreenReleases_AlwaysGoIn()
+    {
+        Time.timeScale = 4f;
+        var match = new TestMatch();
+        try
+        {
+            var defaults = ScriptableObject.CreateInstance<ShotConfig>();
+            match.ShotConfig.jumpShotBaseError = defaults.jumpShotBaseError;
+            match.ShotConfig.jumpShotErrorPerMeter = defaults.jumpShotErrorPerMeter;
+            match.ShotConfig.greenHalfWidthAtRatingZero = 0.2f;
+            match.ShotConfig.greenHalfWidthAtRatingOne = 0.2f;
+            match.ShotConfig.greenMinScale = 1f;
+            match.Rules.winningScore = 0;
+            match.Start((TeamId.Home, ShootFromSpotAndRebound(match.Court.checkBallSpot)));
+            const int shots = 6;
+            yield return match.RunUntil(() => match.Shots.Count >= shots && match.Sim.Ball.CurrentState == BallState.Held, 90f);
+
+            int green = 0;
+            foreach (ShotReport r in match.Shots) if (r.IsGreen) green++;
+            string traces = string.Join("\n", match.Events.FindAll(e => e.StartsWith("SHOT TRACE")));
+            Debug.Log($"Green releases: {green}/{match.Shots.Count}, made {match.MadeShots.Count}\n{traces}");
+            Assert.GreaterOrEqual(match.Shots.Count, shots);
+            Assert.AreEqual(match.Shots.Count, green, "every apex release is in the (wide) green");
+            Assert.AreEqual(match.Shots.Count, match.MadeShots.Count, "green = perfect shot\n" + traces);
+        }
+        finally
+        {
+            match.Dispose();
+        }
+    }
 }

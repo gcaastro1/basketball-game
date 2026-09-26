@@ -54,6 +54,34 @@ namespace Basket.Gameplay
             return ratio * ratio;
         }
 
+        // Shot meter: half-width (s) of the green window around the jump apex for this shot
+        // (0 = no meter: layups and dunks release by themselves). Rating is the shot's
+        // attribute (0..1): 3PT beyond the arc, mid-range, close shot, free throw.
+        public static float GreenHalfWidth(ShotType type, float distance, float contest, float speedRatio, float rating, ShotConfig c)
+        {
+            if (!c.useGreenWindow || (type != ShotType.JumpShot && type != ShotType.FreeThrow)) return 0f;
+            float width = Mathf.Lerp(c.greenHalfWidthAtRatingZero, c.greenHalfWidthAtRatingOne, Mathf.Clamp01(rating));
+            float scale = (1f - c.greenContestShrink * Mathf.Clamp01(contest))
+                          * (1f - c.greenMoveShrink * Mathf.Clamp01(speedRatio))
+                          * (1f - c.greenShrinkPerMeter * Mathf.Max(0f, distance - c.greenFreeDistance));
+            return width * Mathf.Max(c.greenMinScale, scale);
+        }
+
+        public static bool IsGreen(float timingError, float greenHalfWidth) =>
+            greenHalfWidth > 0f && Mathf.Abs(timingError) <= greenHalfWidth;
+
+        // With the shot meter: a green release has no aim error; outside the green the timing
+        // penalty counts from its edge (instead of from the fixed perfect window).
+        public static float ErrorRadius(in ShotAccuracyInput input, float greenHalfWidth, ShotConfig c)
+        {
+            if (greenHalfWidth <= 0f) return ErrorRadius(input, c);
+            if (IsGreen(input.TimingError, greenHalfWidth)) return 0f;
+            float beyondGreen = Mathf.Abs(input.TimingError) - greenHalfWidth;
+            float timingFactor = 1f + c.timingPenaltyPerSecond * beyondGreen;
+            float legacyTiming = TimingFactor(input.Type, input.TimingError, c);
+            return ErrorRadius(input, c) / Mathf.Max(0.0001f, legacyTiming) * timingFactor;
+        }
+
         // Jump shots and free throws are player-timed; layups/dunks release automatically.
         public static float TimingFactor(ShotType type, float timingError, ShotConfig c)
         {

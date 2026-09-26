@@ -34,6 +34,24 @@ namespace Basket.Gameplay
         // Releasing within this many seconds of the jump apex costs nothing.
         public float perfectReleaseWindow = 0.05f;
 
+        [Header("Shot meter (green window, NBA 2K style)")]
+        // Jump shots and free throws: releasing within the green window around the jump apex
+        // is a perfect shot (no aim error); outside it the error grows with the distance from
+        // the green. The green's half-width (s) for a shooter rated 0 / 1 on the shot's
+        // attribute, open, standing, up to greenFreeDistance...
+        public bool useGreenWindow = true;
+        public float greenHalfWidthAtRatingZero = 0.004f;
+        public float greenHalfWidthAtRatingOne = 0.018f;
+        // ...shrinks by this share at full contest...
+        [Range(0f, 1f)] public float greenContestShrink = 0.7f;
+        // ...by this share when moving at full speed...
+        [Range(0f, 1f)] public float greenMoveShrink = 0.4f;
+        // ...and by this share per meter beyond greenFreeDistance...
+        public float greenFreeDistance = 4.5f;
+        public float greenShrinkPerMeter = 0.06f;
+        // ...never below this share of its size.
+        [Range(0f, 1f)] public float greenMinScale = 0.25f;
+
         [Header("Accuracy: aim error radius (m) = base x modifiers")]
         // Calibrated against the physical rim (ShotCalibrationTests): shots within ~0.09 m
         // of the rim center always go in, none beyond ~0.2 m. That curve behaves like a

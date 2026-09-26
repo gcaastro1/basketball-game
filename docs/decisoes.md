@@ -33,6 +33,7 @@ de troca.
 | D-025 | Personagem padrão Banana Man (1,8 m, provisório); materiais convertidos para URP um a um. Starter Assets (controles 1ª/3ª pessoa) e Cinemachine ficam como referência: o jogo mantém motor/input/câmera próprios | Aceita |
 | D-026 | Quadra NBA (a desenhada no piso do ginásio MarpaStudio): 28,65 × 15,24 m, aro a 1,6 m do fundo, linha de 3 a 7,24 m com cantos retos a 6,71 m. Ginásio e bola são só visuais (`ArenaDresser`), por cima dos colisores do placeholder | Aceita (escolha do usuário; valores em dados: **provisórios**) |
 | D-027 | IA posicional: defesa individual com ajuda (nega a um passe da bola, recua para a linha de ajuda no lado fraco, presa ao seu homem) e zona (2-3 / 2-2 / 1-2 deslizando com a bola, um só defensor na bola), escolhida por posse (`zoneDefenseChance`); ataque espaçado longe da bola, na linha de 3 da quadra; a IA lê a linha de 3 com os cantos | Aceita (valores em `DefaultAIConfig`: **provisórios**) |
+| D-028 | Medidor de arremesso (estilo NBA 2K): janela verde em volta do topo do pulo; soltar no verde = arremesso perfeito (sem erro de mira); o verde cresce com o atributo do arremesso e encolhe com marcação, distância e movimento | Aceita (pedido do usuário; tamanhos em `ShotConfig`: **provisórios**) |
 | P-001 | Modo B (controle do time) | **Pendente** — ponto de encaixe pronto: `ITeamStrategy` (e `IAgentController`) |
 | P-003 | Gacha definitivo (raridades, taxas, pity, custos, moedas) | **Provisória**: 3 níveis genéricos, 3/17/80%, pity 80 (soft 65, +6%), 50/50 com garantia, multi de 10 com garantia de nível 2 — tudo em `Data/Meta/StandardBanner.asset` |
 | P-002 | Semântica dos Limit Breaks | **Provisória**: 4 LBs (20→40, 40→50, 50→60, "Awakening" no 60 sem novo teto), tudo em `DefaultProgressionConfig` |
@@ -539,4 +540,25 @@ próprio clipe; e parar de andar virava "segurar a bola".
   palmas e, no arremesso, para a palma da mão direita (virada para cima e para a cesta); os braços ficam
   como no clipe. Ao sair da mão, volta suavemente para a bola do jogo. A bola física não muda. Sem modelo
   de bola, o IK antigo continua.
+
+## D-028 — Medidor de arremesso (janela verde)
+
+**Contexto.** Pedido do usuário: "uma barra de força: quanto mais perto do verde, maior a chance de
+acertar; no verde é um arremesso perfeito, 100%. O tamanho do verde depende de quão marcado está o
+jogador e dos atributos relevantes para aquele arremesso (bandeja, 3 pontos, meia distância)."
+
+**Decisão.**
+- Arremessos cronometrados (arremesso e lance livre): a barra enche do salto até o topo do pulo; a janela
+  verde é ±`GreenHalfWidth` em volta do topo. Soltar dentro dela = erro de mira 0 (a bola vai no centro
+  do aro; no aro físico, até ~0,09 m do centro sempre entra). Fora dela, a penalidade de tempo conta a
+  partir da borda do verde (antes: de uma janela fixa de ±0,05 s). Um toco ainda pode parar a bola.
+- Tamanho (`ShotAccuracyModel.GreenHalfWidth`, dados em `ShotConfig`): interpola de
+  `greenHalfWidthAtRatingZero` (4 ms) a `greenHalfWidthAtRatingOne` (18 ms) pelo atributo do arremesso
+  (3PT além da linha, meia distância, arremesso curto, lance livre); vezes (1 − 0,7 × marcação), (1 − 0,4 ×
+  velocidade), (1 − 6 %/m além de 4,5 m), nunca abaixo de 25 %. Bandeja e enterrada soltam sozinhas: sem
+  medidor (pode vir depois).
+- Tela: `ShotMeterView` ao lado do jogador humano (barra, janela verde do tamanho atual; depois de soltar:
+  marca onde soltou e "VERDE!" / "cedo" / "tarde"). O evento do arremesso passa a mostrar "GREEN (±N ms)".
+- `useGreenWindow` = falso volta ao modelo antigo. A IA usa o mesmo verde (sua soltura tem uma variação
+  que diminui com o QI ofensivo); isso aumenta um pouco o acerto dela nos arremessos livres.
 

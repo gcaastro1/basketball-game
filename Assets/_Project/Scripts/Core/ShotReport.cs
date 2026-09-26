@@ -15,9 +15,14 @@ namespace Basket.Core
         public readonly float Contest;
         // Radius (m) of the aim-error disc on the rim plane that this shot sampled from.
         public readonly float ErrorRadius;
+        // Shot meter: half-width (s) of the green window this shot had (0 = no meter).
+        public readonly float GreenWindow;
+        public bool IsGreen => GreenWindow > 0f && Math.Abs(TimingError) <= GreenWindow;
 
-        public ShotReport(int shooterIndex, ShotType type, float distance, float timingError, float contest, float errorRadius)
+        public ShotReport(int shooterIndex, ShotType type, float distance, float timingError, float contest, float errorRadius,
+            float greenWindow = 0f)
         {
+            GreenWindow = greenWindow;
             ShooterIndex = shooterIndex;
             Type = type;
             Distance = distance;
