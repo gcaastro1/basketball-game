@@ -176,8 +176,11 @@ namespace Basket.AI
             // handler, and on a line with straight corners the corner spots stay inside the court.
             float radius = Mathf.Max(config.spacingRadius, s.ThreePointRadius + config.spacingBeyondArc);
             float maxSide = s.ThreePointCornerDistance > 0f ? s.ThreePointCornerDistance + config.spacingBeyondArc : float.MaxValue;
-            List<Vector3> candidates = OffensePlanner.SpacingSlots(rimFloor, s.CourtCenter - rimFloor, radius,
-                Mathf.Max(offBall.Count, 5), clearOut: play == PlayType.Isolation, maxSide);
+            int teamSize = Teammates(s, -1).Count;
+            List<Vector3> candidates = config.spacingLayout != null && play != PlayType.Isolation
+                ? config.spacingLayout.Spots(rimFloor, s.CourtCenter - rimFloor, teamSize)
+                : OffensePlanner.SpacingSlots(rimFloor, s.CourtCenter - rimFloor, radius,
+                    Mathf.Max(offBall.Count, 5), clearOut: play == PlayType.Isolation, maxSide);
             List<Vector3> slots = OffensePlanner.AwayFrom(candidates, holderPos, config.spacingMinFromHandler, Mathf.Max(offBall.Count, 1));
             var positions = new List<Vector3>();
             foreach (int i in offBall) positions.Add(s.GetPosition(i));

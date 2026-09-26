@@ -33,3 +33,4 @@ MonoBehaviour:
   arrivalDistance: 0.2
   sprintWhenChasing: 1
   zoneDefenseChance: 0.3
+  spacingLayout: {fileID: 11400000, guid: 6da702877bdf41b78edb21d1e46c1621, type: 2}

@@ -38,6 +38,19 @@ namespace Basket.AI
         public TeamOrder CurrentOrder => order;
 
         public AIState CurrentState => fsm.CurrentState;
+        public TacticalRole CurrentRole { get; private set; }
+
+        // The role from the ball and the team's order (see TacticalRole). Animation hook: a
+        // role change is where a "ready" stance (defense) or a "call for the ball" gesture
+        // (off-ball offense) would be triggered by the presentation layer.
+        public static TacticalRole RoleFor(AIPerception p, TeamOrder order)
+        {
+            if (p.SelfHasBall) return TacticalRole.OffenseWithBall;
+            if (p.TeammateHasBall) return TacticalRole.OffenseOffBall;
+            if (!p.OpponentHasBall) return TacticalRole.Idle;
+            bool onBall = p.FocusHasBall && (order.Kind == TeamOrderKind.Guard || order.Kind == TeamOrderKind.None);
+            return onBall ? TacticalRole.DefenseOnBall : TacticalRole.DefenseHelp;
+        }
 
         public PlayerCommand Decide(MatchSnapshot s, int self)
         {
@@ -70,6 +83,7 @@ namespace Basket.AI
             if (snapshot == null) order = TeamOrder.None;
             AIState previous = fsm.CurrentState;
             fsm.Evaluate(p);
+            CurrentRole = RoleFor(p, order);
             AIState state = fsm.CurrentState;
             if (state == AIState.Attack && previous != AIState.Attack)
             {
@@ -83,7 +97,9 @@ namespace Basket.AI
                 AIState.Attack => Attack(p),
                 AIState.Chase => Chase(p),
                 AIState.Guard => Guard(p),
-                AIState.ContestShot => Defend(p, p.OpponentPosition, config.contestStandoff),
+                // On the ball: between the handler and the rim at the marking distance -- never on
+                // the ball itself (that is what made everyone swarm it).
+                AIState.ContestShot => Defend(p, GuardSpot(p.OpponentPosition, p.DefendHoop, config.contestStandoff), config.arrivalDistance),
                 AIState.Idle => FollowOrder(p),
                 _ => PlayerCommand.None
             };

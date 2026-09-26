@@ -28,6 +28,14 @@ Valores novos em `AIConfig` (todos provisórios): `denyDistance`, `denyLaneStep`
 `helpLineFraction`, `maxSag`, `maxSagFromMan`, `zoneDefenseChance`, `zoneShift`, `zoneShiftMax`,
 `zoneMarkRadius`, `zoneMarkDistance`, `spacingBeyondArc`, `spacingMinFromHandler`, `clearTowardTop`.
 
+## Papéis táticos e espaçamento editável (pedido seguinte)
+
+- Papéis (`Core.TacticalRole`): Idle, OffenseWithBall, OffenseOffBall, DefenseOnBall, DefenseHelp — no
+  painel de debug, e ponto de encaixe para animações de papel (postura de defesa, pedir a bola).
+- O defensor da bola fica entre o atacante e a cesta, a 1,1 m, e nunca vai na bola.
+- `SpacingLayout` (Inspector): pontos de espaçamento por tamanho de time, em `AIConfig.spacingLayout`.
+- Testes: `TeamAITests.Roles_*`, `OnBallDefender_*`, `SpacingLayout_*`.
+
 ## Saída verificável
 
 - `TeamAITests` (EditMode):

@@ -464,4 +464,66 @@ public class TeamAITests
         var slots = OffensePlanner.SpacingSlots(RimFloor, new Vector3(0f, 0f, -1f), 7.64f, 5, clearOut: false, maxSide: 7.11f);
         foreach (Vector3 slot in slots) Assert.LessOrEqual(Mathf.Abs(slot.x), 7.11f + 1e-3f);
     }
+
+    // ---------- tactical roles, on-ball spot, hand-placed spacing ----------
+
+    [Test]
+    public void Roles_WithBall_OffBall_OnBall_Help()
+    {
+        var home = new TeamBrain(TeamId.Home, 6, config, rng: new System.Random(1));
+        var away = new TeamBrain(TeamId.Away, 6, config, rng: new System.Random(1));
+        var s = ThreeOnThree(Standard(), holder: 0);
+        var ai = new AIAgentController[6];
+        for (int i = 0; i < 6; i++)
+        {
+            ai[i] = new AIAgentController(config, new System.Random(1), i < 3 ? home : away);
+            ai[i].Decide(s, i);
+        }
+        Assert.AreEqual(TacticalRole.OffenseWithBall, ai[0].CurrentRole);
+        Assert.AreEqual(TacticalRole.OffenseOffBall, ai[1].CurrentRole);
+        Assert.AreEqual(TacticalRole.DefenseOnBall, ai[3].CurrentRole, "3 guards the handler");
+        Assert.AreEqual(TacticalRole.DefenseHelp, ai[4].CurrentRole);
+        Assert.AreEqual(TacticalRole.DefenseHelp, ai[5].CurrentRole);
+    }
+
+    [Test]
+    public void OnBallDefender_GoesBetweenTheHandlerAndTheRim_NotOntoTheBall()
+    {
+        var pos = Standard();
+        pos[3] = new Vector3(1.5f, 0f, 5.5f); // beside the handler (0 at z 5.5), within contest range
+        var away = new TeamBrain(TeamId.Away, 6, config, rng: new System.Random(1));
+        var ai = new AIAgentController(config, new System.Random(1), away);
+        PlayerCommand cmd = ai.Decide(ThreeOnThree(pos, holder: 0), 3);
+
+        Vector3 spot = pos[0] + (RimFloor - pos[0]).normalized * config.contestStandoff;
+        Vector3 toSpot = (spot - pos[3]).normalized;
+        Vector3 move = new Vector3(cmd.Move.x, 0f, cmd.Move.y);
+        // Straight at the handler would be (-1, 0): dot 0.81 with the way to the spot.
+        Assert.Greater(Vector3.Dot(move, toSpot), 0.95f, "heads to the spot on the handler-rim line, not at the ball");
+    }
+
+    [Test]
+    public void SpacingLayout_HandPlacedSpots_AreUsedAwayFromTheBall()
+    {
+        config.spacingPlayWeight = 1f;
+        config.pickAndRollPlayWeight = 0f;
+        config.isolationPlayWeight = 0f;
+        config.cutTriggerDistance = 99f;
+        var layout = ScriptableObject.CreateInstance<SpacingLayout>();
+        layout.threePlayers = new List<Vector2> { new Vector2(-5.4f, 5.4f), new Vector2(5.4f, 5.4f), new Vector2(0f, 7.8f) };
+        config.spacingLayout = layout;
+        var expected = layout.Spots(RimFloor, new Vector3(0f, 0f, -1f), 3);
+        var pos = Standard();
+        pos[0] = expected[0]; // handler standing on the first spot
+        var brain = new TeamBrain(TeamId.Home, 6, config, rng: new System.Random(1));
+        brain.Update(ThreeOnThree(pos, holder: 0));
+
+        var targets = new[] { brain.GetOrder(1).Target, brain.GetOrder(2).Target };
+        foreach (Vector3 t in targets)
+        {
+            Assert.IsTrue(TeamMath.FlatDistance(t, expected[1]) < 0.01f || TeamMath.FlatDistance(t, expected[2]) < 0.01f,
+                $"{t} is one of the free layout spots");
+        }
+        Assert.AreNotEqual(targets[0], targets[1]);
+    }
 }

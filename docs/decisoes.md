@@ -577,3 +577,22 @@ mãos mais baixas: parado sem bola = `basketball_signals_27_06` [3,45 s, 4,45 s]
 altura do quadril; o binder troca o 32_07 onde ainda estiver ligado). Segurar = lance livre em 0,2 s (em
 pé, mãos a 0,23 m uma da outra — a largura da bola — na altura da cintura).
 
+## D-027 (adendo) — Papéis táticos, marcação da bola e espaçamento editável
+
+**Contexto.** O usuário pediu uma IA em duas camadas (técnico do time + máquina de estados por jogador,
+estados Idle / OffenseWithBall / OffenseOffBall / DefenseOnBall / DefenseHelp) com NavMeshAgent e pontos
+de espaçamento como Transforms. Escolha do usuário: adaptar à arquitetura existente (o `TeamBrain` já é o
+técnico e o `AIAgentController` o jogador; NavMeshAgent passaria por cima do `PlayerMotor`, do
+`MatchManager` e dos testes de simulação).
+
+**Decisão.**
+- `Core.TacticalRole` com os 5 papéis pedidos; `IAIController.CurrentRole`, derivado da bola e da ordem
+  do time (`AIAgentController.RoleFor`); o painel mostra "AI n: Papel (estado)".
+- Defensor da bola: sempre no ponto entre o atacante e a cesta, a `contestStandoff` (1,1 m) dele — antes,
+  ao chegar perto, ele ia direto na bola.
+- Pontos de espaçamento editáveis no Inspector: `SpacingLayout` (lado, profundidade em metros a partir do
+  aro, em ordem de prioridade; um conjunto para 3 e outro para 5), ligado em `AIConfig.spacingLayout`
+  (`Data/DefaultSpacingLayout.asset`: asas e topo além da linha de 3, cantos a 7 m, "dunker spots" no 5x5).
+  Sem layout, os pontos saem do arco como antes. Dados no lugar de Transforms de cena: a cena só tem o
+  bootstrap (D-003), e os mesmos pontos servem às duas cestas.
+

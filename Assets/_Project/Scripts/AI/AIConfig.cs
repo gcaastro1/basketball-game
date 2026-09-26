@@ -70,6 +70,8 @@ namespace Basket.AI
         public float spacingBeyondArc = 0.4f;
         // Off-ball spots closer than this to the ball handler are left empty (no crowding him).
         public float spacingMinFromHandler = 4f;
+        // Hand-placed spacing spots (Inspector); empty = computed on the arc above.
+        public SpacingLayout spacingLayout;
         // A cutter goes when their defender is at least this far from them.
         public float cutTriggerDistance = 2.4f;
         public float cutDurationSeconds = 1.6f;
