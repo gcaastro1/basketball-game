@@ -61,7 +61,7 @@ build Basket.Input $(refs Basket.Core Stubs) $(src Scripts/Input)
 build Basket.UI $(refs Basket.Core) $(src Scripts/UI)
 build Basket.Bootstrap $(refs Basket.Core Basket.Characters Basket.Gameplay Basket.AI Basket.Input Basket.UI Basket.Presentation Basket.Meta) $(src Scripts/Bootstrap)
 build Basket.EditorTools $(refs Stubs Basket.Core Basket.Characters Basket.Gameplay Basket.AI Basket.Input Basket.UI Basket.Presentation Basket.Bootstrap Basket.Meta) $(src Editor)
-build Basket.Tests.EditMode "$NUNIT" $(refs Stubs Basket.Core Basket.Characters Basket.Gameplay Basket.AI Basket.Input Basket.Presentation Basket.Meta) $(src Tests/EditMode)
+build Basket.Tests.EditMode "$NUNIT" $(refs Stubs Basket.Core Basket.Characters Basket.Gameplay Basket.AI Basket.Input Basket.Presentation Basket.Meta Basket.EditorTools) $(src Tests/EditMode)
 build Basket.Tests.PlayMode "$NUNIT" $(refs Stubs Basket.Core Basket.Characters Basket.Gameplay Basket.AI Basket.Input Basket.Presentation Basket.Bootstrap Basket.Meta) $(src Tests/PlayMode)
 
 # Unity binds a ScriptableObject/MonoBehaviour asset to its script file through the class

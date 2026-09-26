@@ -39,7 +39,9 @@ public class CharacterVisualTests
         Assert.IsFalse(match.Players[0].transform.Find("Body").GetComponent<Renderer>().enabled, "capsule hidden");
         var animator = visual.Model.GetComponentInChildren<Animator>();
         Assert.IsTrue(animator.avatar != null && animator.avatar.isHuman, "humanoid avatar");
-        Assert.IsTrue(visual.Driver.UsesProcedural, "no clips yet: procedural animation");
+        // Clips when the character has them (bound in the editor), procedural otherwise.
+        Debug.Log($"Animation backend: {(visual.Driver.UsesClips ? "clips (procedural for the rest)" : "procedural")}");
+        Assert.AreEqual(def.clips != null && def.clips.HasLocomotion, visual.Driver.UsesClips);
 
         Assert.IsTrue(CharacterVisual.MeasureMeshY(visual.Model, out float minY, out float maxY));
         float feet = match.Players[0].FeetPosition.y;
@@ -151,5 +153,42 @@ public class CharacterVisualTests
         Assert.AreEqual(AnimPose.Locomotion, visual.Driver.CurrentPose);
         Debug.Log($"Stride: feet gap {min:0.00}..{max:0.00} m");
         Assert.Greater(max - min, 0.25f, "legs swing past each other");
+    }
+
+    // Dribbling while running: the legs keep running (upper-body layer when the dribble is
+    // a clip) and the hand stays with the ball.
+    [UnityTest]
+    public IEnumerator Dribbler_KeepsRunning_WithTheHandOnTheBall()
+    {
+        CharacterVisualDefinition def = LoadVisual();
+        using var match = new TestMatch();
+        match.Start((TeamId.Home, (s, self) => new PlayerCommand(new Vector2(0f, 1f))));
+        CharacterVisual visual = CharacterVisual.Attach(match.Players[0], match.Sim, def, Color.blue);
+        Animator animator = visual.Model.GetComponentInChildren<Animator>();
+        Transform root = match.Players[0].transform;
+        Transform left = animator.GetBoneTransform(HumanBodyBones.LeftFoot);
+        Transform right = animator.GetBoneTransform(HumanBodyBones.RightFoot);
+        BallController ball = match.Sim.Ball;
+
+        float min = float.MaxValue, max = float.MinValue, closest = float.MaxValue;
+        int dribbleFrames = 0;
+        float elapsed = 0f;
+        while (elapsed < 1.2f)
+        {
+            yield return null;
+            match.Sim.Tick(Time.deltaTime);
+            elapsed += Time.deltaTime;
+            if (visual.Driver.CurrentPose != AnimPose.Dribble) continue;
+            dribbleFrames++;
+            float gap = Vector3.Dot(left.position - right.position, root.forward);
+            min = Mathf.Min(min, gap);
+            max = Mathf.Max(max, gap);
+            closest = Mathf.Min(closest, Vector3.Distance(visual.Driver.RightHandPosition, ball.Position));
+        }
+
+        Debug.Log($"Dribble run ({(visual.Driver.UsesClips ? "clips" : "procedural")}): {dribbleFrames} frames, feet gap {min:0.00}..{max:0.00} m, hand-ball closest {closest:0.00} m");
+        Assert.Greater(dribbleFrames, 10, "the ball handler dribbles while moving");
+        Assert.Greater(max - min, 0.25f, "legs keep running while dribbling");
+        Assert.Less(closest, ball.Radius + 0.15f, "the hand meets the ball at the top of the bounce");
     }
 }

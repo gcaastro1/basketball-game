@@ -44,8 +44,12 @@ jobs:
             echo "available=true" >> "$GITHUB_OUTPUT"
           fi
 
+      # Models, clips and textures (*.fbx, *.png, *.jpg...) are in Git LFS: without the
+      # real files Unity imports pointer text and the character has no mesh or clips.
       - uses: actions/checkout@v4
         if: steps.license.outputs.available == 'true'
+        with:
+          lfs: true
 
       # The Tripo3D bridge is referenced by an absolute path on the developer's machine
       # (file:D:/...), which does not exist here. It is an editor import tool that no

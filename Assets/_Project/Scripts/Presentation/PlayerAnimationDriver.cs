@@ -6,7 +6,8 @@ using Basket.Gameplay;
 namespace Basket.Presentation
 {
     // Reads one player's gameplay state every frame and animates their model: real clips
-    // when the character has them, procedural muscles otherwise, then hand IK onto the ball.
+    // when the character has them (locomotion, dribble, ...), procedural muscles for every
+    // pose that still has no clip (blended over the clips), then hand IK onto the ball.
     // Runs after BallController.LateUpdate so the ball is already where gameplay put it.
     [DefaultExecutionOrder(100)]
     public class PlayerAnimationDriver : MonoBehaviour
@@ -15,6 +16,7 @@ namespace Basket.Presentation
         private const float DribbleHz = 2.2f;
         private const float TwoPi = Mathf.PI * 2f;
         private const float ToeHeight = 0.03f;
+        private const float OverlayFadeSeconds = 0.15f;
 
         private PlayerEntity player;
         private MatchSimulation sim;
@@ -26,10 +28,12 @@ namespace Basket.Presentation
         private float soleHeight;
         private float stridePhase, dribblePhase;
         private float sincePass = 99f, sinceScored = 99f;
+        private float overlayWeight;
 
         public AnimPose CurrentPose { get; private set; }
         public bool UsesClips => clipBackend != null;
-        public bool UsesProcedural => procedural != null;
+        // Procedural only (no clips); with clips it still covers the poses they lack.
+        public bool UsesProcedural => procedural != null && clipBackend == null;
         public Vector3 RightHandPosition => rightHand != null ? rightHand.HandPosition : transform.position;
         public Vector3 LeftHandPosition => leftHand != null ? leftHand.HandPosition : transform.position;
 
@@ -41,7 +45,7 @@ namespace Basket.Presentation
             animator = bodyAnimator;
             bool humanoid = animator != null && animator.avatar != null && animator.avatar.isHuman;
             if (humanoid && clips != null && clips.HasLocomotion) clipBackend = new ClipAnimationBackend(animator, clips);
-            else if (humanoid) procedural = new ProceduralHumanoidAnimator(animator);
+            if (humanoid) procedural = new ProceduralHumanoidAnimator(animator);
             if (humanoid)
             {
                 rightHand = new HandIK(animator, right: true);
@@ -105,11 +109,18 @@ namespace Basket.Presentation
                 : output.Pose == AnimPose.Pass ? sincePass / AnimationStateMapper.PassPoseSeconds
                 : 0f;
 
+            float overlay = 1f;
             if (clipBackend != null)
             {
-                clipBackend.Update(output.Pose, output.SpeedRatio, dt);
+                Vector3 velocity = motor.HorizontalVelocity;
+                float forward = Vector3.Dot(velocity, player.transform.forward);
+                clipBackend.Update(output.Pose, input.Speed, forward, dt);
+                // Procedural only where the clips have nothing: fade it in and out.
+                bool covered = output.Pose == AnimPose.Locomotion || clipBackend.HasClipFor(output.Pose);
+                overlayWeight = Mathf.MoveTowards(overlayWeight, covered ? 0f : 1f, dt / OverlayFadeSeconds);
+                overlay = overlayWeight;
             }
-            else if (procedural != null)
+            if (procedural != null && overlay > 0f)
             {
                 procedural.Apply(ProceduralPoseMath.Compute(new PoseParams
                 {
@@ -119,7 +130,7 @@ namespace Basket.Presentation
                     StridePhase = stridePhase,
                     DribblePhase = dribblePhase,
                     ActionT = actionT,
-                }));
+                }), overlay);
             }
 
             GroundFeet();

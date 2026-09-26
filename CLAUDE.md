@@ -44,6 +44,10 @@ Controle de jogador = `Core/IAgentController` (humano, IA, teste). Regras = `Mat
 - Modelos 3D vêm do **Tripo3D** (`Assets/TripoModels`); o pacote `com.tripo3d.unitybridge` aponta
   para um caminho local em `D:/` no `Packages/manifest.json` — **não remova** (só o CI o tira).
   `Editor/TripoHumanoidImporter.cs` importa novos FBX como Humanoid.
+- Modelos, clipes e texturas (`*.fbx`, `*.png`, `*.jpg`...) estão no **Git LFS** (`.gitattributes`):
+  instale o Git LFS; o CI baixa com `lfs: true`. Clipes em `Assets/TripoModels/**/Animations/` são
+  configurados por `Editor/CharacterAnimationImporter.cs` e ligados ao personagem por
+  `Editor/CharacterClipBinder.cs` (menu **Basket → Bind Character Animations**).
 - O personagem modelo tem **1,68 m** (`Data/Characters/DefaultCharacterVisual.asset`, só visual;
   o corpo de gameplay continua com 1,9 m).
 

@@ -166,7 +166,8 @@ namespace Basket.Bootstrap
             }
 
             if (cameraTarget == null && players.Count > 0) cameraTarget = players[0];
-            BuildCamera(cameraTarget != null ? cameraTarget.transform : arena.Ball.transform);
+            BuildCamera(cameraTarget != null ? cameraTarget.transform : arena.Ball.transform,
+                cameraTarget != null ? cameraTarget.Team : TeamId.Home);
 
             var hud = new GameObject("DebugHud").AddComponent<DebugHud>();
             hud.Configure(Simulation.Match.State, arena.Ball, aiControllers, Simulation, Simulation.Stats);
@@ -207,7 +208,9 @@ namespace Basket.Bootstrap
             disposables.Clear();
         }
 
-        private void BuildCamera(Transform target)
+        // Broadcast camera behind the followed player, facing the basket the team with the
+        // ball attacks (the player's own team's basket when nobody has it).
+        private void BuildCamera(Transform target, TeamId followedTeam)
         {
             Camera cam = Camera.main;
             if (cam == null)
@@ -220,7 +223,13 @@ namespace Basket.Bootstrap
             {
                 controller = cam.gameObject.AddComponent<CameraController>();
             }
-            controller.Configure(target, cameraConfig);
+            MatchSimulation sim = Simulation;
+            TeamId lastAttack = followedTeam;
+            controller.Configure(target, cameraConfig, () =>
+            {
+                if (sim.Match.State.PossessionTeam is TeamId team) lastAttack = team;
+                return sim.Snapshot.GetAttackingHoop(lastAttack);
+            }, courtConfig.CourtCenter);
         }
 
         private void EnsureConfigs()

@@ -27,6 +27,8 @@ de troca.
 | D-019 | Visual em assembly próprio (`Presentation`) que só lê o gameplay; modelo Humanoid; animação procedural por músculos até existirem clipes; clipes por Playables (sem Animator Controller) | Aceita (valores do procedural: **provisórios**) |
 | D-020 | Meta em assembly próprio (`Basket.Meta`, só Core + Characters): dados (SO), regras puras e serviços separados; apresentação fora; save versionado com checksum, escrita atômica e backup | Aceita |
 | D-021 | Ligação do meta ao jogo (Etapa 8.5): `IPlayerProfileReadOnly` em Core (UI continua só conhecendo Core, mesmo padrão do gameplay); `CharacterCatalog` novo para `characterId → CharacterDefinition`; coordenador `ProfileRuntimeService` é POCO em `Basket.Meta`, não lógica no `GameBootstrap` | Aceita |
+| D-022 | Clipes reais + procedural híbridos (Etapa 6.5): locomoção por velocidade (parado/andar/correr/de costas) com playback na velocidade real; drible/segurar bola numa camada só da parte de cima (máscara), pernas continuam; procedural por cima só nas poses sem clipe; clipes ligados por script de editor (IDs internos do FBX) | Aceita (mapeamento pose → clipe: **provisório**, trocável no Inspector) |
+| D-023 | Câmera de transmissão: atrás e acima do jogador seguido, sempre virada para a cesta atacada pelo time com a bola; vira suavemente (só no ângulo horizontal) quando o ataque troca de lado | Aceita (valores em `DefaultCameraConfig`: **provisórios**) |
 | P-001 | Modo B (controle do time) | **Pendente** — ponto de encaixe pronto: `ITeamStrategy` (e `IAgentController`) |
 | P-003 | Gacha definitivo (raridades, taxas, pity, custos, moedas) | **Provisória**: 3 níveis genéricos, 3/17/80%, pity 80 (soft 65, +6%), 50/50 com garantia, multi de 10 com garantia de nível 2 — tudo em `Data/Meta/StandardBanner.asset` |
 | P-002 | Semântica dos Limit Breaks | **Provisória**: 4 LBs (20→40, 40→50, 50→60, "Awakening" no 60 sem novo teto), tudo em `DefaultProgressionConfig` |
@@ -302,3 +304,40 @@ primeiro slot humano em `matchSetup.slots`), não de um lado fixo.
 humano no time Away sem ajustar essa suposição em `GameBootstrap` vai inverter silenciosamente
 vitória/derrota nas recompensas de partida — ponto de atenção para quem tocar isso antes desta
 decisão ser revisitada.
+
+## D-022 — Clipes reais + procedural híbridos (Etapa 6.5)
+
+**Contexto.** Chegaram clipes reais (Mixamo: Idle, Offensive Idle, Walking, Running, Running
+Backward, Dribble; Universal Animation Library, CC0) mas não os de arremesso/passe/bandeja/enterrada
+(pacote a comprar). O backend de clipes da Etapa 6 era tudo-ou-nada e trocava o corpo inteiro por
+ação (um drible pararia as pernas).
+
+**Decisão.**
+- Camada 0 (corpo inteiro): locomoção misturada por velocidade (`LocomotionBlend`, puro): parado →
+  andar → correr, e "de costas" conforme o movimento se afasta da frente do corpo; playback escalado
+  para os pés andarem na velocidade real (0,6–1,6×). Clipes de ação de corpo inteiro por cima.
+- Camada 1 (máscara: tronco, braços, cabeça): drible e segurar a bola sobre a locomoção.
+- Poses sem clipe continuam procedurais, misturadas por cima dos clipes (`ProceduralHumanoidAnimator.Apply(..., weight)`).
+- Importação (`CharacterAnimationImporter`): loops para idle/andar/correr/drible/`*_Loop`; rotação e
+  altura na pose; movimento horizontal fica na raiz e nunca é aplicado (no lugar).
+- Ligação dos clipes (`CharacterClipBinder`): os clipes dentro do FBX têm IDs gerados pelo Unity, então
+  um script de editor preenche os slots vazios do `DefaultCharacterVisual` (ao importar, ao abrir o
+  editor e pelo menu **Basket → Bind Character Animations**); o que for posto no Inspector prevalece.
+
+**Consequências.** O pacote comprado entra só preenchendo slots (`jumpShot`, `layup`, `dunk`, `pass`,
+`block`...), sem código. Gameplay continua sem ler nada da apresentação.
+
+## D-023 — Câmera de transmissão
+
+**Contexto.** Pedido do usuário: câmera "PRO" como nos jogos de basquete, acompanhando o jogador e
+sempre virada para a direção do ataque.
+
+**Decisão.** `CameraRigMath` (puro): direção = eixo da quadra rumo à cesta atacada, girada em direção ao
+aro por `aimAtHoop` (0 = transmissão, 1 = atrás da linha jogador→aro); câmera `distance` atrás e
+`height` acima do jogador, olhando um pouco à frente dele rumo à cesta (nunca além dela).
+`CameraController` suaviza posição e rotação e vira só no ângulo horizontal. A cesta vem do
+`GameBootstrap`: a atacada pelo time com a bola (a do time do jogador quando ninguém tem a bola).
+
+**Consequências.** Em meia quadra (3x3) a câmera sempre olha para a mesma cesta; em quadra inteira ela
+dá a volta quando a posse muda. Ajustes em `Data/DefaultCameraConfig.asset`.
+

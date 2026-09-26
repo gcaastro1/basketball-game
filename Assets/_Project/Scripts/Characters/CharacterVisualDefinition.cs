@@ -26,15 +26,27 @@ namespace Basket.Characters
         public CharacterAnimationClips clips = new CharacterAnimationClips();
     }
 
-    // Humanoid clips per gameplay pose. Idle + run enable the clip backend; any other
-    // missing clip falls back to locomotion.
+    // Humanoid clips per gameplay pose. Idle + run enable the clip backend; poses without a
+    // clip keep their procedural animation on top of the clips (shots, passes, ...).
     [Serializable]
     public class CharacterAnimationClips
     {
+        [Header("Locomotion (loops, in place)")]
         public AnimationClip idle;
+        public AnimationClip walk;
         public AnimationClip run;
+        [Tooltip("Moving backward (backpedal on defense).")]
+        public AnimationClip runBackward;
+        [Tooltip("Speed (m/s) the walk clip's feet move at: playback is scaled to the real speed.")]
+        public float walkSpeed = 1.5f;
+        [Tooltip("Speed (m/s) the run clip's feet move at.")]
+        public float runSpeed = 4.5f;
+
+        [Header("Upper body over locomotion (legs keep running)")]
         public AnimationClip dribble;
         public AnimationClip holdBall;
+
+        [Header("Full body")]
         public AnimationClip defense;
         public AnimationClip jumpShot;
         public AnimationClip layup;
