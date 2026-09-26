@@ -35,7 +35,7 @@ public class AnimationLogicTests
         i.ShotType = ShotType.JumpShot;
         Assert.AreEqual(AnimPose.JumpShot, AnimationStateMapper.Map(i).Pose);
         i.ShotType = ShotType.FreeThrow;
-        Assert.AreEqual(AnimPose.JumpShot, AnimationStateMapper.Map(i).Pose);
+        Assert.AreEqual(AnimPose.FreeThrow, AnimationStateMapper.Map(i).Pose, "own clip slot (procedurally a jump shot)");
         i.ShotType = ShotType.Layup;
         Assert.AreEqual(AnimPose.Layup, AnimationStateMapper.Map(i).Pose);
         i.ShotType = ShotType.Dunk;

@@ -75,11 +75,17 @@ public class AnimationClipLogicTests
     public void Importer_NamesAndLoops()
     {
         Assert.AreEqual("Running", CharacterAnimationImporter.ClipName("mixamo.com", "Running", 1));
+        Assert.AreEqual("Basketball_Jump_Shot_124_05",
+            CharacterAnimationImporter.ClipName("CharacterArmature|124_05_remap", "Basketball_Jump_Shot_124_05", 1));
         Assert.AreEqual("Jump_Loop", CharacterAnimationImporter.ClipName("Armature|Jump_Loop", "UAL1_Standard", 45));
 
-        foreach (string loop in new[] { "Idle", "Offensive Idle", "Walking", "Running", "Running Backward", "Dribble", "Jump_Loop", "Sprint_Loop" })
+        foreach (string loop in new[] { "Idle", "Offensive Idle", "Walking", "Running", "Running Backward", "Dribble", "Jump_Loop", "Sprint_Loop",
+                     "basketball_forward_dribble_06_02", "RunningStraight_102_05", "DefensiveMoveSideToSide_102_27", "basketball_backward_dribble_06_06" })
             Assert.IsTrue(CharacterAnimationImporter.IsLoop(loop), loop);
-        foreach (string once in new[] { "Start Walking", "Jump_Start", "Jump_Land", "Sitting_Enter", "Death01", "Punch_Jab" })
+        foreach (string once in new[] { "Start Walking", "Jump_Start", "Jump_Land", "Sitting_Enter", "Death01", "Punch_Jab",
+                     "Basketball_Jump_Shot_124_05", "Basketball_Free_Throw_124_04", "Basketball_Lay_Up_124_06", "basketball_dribble_shoot_06_15",
+                     "basketball_forward_dribble_90_degree_left_turns_06_10", "DefensiveLeftStopToStop_102_25", "FakeShotBreakLeft_102_21",
+                     "OffensiveMoveSpinLeft_102_11" })
             Assert.IsFalse(CharacterAnimationImporter.IsLoop(once), once);
     }
 
@@ -89,5 +95,18 @@ public class AnimationClipLogicTests
         Assert.IsTrue(CharacterAnimationImporter.Handles("Assets/TripoModels/anime_character_3d_model/Animations/Running.fbx"));
         Assert.IsFalse(CharacterAnimationImporter.Handles("Assets/TripoModels/anime_character_3d_model/anime_character_3d_model.fbx"));
         Assert.IsFalse(CharacterAnimationImporter.Handles("Assets/Other/Animations/Running.fbx"));
+    }
+
+    [Test]
+    public void ShotClip_FollowsTheGameplayShot_UpToItsRelease()
+    {
+        // 6 s mocap: gather at 0.45, release at 0.55 -> 2.7 s .. 3.3 s.
+        Assert.AreEqual(2.7f, ActionClipTiming.TimeFor(0f, 0.45f, 0.55f, 6f), 1e-4f, "starts at the gather, skipping the lead-in");
+        Assert.AreEqual(3.0f, ActionClipTiming.TimeFor(0.5f, 0.45f, 0.55f, 6f), 1e-4f, "half way to the release");
+        Assert.AreEqual(3.3f, ActionClipTiming.TimeFor(1f, 0.45f, 0.55f, 6f), 1e-4f, "release on the gameplay release");
+        Assert.AreEqual(1.5f, ActionClipTiming.TimeFor(1f, 0.5f, 0.2f, 3f), 1e-4f, "release before start: holds at start");
+        Assert.IsTrue(ActionClipTiming.IsDriven(0.3f));
+        Assert.IsFalse(ActionClipTiming.IsDriven(1f), "after the release the clip plays on");
+        Assert.IsFalse(ActionClipTiming.IsDriven(-1f), "not shooting");
     }
 }

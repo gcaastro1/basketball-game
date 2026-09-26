@@ -114,7 +114,7 @@ namespace Basket.Presentation
             {
                 Vector3 velocity = motor.HorizontalVelocity;
                 float forward = Vector3.Dot(velocity, player.transform.forward);
-                clipBackend.Update(output.Pose, input.Speed, forward, dt);
+                clipBackend.Update(output.Pose, input.Speed, forward, dt, shooting ? shotProgress : -1f);
                 // Procedural only where the clips have nothing: fade it in and out.
                 bool covered = output.Pose == AnimPose.Locomotion || clipBackend.HasClipFor(output.Pose);
                 overlayWeight = Mathf.MoveTowards(overlayWeight, covered ? 0f : 1f, dt / OverlayFadeSeconds);

@@ -327,6 +327,29 @@ ação (um drible pararia as pernas).
 **Consequências.** O pacote comprado entra só preenchendo slots (`jumpShot`, `layup`, `dunk`, `pass`,
 `block`...), sem código. Gameplay continua sem ler nada da apresentação.
 
+### D-022 (adendo) — Animações de basquete (captura de movimento)
+
+**Contexto.** Chegaram 69 clipes de basquete em `Animations/Basquete` (captura de movimento, um só
+esqueleto `CharacterArmature`, mapeado como Humanoid): arremessos, bandeja, lance livre, dribles em
+várias direções, crossovers/giros/fintas, deslizes de defesa, corridas e sinais de árbitro. São longos
+(o jump shot tem 6,5 s, com segundos de parado e drible antes do arremesso).
+
+**Decisão.**
+- Pose própria para lance livre (`AnimPose.FreeThrow`; proceduralmente igual ao jump shot).
+- Arremessos (jump shot, bandeja, enterrada, lance livre) tocam **em sincronia com o arremesso do
+  jogo**: o progresso do arremesso (0 = início, 1 = soltura no ápice) leva o clipe do agachamento
+  (`start`) até a soltura (`release`), numa janela por clipe (`ClipWindow`, `ActionClipTiming`); depois
+  da soltura o clipe segue sozinho. Janelas medidas na altura do quadril de cada clipe (lendo as curvas
+  do FBX): jump shot 0,464–0,526; bandeja 0,503–0,595; lance livre 0,824–0,905.
+- Defesa: `defenseMove` (deslize lateral) quando o defensor se move, `defense` (postura) parado.
+- Drible padrão: `basketball_forward_dribble_06_02` (drible em movimento, na camada de cima do corpo).
+- Importação: clipe de um só take recebe o nome do arquivo; arremessos, fintas, giros, paradas e curvas
+  não repetem.
+
+**Consequências.** Crossovers, giros, fintas e dribles laterais/de costas ficam disponíveis para uma
+etapa de movimentos com a bola (hoje o jogo não tem esses comandos). Os valores das janelas são
+ajustáveis no Inspector do `DefaultCharacterVisual`.
+
 ## D-023 — Câmera de transmissão
 
 **Contexto.** Pedido do usuário: câmera "PRO" como nos jogos de basquete, acompanhando o jogador e

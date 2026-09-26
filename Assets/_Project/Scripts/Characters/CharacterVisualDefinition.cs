@@ -48,14 +48,41 @@ namespace Basket.Characters
 
         [Header("Full body")]
         public AnimationClip defense;
+        [Tooltip("Defensive slide, used while a defender moves (defense = the stance when still).")]
+        public AnimationClip defenseMove;
         public AnimationClip jumpShot;
         public AnimationClip layup;
         public AnimationClip dunk;
+        public AnimationClip freeThrow;
         public AnimationClip pass;
         public AnimationClip block;
         public AnimationClip airborne;
         public AnimationClip celebrate;
 
+        [Header("Shot timing (0..1 of each clip): from the gather to the ball leaving the hand")]
+        [Tooltip("Between start and release the clip follows the gameplay shot, so the hand releases " +
+                 "the ball on the same frame the game does; after the release the clip plays on.")]
+        public ClipWindow jumpShotWindow = ClipWindow.Default;
+        public ClipWindow layupWindow = ClipWindow.Default;
+        public ClipWindow dunkWindow = ClipWindow.Default;
+        public ClipWindow freeThrowWindow = ClipWindow.Default;
+
         public bool HasLocomotion => idle != null && run != null;
+    }
+
+    // A stretch of a clip in normalized time (0 = first frame, 1 = last).
+    [Serializable]
+    public struct ClipWindow
+    {
+        [Range(0f, 1f)] public float start;
+        [Range(0f, 1f)] public float release;
+
+        public ClipWindow(float start, float release)
+        {
+            this.start = start;
+            this.release = release;
+        }
+
+        public static ClipWindow Default => new ClipWindow(0f, 0.5f);
     }
 }

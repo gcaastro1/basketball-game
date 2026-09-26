@@ -19,6 +19,8 @@ namespace Basket.Presentation
     {
         private const float CrossfadeSeconds = 0.15f;
         private const int LocoIdle = 0, LocoWalk = 1, LocoRun = 2, LocoBack = 3;
+        // A defender moving faster than this slides (defenseMove) instead of standing in stance.
+        private const float DefenseSlideSpeed = 0.8f;
 
         private readonly CharacterAnimationClips clips;
         private PlayableGraph graph;
@@ -58,10 +60,11 @@ namespace Basket.Presentation
         }
 
         // Which clip, if any, plays this pose (and on which layer).
-        public bool HasClipFor(AnimPose pose) => UpperClip(pose) != null || FullClip(pose) != null;
+        public bool HasClipFor(AnimPose pose) => UpperClip(pose) != null || FullClip(pose, 0f) != null;
 
-        // speed: horizontal m/s; forward: its component along the body's facing.
-        public void Update(AnimPose pose, float speed, float forward, float dt)
+        // speed: horizontal m/s; forward: its component along the body's facing;
+        // shotProgress: gameplay shot progress (0 start .. 1 release), negative when not shooting.
+        public void Update(AnimPose pose, float speed, float forward, float dt, float shotProgress = -1f)
         {
             LocomotionWeights w = LocomotionBlend.Compute(speed, forward, clips.walkSpeed, clips.runSpeed,
                 clips.walk != null, clips.runBackward != null);
@@ -70,8 +73,9 @@ namespace Basket.Presentation
             SetLoco(LocoRun, w.Run, w.RunRate);
             SetLoco(LocoBack, w.Back, w.BackRate);
 
-            fullAction.Update(FullClip(pose), pose, dt);
-            upperAction.Update(UpperClip(pose), pose, dt);
+            bool timed = TryWindow(pose, out ClipWindow window);
+            fullAction.Update(FullClip(pose, speed), pose, dt, timed ? shotProgress : -1f, window);
+            upperAction.Update(UpperClip(pose), pose, dt, -1f, default);
             fullBody.SetInputWeight(0, 1f - fullAction.Weight);
         }
 
@@ -82,18 +86,32 @@ namespace Basket.Presentation
             _ => null
         };
 
-        private AnimationClip FullClip(AnimPose pose) => pose switch
+        private AnimationClip FullClip(AnimPose pose, float speed) => pose switch
         {
-            AnimPose.Defense => clips.defense,
+            AnimPose.Defense => speed > DefenseSlideSpeed && clips.defenseMove != null ? clips.defenseMove : clips.defense,
             AnimPose.JumpShot => clips.jumpShot,
             AnimPose.Layup => clips.layup,
             AnimPose.Dunk => clips.dunk,
+            AnimPose.FreeThrow => clips.freeThrow,
             AnimPose.Pass => clips.pass,
             AnimPose.Block => clips.block,
             AnimPose.Airborne => clips.airborne,
             AnimPose.Celebrate => clips.celebrate,
             _ => null
         };
+
+        // Shots, whose clip follows the gameplay shot through this window.
+        private bool TryWindow(AnimPose pose, out ClipWindow window)
+        {
+            switch (pose)
+            {
+                case AnimPose.JumpShot: window = clips.jumpShotWindow; return true;
+                case AnimPose.Layup: window = clips.layupWindow; return true;
+                case AnimPose.Dunk: window = clips.dunkWindow; return true;
+                case AnimPose.FreeThrow: window = clips.freeThrowWindow; return true;
+                default: window = default; return false;
+            }
+        }
 
         private void ConnectLoco(int slot, AnimationClip clip)
         {
@@ -149,7 +167,8 @@ namespace Basket.Presentation
                 this.input = input;
             }
 
-            public void Update(AnimationClip wanted, AnimPose pose, float dt)
+            // driveProgress >= 0: the clip time follows it through `window` (ActionClipTiming).
+            public void Update(AnimationClip wanted, AnimPose pose, float dt, float driveProgress, ClipWindow window)
             {
                 if (wanted != null && wanted != clip)
                 {
@@ -167,6 +186,18 @@ namespace Basket.Presentation
                     playable.SetTime(0);
                 }
                 lastPose = pose;
+                if (playable.IsValid() && wanted != null)
+                {
+                    if (ActionClipTiming.IsDriven(driveProgress))
+                    {
+                        playable.SetSpeed(0);
+                        playable.SetTime(ActionClipTiming.TimeFor(driveProgress, window.start, window.release, wanted.length));
+                    }
+                    else
+                    {
+                        playable.SetSpeed(1);
+                    }
+                }
                 // Back to what is underneath: the last clip fades out instead of cutting.
                 Weight = MoveTowards(Weight, wanted != null ? 1f : 0f, dt / CrossfadeSeconds);
                 if (playable.IsValid()) mixer.SetInputWeight(input, Weight);

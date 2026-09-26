@@ -11,6 +11,7 @@ namespace Basket.Presentation
         HoldBall,
         Defense,
         JumpShot,
+        FreeThrow,
         Layup,
         Dunk,
         Pass,
@@ -69,6 +70,7 @@ namespace Basket.Presentation
                 {
                     case ShotType.Layup: return AnimPose.Layup;
                     case ShotType.Dunk: return AnimPose.Dunk;
+                    case ShotType.FreeThrow: return AnimPose.FreeThrow;
                     default: return AnimPose.JumpShot;
                 }
             }
