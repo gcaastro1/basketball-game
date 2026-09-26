@@ -607,3 +607,19 @@ infiltração leva o jogador até o aro; animação `Lay_Up_124_06`, soltura aut
 medidor). Parado, de lado ou se afastando continua arremesso; a enterrada continua tendo prioridade.
 Valores em `ShotConfig` (provisórios).
 
+## D-022 (adendo 7) — Pegar a bola do chão e corpo sem girar no ar
+
+**Contexto.** "Quando a bola está no chão, ela só teleporta para a mão" (nenhum clipe da pasta tem o
+jogador abaixando: calculado por cinemática em todos os 69, as mãos nunca descem abaixo do joelho); "após
+o arremesso o personagem já está virando de lado se aperto a tecla no ar — quero movimentos naturais".
+
+**Decisão.**
+- Pose procedural `PickUp` (sem clipe; troca por um clipe "Picking Up" do Mixamo quando houver): ao pegar
+  uma bola solta a até 0,7 m do chão, com os pés no chão, o personagem começa agachado, tronco inclinado,
+  mãos embaixo, e se levanta em 0,4 s até a pose de segurar.
+- A bola visual (`BallVisualFollower`) não salta mais para a mão: ao ser pega (do chão, num passe ou
+  rebote), sai de onde estava e viaja até as mãos.
+- Motor (`PlayerMovementConfig.airTurnMultiplier` = 0): no ar o corpo mantém a direção; o comando só
+  desvia um pouco a trajetória (controle aéreo), e a virada acontece ao tocar o chão. Virar para a cesta
+  durante o arremesso continua.
+

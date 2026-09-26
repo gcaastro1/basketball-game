@@ -18,6 +18,8 @@ namespace Basket.Presentation
         Block,
         Airborne,
         Celebrate,
+        // Scooping a loose ball off the floor: crouched with the hands down, rising with it.
+        PickUp,
     }
 
     public struct PlayerAnimInput
@@ -29,6 +31,8 @@ namespace Basket.Presentation
         public bool HasBall;
         // Holding the ball after starting a dribble (it keeps bouncing standing still).
         public bool Dribbling;
+        // Just picked a loose ball up off the floor (for PickUpSeconds).
+        public bool PickingUp;
         public bool Shooting;
         public ShotType ShotType;
         // Seconds since this player threw a pass / their team scored (large = never).
@@ -59,6 +63,7 @@ namespace Basket.Presentation
         public const float CelebrateSeconds = 1.2f;
         // Below this speed ratio a ball handler holds the ball instead of dribbling.
         public const float DribbleSpeedRatio = 0.08f;
+        public const float PickUpSeconds = 0.4f;
 
         public static PlayerAnimOutput Map(in PlayerAnimInput i)
         {
@@ -80,6 +85,7 @@ namespace Basket.Presentation
             }
             if (i.SincePass < PassPoseSeconds) return AnimPose.Pass;
             if (!i.Grounded) return i.Defending ? AnimPose.Block : AnimPose.Airborne;
+            if (i.HasBall && i.PickingUp) return AnimPose.PickUp;
             // A dribbler keeps dribbling standing still; the ball is only held before the dribble.
             if (i.HasBall) return i.Dribbling || speedRatio > DribbleSpeedRatio ? AnimPose.Dribble : AnimPose.HoldBall;
             if (i.Guarding) return AnimPose.Defense;

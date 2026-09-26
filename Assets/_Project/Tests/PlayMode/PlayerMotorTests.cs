@@ -58,4 +58,36 @@ public class PlayerMotorTests
         Object.Destroy(player.gameObject);
         Object.Destroy(floor);
     }
+
+    // A body in the air cannot twist around: steering mid-jump bends the path a little but
+    // the facing stays until the landing (it used to swing sideways right after a shot).
+    [UnityTest]
+    public IEnumerator Airborne_SteeringDoesNotTurnTheBody_LandingDoes()
+    {
+        var floor = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        floor.transform.localScale = new Vector3(10f, 0.2f, 10f);
+        floor.transform.position = new Vector3(0f, -0.1f, 0f);
+        var config = ScriptableObject.CreateInstance<PlayerMovementConfig>();
+        PlayerEntity player = PlaceholderPlayerFactory.Create("Jumper", Basket.Core.TeamId.Home, config, Color.gray, Color.yellow);
+        yield return null;
+        PlayerMotor motor = player.Motor;
+        for (int i = 0; i < 20 && !motor.IsGrounded; i++) motor.Tick(Vector2.zero, false, 0.02f);
+        Quaternion start = player.transform.rotation;
+
+        Assert.IsTrue(motor.Jump());
+        float maxTurn = 0f;
+        for (int i = 0; i < 150; i++)
+        {
+            motor.Tick(new Vector2(1f, 0f), false, 0.02f); // hard sideways input in the air
+            if (motor.IsGrounded && i > 5) break;
+            maxTurn = Mathf.Max(maxTurn, Quaternion.Angle(start, player.transform.rotation));
+        }
+        Assert.Less(maxTurn, 1f, "no twisting in the air");
+
+        for (int i = 0; i < 50; i++) motor.Tick(new Vector2(1f, 0f), false, 0.02f);
+        Assert.Greater(Quaternion.Angle(start, player.transform.rotation), 30f, "turns once on the floor");
+
+        Object.Destroy(player.gameObject);
+        Object.Destroy(floor);
+    }
 }

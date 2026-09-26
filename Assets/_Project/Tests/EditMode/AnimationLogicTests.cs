@@ -26,6 +26,29 @@ public class AnimationLogicTests
     }
 
     [Test]
+    public void Mapper_LooseBallPickedUp_BendsDownFirst()
+    {
+        var i = Standing();
+        i.HasBall = true;
+        i.PickingUp = true;
+        Assert.AreEqual(AnimPose.PickUp, AnimationStateMapper.Map(i).Pose);
+        i.PickingUp = false;
+        Assert.AreEqual(AnimPose.HoldBall, AnimationStateMapper.Map(i).Pose);
+    }
+
+    [Test]
+    public void PickUpPose_StartsBentDown_EndsStanding()
+    {
+        PoseChannels start = ProceduralPoseMath.Compute(new PoseParams { Pose = AnimPose.PickUp, ActionT = 0f, Grounded = true });
+        PoseChannels end = ProceduralPoseMath.Compute(new PoseParams { Pose = AnimPose.PickUp, ActionT = 1f, Grounded = true });
+        Assert.Greater(start.Crouch, 0.9f);
+        Assert.Greater(start.SpineLean, 0.9f);
+        Assert.Less(start.ArmRaiseR, 0.1f, "hands down at the ball");
+        Assert.Less(end.Crouch, 0.2f);
+        Assert.Greater(end.ArmRaiseR, 0.3f, "ball up at the chest");
+    }
+
+    [Test]
     public void Mapper_Dribbler_KeepsDribblingStandingStill()
     {
         var i = Standing();

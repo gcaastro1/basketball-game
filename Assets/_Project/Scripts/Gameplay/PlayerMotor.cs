@@ -80,8 +80,11 @@ namespace Basket.Gameplay
             }
             else if (horizontalVelocity.sqrMagnitude > 0.0001f)
             {
+                // In the air the body keeps its facing (airTurnMultiplier): steering after a
+                // shot swung the whole body sideways mid-jump.
+                float turn = config.turnSpeedDegrees * turnScale * (grounded ? 1f : config.airTurnMultiplier);
                 Quaternion targetRot = Quaternion.LookRotation(horizontalVelocity.normalized, Vector3.up);
-                transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRot, config.turnSpeedDegrees * turnScale * dt);
+                if (turn > 0f) transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRot, turn * dt);
             }
 
             // Move() (not SimpleMove) so displacement uses exactly the dt given: tests that

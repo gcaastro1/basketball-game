@@ -18,6 +18,8 @@ namespace Basket.Presentation
         private const float TwoPi = Mathf.PI * 2f;
         private const float ToeHeight = 0.03f;
         private const float OverlayFadeSeconds = 0.15f;
+        // A loose ball caught at most this high above the feet is picked up off the floor.
+        private const float PickUpMaxBallHeight = 0.7f;
 
         private PlayerEntity player;
         private MatchSimulation sim;
@@ -28,7 +30,9 @@ namespace Basket.Presentation
         private Transform leftSole, rightSole;
         private float soleHeight;
         private float stridePhase, dribblePhase;
-        private float sincePass = 99f, sinceScored = 99f;
+        private float sincePass = 99f, sinceScored = 99f, sincePickUp = 99f;
+        private bool wasHolding;
+        private float looseBallHeight = 99f;
         private float overlayWeight;
         private float lastYaw;
         private bool hasYaw;
@@ -80,6 +84,8 @@ namespace Basket.Presentation
             }
         }
 
+        private bool motor0Grounded() => player.Motor == null || player.Motor.IsGrounded;
+
         private void OnPassThrown(int passer)
         {
             if (player != null && passer == player.Index) sincePass = 0f;
@@ -96,6 +102,13 @@ namespace Basket.Presentation
             float dt = Time.deltaTime;
             sincePass += dt;
             sinceScored += dt;
+            sincePickUp += dt;
+            // A loose ball caught low (off the floor, not in the air): the pick-up pose.
+            bool holdingNow = sim.Ball.CurrentHolder == player.transform;
+            if (holdingNow && !wasHolding && looseBallHeight - player.FeetPosition.y < PickUpMaxBallHeight && motor0Grounded())
+                sincePickUp = 0f;
+            wasHolding = holdingNow;
+            looseBallHeight = sim.Ball.CurrentState == BallState.Free ? sim.Ball.Position.y : 99f;
 
             bool shooting = sim.TryGetShot(player.Index, out ShotType shotType, out float shotProgress);
             PlayerMotor motor = player.Motor;
@@ -108,6 +121,7 @@ namespace Basket.Presentation
                 VerticalVelocity = motor.Velocity.y,
                 HasBall = sim.Ball.CurrentHolder == player.transform,
                 Dribbling = sim.Ball.CurrentHolder == player.transform && sim.BallDribbling,
+                PickingUp = sincePickUp < AnimationStateMapper.PickUpSeconds,
                 Shooting = shooting,
                 ShotType = shotType,
                 SincePass = sincePass,
@@ -122,6 +136,7 @@ namespace Basket.Presentation
             dribblePhase = (dribblePhase + dt * DribbleHz * TwoPi) % TwoPi;
             float actionT = shooting ? shotProgress
                 : output.Pose == AnimPose.Pass ? sincePass / AnimationStateMapper.PassPoseSeconds
+                : output.Pose == AnimPose.PickUp ? sincePickUp / AnimationStateMapper.PickUpSeconds
                 : 0f;
 
             float overlay = 1f;
@@ -144,6 +159,8 @@ namespace Basket.Presentation
                 // Procedural only where the clips have nothing: fade it in and out.
                 bool covered = output.Pose == AnimPose.Locomotion || clipBackend.HasClipFor(output.Pose);
                 overlayWeight = Mathf.MoveTowards(overlayWeight, covered ? 0f : 1f, dt / OverlayFadeSeconds);
+                // The pick-up is short and starts bent down: no fade in, or it never bends.
+                if (output.Pose == AnimPose.PickUp && sincePickUp <= dt) overlayWeight = 1f;
                 overlay = overlayWeight;
             }
             if (procedural != null && overlay > 0f)

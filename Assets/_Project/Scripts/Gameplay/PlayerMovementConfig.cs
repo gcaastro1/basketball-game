@@ -19,6 +19,10 @@ namespace Basket.Gameplay
         public float jumpHeight = 0.8f;
         // Fraction of ground acceleration available for steering while airborne.
         public float airControl = 0.15f;
+        // Turning toward the movement while airborne (share of turnSpeedDegrees): a body in the
+        // air cannot twist around by itself (0 = keeps its facing until it lands). Turning to a
+        // face target (the rim while shooting) is not affected.
+        [Range(0f, 1f)] public float airTurnMultiplier = 0f;
 
         [Header("Reach")]
         // Fingertip height above the feet with arms raised, standing.
