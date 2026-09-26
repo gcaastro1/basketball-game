@@ -68,9 +68,9 @@ MonoBehaviour:
         to: 0.15193368
         reverse: 0
       forward:
-        clip: {fileID: 2690570975491581429, guid: 344723d4013ce2f44ae68e8b7a1a8c41, type: 3}
-        from: 0.14285713
-        to: 0.8469387
+        clip: {fileID: -4594471611963114080, guid: e46ecfac102c1b9498719f69f0c949b9, type: 3}
+        from: 0.14583331
+        to: 0.83333325
         reverse: 0
       backward:
         clip: {fileID: -7115244112544354414, guid: 343d90f55377fc24999dcd1f49082454, type: 3}
@@ -78,10 +78,10 @@ MonoBehaviour:
         to: 0.86
         reverse: 0
       left:
-        clip: {fileID: -9023232736527643687, guid: 32516bb50deaf214b8ad11976b7646c2, type: 3}
+        clip: {fileID: -2762197070796644060, guid: 32516bb50deaf214b8ad11976b7646c2, type: 3}
         from: 0.12941176
         to: 0.8705882
-        reverse: 0
+        reverse: 1
       right:
         clip: {fileID: -2762197070796644060, guid: 32516bb50deaf214b8ad11976b7646c2, type: 3}
         from: 0.12941176
@@ -148,9 +148,9 @@ MonoBehaviour:
       moveSpeed: 2.5
       runSpeed: 4
     dribbleUpperBody:
-      clip: {fileID: 2690570975491581429, guid: 344723d4013ce2f44ae68e8b7a1a8c41, type: 3}
-      from: 0.14285713
-      to: 0.8469387
+      clip: {fileID: -4594471611963114080, guid: e46ecfac102c1b9498719f69f0c949b9, type: 3}
+      from: 0.14583331
+      to: 0.83333325
       reverse: 0
     holdBall:
       clip: {fileID: 0}
