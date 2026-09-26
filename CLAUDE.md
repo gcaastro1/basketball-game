@@ -54,8 +54,8 @@ Controle de jogador = `Core/IAgentController` (humano, IA, teste). Regras = `Mat
 ## Como verificar
 
 - **Unity Test Runner** (Window → General → Test Runner): EditMode (lógica pura) e PlayMode
-  (física, aro, partidas IA×IA). Estado atual: EditMode 258/258, PlayMode 52/53 (a única falha é
-  pré-existente e sensível à seed em `AISimulationTests.AIvsAI_3v3_PlaysBasketball`, ver
+  (física, aro, partidas IA×IA). Estado atual: EditMode 269/269, PlayMode 55/55 (a simulação 3v3 ainda pode falhar às vezes:
+  `AISimulationTests.AIvsAI_3v3_PlaysBasketball`, ver
   `docs/proximos-passos.md`, "Pendências menores conhecidas").
 - `tools/typecheck/check.sh` — compila tudo sem Unity (bash + mono; no Windows use WSL ou deixe
   para o CI). Se usar API nova de Unity/Editor/Input System, acrescente em `tools/typecheck/stubs/`.
