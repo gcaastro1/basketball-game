@@ -41,6 +41,9 @@ namespace Basket.Presentation
             }
         }
 
+        // The material to render `original` with on this pipeline (converted once, then shared).
+        public Material Get(Material original) => For(original);
+
         private Material For(Material original)
         {
             if (original != null && onlyUnsupported && !NeedsConversion(original)) return original;
@@ -75,6 +78,11 @@ namespace Basket.Presentation
             if (texture != null) material.mainTexture = texture;
             if (original == null || baseMapOverride != null) return material;
 
+            // Standard's rendering mode: 1 = cutout, 2 = fade, 3 = transparent (glass).
+            float mode = original.HasProperty("_Mode") ? original.GetFloat("_Mode") : 0f;
+            if (mode >= 1.5f) MakeTransparent(material);
+            else if (mode >= 0.5f) MakeCutout(material, original.HasProperty("_Cutoff") ? original.GetFloat("_Cutoff") : 0.5f);
+
             CopyTexture(original, "_BumpMap", material, "_BumpMap", "_NORMALMAP");
             CopyTexture(original, "_MetallicGlossMap", material, "_MetallicGlossMap", "_METALLICSPECGLOSSMAP");
             CopyTexture(original, "_OcclusionMap", material, "_OcclusionMap", "_OCCLUSIONMAP");
@@ -87,6 +95,35 @@ namespace Basket.Presentation
                 material.EnableKeyword("_EMISSION");
             }
             return material;
+        }
+
+        // URP Lit property/keyword setup for a transparent surface (alpha from the colour/texture).
+        public static void MakeTransparent(Material m)
+        {
+            SetIfPresent(m, "_Surface", 1f);
+            SetIfPresent(m, "_Blend", 0f);
+            SetIfPresent(m, "_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            SetIfPresent(m, "_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+            SetIfPresent(m, "_SrcBlendAlpha", (float)UnityEngine.Rendering.BlendMode.One);
+            SetIfPresent(m, "_DstBlendAlpha", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+            SetIfPresent(m, "_ZWrite", 0f);
+            m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            m.SetOverrideTag("RenderType", "Transparent");
+            m.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+        }
+
+        private static void MakeCutout(Material m, float cutoff)
+        {
+            SetIfPresent(m, "_AlphaClip", 1f);
+            SetIfPresent(m, "_Cutoff", cutoff);
+            m.EnableKeyword("_ALPHATEST_ON");
+            m.SetOverrideTag("RenderType", "TransparentCutout");
+            m.renderQueue = (int)UnityEngine.Rendering.RenderQueue.AlphaTest;
+        }
+
+        private static void SetIfPresent(Material m, string name, float value)
+        {
+            if (m.HasProperty(name)) m.SetFloat(name, value);
         }
 
         private static void CopyTexture(Material from, string fromName, Material to, string toName, string keyword)

@@ -1,5 +1,4 @@
 using System.Collections;
-using System.Text;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
@@ -54,8 +53,22 @@ public class ArenaVisualTests
         root = arena.Root;
         arena.Ball.GetComponent<Rigidbody>().isKinematic = true;
 
+        int collidersBefore = arena.Root.GetComponentsInChildren<Collider>(true).Length;
         GameObject stadium = ArenaDresser.Dress(arena, court, def);
         yield return null;
+
+        Assert.AreEqual(collidersBefore, arena.Root.GetComponentsInChildren<Collider>(true).Length, "dressing adds no colliders");
+        foreach (HoopController hoop in new[] { arena.Hoop, arena.SecondHoop })
+            AssertHoopDressed(hoop, court);
+        Assert.AreEqual(4, CountNamed(arena.Root.transform, ArenaDresser.StanchionName), "base + post behind each board");
+        foreach (Transform t in arena.Root.GetComponentsInChildren<Transform>())
+        {
+            if (t.name != ArenaDresser.StanchionName) continue;
+            Assert.Greater(Mathf.Abs(t.position.z - court.FullCourtCenter.z), court.depth * 0.5f, "stanchion behind the baseline");
+        }
+        foreach (Transform t in arena.Root.transform)
+            if (t.name == "Backboard")
+                Assert.GreaterOrEqual(t.GetComponent<Renderer>().sharedMaterial.renderQueue, 3000, "glass backboard");
 
         Assert.IsNotNull(stadium);
         Assert.AreEqual(0, stadium.GetComponentsInChildren<Collider>(true).Length, "the stadium adds no colliders");
@@ -101,26 +114,29 @@ public class ArenaVisualTests
         Assert.AreEqual(1, arena.Ball.GetComponentsInChildren<Rigidbody>(true).Length, "only the physics body");
     }
 
-    // The stadium's own hoop (Ring.fbx + Net + padded pole) is left out for now: gameplay
-    // needs its rim exactly at the rim collider. These numbers are to fit it later.
-    [Test]
-    public void StadiumHoopModel_Measurements()
+    // The net hangs from the gameplay rim: as wide as the rim, top at rim height, centered.
+    private static void AssertHoopDressed(HoopController hoop, CourtConfig court)
     {
-        var log = new StringBuilder("Stadium hoop parts:\n");
-        foreach (string path in new[] { "Assets/MarpaStudio/Mesh/Ring.fbx", "Assets/MarpaStudio/Built-In/Prefabs/Net.prefab",
-                     "Assets/MarpaStudio/Built-In/Prefabs/FoamPoleFinal.prefab", "Assets/MarpaStudio/Built-In/Prefabs/FoamFinal.prefab" })
+        Transform net = hoop.transform.Find(ArenaDresser.NetName);
+        Assert.IsNotNull(net, "net under " + hoop.name);
+        Bounds b = default;
+        bool any = false;
+        foreach (Renderer r in net.GetComponentsInChildren<Renderer>())
         {
-            var prefab = Load<GameObject>(path);
-            GameObject go = Object.Instantiate(prefab);
-            foreach (MeshFilter mf in go.GetComponentsInChildren<MeshFilter>())
-            {
-                Mesh mesh = mf.sharedMesh;
-                log.AppendLine($"  {path} / {mf.name}: world bounds {mf.GetComponent<Renderer>().bounds}, root rot {go.transform.rotation.eulerAngles}, local rot {mf.transform.localEulerAngles}, scale {mf.transform.lossyScale}");
-                for (int s = 0; mesh != null && s < mesh.subMeshCount; s++)
-                    log.AppendLine($"    submesh {s}: {mesh.GetSubMesh(s).bounds}");
-            }
-            Object.DestroyImmediate(go);
+            if (!any) { b = r.bounds; any = true; } else b.Encapsulate(r.bounds);
         }
-        Debug.Log(log.ToString());
+        Assert.IsTrue(any);
+        Vector3 rim = hoop.transform.position;
+        Debug.Log($"Net at {rim}: width {Mathf.Max(b.size.x, b.size.z):0.000} m, length {b.size.y:0.000} m, top {b.max.y:0.000} m");
+        Assert.AreEqual(2f * court.rimRadius, Mathf.Max(b.size.x, b.size.z), 0.01f);
+        Assert.AreEqual(rim.y, b.max.y, 0.01f);
+        Assert.Less(new Vector2(b.center.x - rim.x, b.center.z - rim.z).magnitude, 0.01f);
+    }
+
+    private static int CountNamed(Transform root, string name)
+    {
+        int n = 0;
+        foreach (Transform t in root.GetComponentsInChildren<Transform>(true)) if (t.name == name) n++;
+        return n;
     }
 }

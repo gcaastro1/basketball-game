@@ -483,8 +483,9 @@ textura (15,24 × 28,65 m, linha de 3 a 7,24 m com cantos retos a 6,71 m); o jog
   personagem) e o piso/linhas do placeholder somem (o colisor do piso continua).
 - A bola do jogo ganha o modelo (`URPOrange`) escalado para o diâmetro físico (0,24 m); a esfera do
   placeholder some; física igual.
-- A tabela/aro/rede do ginásio ficam de fora por enquanto: o aro físico do jogo precisa estar
-  exatamente no aro do modelo, e a posição do aro dentro do modelo (Ring.fbx) ainda não foi medida
-  no Unity (o teste `StadiumHoopModel_Measurements` imprime as medidas no CI). Até lá, a tabela e o
-  aro são os do placeholder.
-
+- Cestas: o `Ring.fbx` do ginásio tem aro de ~0,85 m de diâmetro a 2,89 m de altura (medido no CI),
+  fora da regra; não dá para alinhar com o aro físico (0,457 m a 3,05 m). Usamos só as peças que
+  servem, em volta do aro do jogo: a rede (`Net`) escalada para o diâmetro do aro e pendurada nele,
+  o vidro da tabela (`RingGlass`, transparente no URP) com as linhas (borda e quadrado de
+  0,61 × 0,457 m), um suporte do aro, e o poste acolchoado (`FoamFinal` + `FoamPoleFinal`) atrás da
+  tabela com um braço até ela. O aro visível continua o do placeholder (laranja).

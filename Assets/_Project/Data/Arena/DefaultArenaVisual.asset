@@ -14,5 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   stadium: {fileID: 11400000, guid: 3a17315cd7f447dc80ea58a4daccb538, type: 2}
   hidePlaceholderCourt: 1
+  netModel: {fileID: 3881938889362999602, guid: 41c195e409ff2ea4eb1c5cc3cf5a8b83, type: 3}
+  netLengthRatio: 0
+  backboardMaterial: {fileID: 2100000, guid: 4db7af1bdad2a97448bbd34f873fcbb6, type: 2}
+  backboardLineColor: {r: 1, g: 1, b: 1, a: 1}
+  stanchionBase: {fileID: 870497496359313726, guid: ed9a8e8395e375744af10c6702128ba9, type: 3}
+  stanchionPost: {fileID: 198830997193146848, guid: bbe59958c9aa06c41b373c4d4c047be2, type: 3}
+  stanchionDistance: 2.6
+  stanchionArmColor: {r: 0.12, g: 0.12, b: 0.14, a: 1}
   ballModel: {fileID: 7824021851113493131, guid: a480f2c76b8079a4eba3cff41b6c7158, type: 3}
   ballDiameter: 0.24
