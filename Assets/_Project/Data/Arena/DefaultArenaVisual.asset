@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7cdfb6898c904873a04892f66e1ee503, type: 3}
+  m_Name: DefaultArenaVisual
+  m_EditorClassIdentifier: 
+  stadium: {fileID: 11400000, guid: 3a17315cd7f447dc80ea58a4daccb538, type: 2}
+  hidePlaceholderCourt: 1
+  ballModel: {fileID: 7824021851113493131, guid: a480f2c76b8079a4eba3cff41b6c7158, type: 3}
+  ballDiameter: 0.24

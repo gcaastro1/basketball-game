@@ -31,6 +31,7 @@ de troca.
 | D-023 | Câmera de transmissão: atrás e acima do jogador seguido, sempre virada para a cesta atacada pelo time com a bola; vira suavemente (só no ângulo horizontal) quando o ataque troca de lado | Aceita (valores em `DefaultCameraConfig`: **provisórios**) |
 | D-024 | Guarda defensiva por botão (Ctrl / LT, segurado, sem a bola): mais devagar (×0,75), sem sprint, de frente para a bola; IA entra em guarda ao marcar a bola a ≤ 3 m. Arremessador vira para a cesta. Velocidade 4,5 m/s (sprint ×1,45 = 6,5) | Aceita (valores: **provisórios**) |
 | D-025 | Personagem padrão Banana Man (1,8 m, provisório); materiais convertidos para URP um a um. Starter Assets (controles 1ª/3ª pessoa) e Cinemachine ficam como referência: o jogo mantém motor/input/câmera próprios | Aceita |
+| D-026 | Quadra NBA (a desenhada no piso do ginásio MarpaStudio): 28,65 × 15,24 m, aro a 1,6 m do fundo, linha de 3 a 7,24 m com cantos retos a 6,71 m. Ginásio e bola são só visuais (`ArenaDresser`), por cima dos colisores do placeholder | Aceita (escolha do usuário; valores em dados: **provisórios**) |
 | P-001 | Modo B (controle do time) | **Pendente** — ponto de encaixe pronto: `ITeamStrategy` (e `IAgentController`) |
 | P-003 | Gacha definitivo (raridades, taxas, pity, custos, moedas) | **Provisória**: 3 níveis genéricos, 3/17/80%, pity 80 (soft 65, +6%), 50/50 com garantia, multi de 10 com garantia de nível 2 — tudo em `Data/Meta/StandardBanner.asset` |
 | P-002 | Semântica dos Limit Breaks | **Provisória**: 4 LBs (20→40, 40→50, 50→60, "Awakening" no 60 sem novo teto), tudo em `DefaultProgressionConfig` |
@@ -455,4 +456,35 @@ frente escolhido (`06_04`) é com a mão esquerda, e a bola fica na direita.
 para frente e da parte de cima do corpo = `06_05` (mão direita); drible para a esquerda = `06_08` de trás
 para frente (espelhado, driblaria com a esquerda); o binder troca os clipes antigos também em assets já
 ligados. `playbackSpeed` é lido a cada quadro (ajuste no Inspector durante o Play).
+
+## D-026 — Quadra NBA, ginásio e bola reais (Etapa 6.6)
+
+**Contexto.** O usuário trouxe dois pacotes: um ginásio (MarpaStudio "Basket Ball Stadium") e uma
+bola (TierrasDeRol "Basketball", com materiais URP). O piso do ginásio é uma quadra NBA desenhada na
+textura (15,24 × 28,65 m, linha de 3 a 7,24 m com cantos retos a 6,71 m); o jogo usava medidas FIBA
+(15 × 28 m, linha de 6,75 m) e as linhas não bateriam. O usuário escolheu as medidas NBA.
+
+**Decisão.**
+- Dados (`Court5v5Config`, `DefaultCourtConfig` = meia quadra da mesma quadra, e os três
+  `MatchRules`): quadra 15,24 × 28,65 m, aro a 1,6 m do fundo e a 3,05 m de altura, tabela
+  1,83 × 1,07 m a 1,22 m do fundo, lance livre a 4,19 m do aro, linha de 3 a 7,24 m com cantos a
+  6,71 m (`MatchRules.threePointCornerDistance`, 0 = só o arco). Os nomes dos assets de regras
+  (FIBA...) não mudaram, para não quebrar referências. Os padrões **no código** continuam os FIBA
+  (os testes com `CreateInstance` não mudam).
+- Pontuação: `ScoringMath.IsBeyondArc` (arco + cantos retos) no placar e na posse. A IA e a escolha
+  do atributo de arremesso continuam usando só a distância (aproximação: um arremesso de canto entre
+  6,71 e 7,24 m é "de 3" no placar, mas a IA o avalia como meia distância).
+- Visual (`Basket.Presentation`): `ArenaVisualDefinition` (`Data/Arena/DefaultArenaVisual.asset`) =
+  ginásio + modelo da bola. O ginásio é um `StadiumLayout` (1307 peças: posição/rotação/escala e
+  materiais de cada uma, relativas ao centro da quadra) extraído da cena de demonstração do pacote
+  por `tools/stadium/extract_layout.py`; o jogo o monta ao iniciar, centrado em
+  `CourtConfig.FullCourtCenter` (meia quadra: linha do meio em z = 0). As peças não ganham colisores,
+  os materiais do shader Standard antigo viram Lit do URP (`LitMaterials`, compartilhado com o
+  personagem) e o piso/linhas do placeholder somem (o colisor do piso continua).
+- A bola do jogo ganha o modelo (`URPOrange`) escalado para o diâmetro físico (0,24 m); a esfera do
+  placeholder some; física igual.
+- A tabela/aro/rede do ginásio ficam de fora por enquanto: o aro físico do jogo precisa estar
+  exatamente no aro do modelo, e a posição do aro dentro do modelo (Ring.fbx) ainda não foi medida
+  no Unity (o teste `StadiumHoopModel_Measurements` imprime as medidas no CI). Até lá, a tabela e o
+  aro são os do placeholder.
 

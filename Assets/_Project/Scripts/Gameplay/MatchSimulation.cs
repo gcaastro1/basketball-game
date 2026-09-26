@@ -325,8 +325,7 @@ namespace Basket.Gameplay
         private bool IsBeyondArc(Vector3 feet, TeamId team)
         {
             Vector3 hoop = snapshot.GetAttackingHoop(team);
-            float dx = feet.x - hoop.x, dz = feet.z - hoop.z;
-            return dx * dx + dz * dz >= rules.threePointRadius * rules.threePointRadius;
+            return ScoringMath.IsBeyondArc(feet, hoop, rules.threePointRadius, rules.threePointCornerDistance);
         }
 
         // The half of the court with the basket this team attacks (always true on a half court).

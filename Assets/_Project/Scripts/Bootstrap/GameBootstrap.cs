@@ -28,6 +28,8 @@ namespace Basket.Bootstrap
         [SerializeField] private MatchRules matchRules;
         [SerializeField] private CourtConfig courtConfig;
         [SerializeField] private BallConfig ballConfig;
+        // Optional art over the gameplay arena (stadium, ball model); null = placeholder only.
+        [SerializeField] private ArenaVisualDefinition arenaVisual;
         [SerializeField] private ShotConfig shotConfig;
         [SerializeField] private DefenseConfig defenseConfig;
         [SerializeField] private PlayerMovementConfig movementConfig;
@@ -85,7 +87,8 @@ namespace Basket.Bootstrap
             // Senão, matchSetup continua sendo o asset configurado no Inspector (fallback: perfil
             // ainda não tem personagens suficientes para preencher todos os slots).
 
-            Arena arena = PlaceholderArenaBuilder.Build(courtConfig, ballConfig, matchRules.threePointRadius);
+            Arena arena = PlaceholderArenaBuilder.Build(courtConfig, ballConfig, matchRules.threePointRadius, matchRules.threePointCornerDistance);
+            ArenaDresser.Dress(arena, courtConfig, arenaVisual);
 
             // One brain per team coordinates its AI players (and the human's AI teammates).
             var rng = new System.Random();

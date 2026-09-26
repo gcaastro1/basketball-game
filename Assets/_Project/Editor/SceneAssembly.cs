@@ -5,6 +5,7 @@ using Basket.AI;
 using Basket.Bootstrap;
 using Basket.Characters;
 using Basket.Gameplay;
+using Basket.Presentation;
 using Basket.Meta;
 
 namespace Basket.EditorTools
@@ -38,6 +39,9 @@ namespace Basket.EditorTools
             so.FindProperty("matchRules").objectReferenceValue = LoadOrCreateAsset<MatchRules>(rules);
             so.FindProperty("courtConfig").objectReferenceValue = LoadOrCreateAsset<CourtConfig>(court);
             so.FindProperty("ballConfig").objectReferenceValue = LoadOrCreateAsset<BallConfig>("DefaultBallConfig");
+            // Art over the gameplay arena (Etapa 6.6): stadium and ball model; optional.
+            so.FindProperty("arenaVisual").objectReferenceValue =
+                AssetDatabase.LoadAssetAtPath<ArenaVisualDefinition>(DataFolder + "/Arena/DefaultArenaVisual.asset");
             so.FindProperty("shotConfig").objectReferenceValue = LoadOrCreateAsset<ShotConfig>("DefaultShotConfig");
             so.FindProperty("defenseConfig").objectReferenceValue = LoadOrCreateAsset<DefenseConfig>("DefaultDefenseConfig");
             so.FindProperty("movementConfig").objectReferenceValue = LoadOrCreateAsset<PlayerMovementConfig>("DefaultPlayerMovementConfig");

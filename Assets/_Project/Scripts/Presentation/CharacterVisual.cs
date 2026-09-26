@@ -9,7 +9,6 @@ namespace Basket.Presentation
     // child that only looks. Nothing in gameplay reads it.
     public class CharacterVisual : MonoBehaviour
     {
-        private static Material litTemplate;
 
         public GameObject Model { get; private set; }
         public PlayerAnimationDriver Driver { get; private set; }
@@ -107,50 +106,11 @@ namespace Basket.Presentation
         }
 
         // Imported models often use the Built-in Standard shader (Tripo's generated material,
-        // the Banana Man's Body/Joints), pink under URP: each material is rebuilt on the active
-        // pipeline's default lit material -- the one primitives get -- keeping its own texture
-        // and colour (a model with several materials keeps them apart). baseMap, when set,
-        // replaces the texture of every material (Tripo: one texture for the whole body).
-        private static void ApplyMaterial(GameObject model, Texture2D baseMap)
-        {
-            if (litTemplate == null)
-            {
-                GameObject probe = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                litTemplate = probe.GetComponent<Renderer>().sharedMaterial;
-                DestroyImmediate(probe);
-            }
-            var converted = new System.Collections.Generic.Dictionary<Material, Material>();
-            foreach (Renderer r in model.GetComponentsInChildren<Renderer>())
-            {
-                Material[] originals = r.sharedMaterials;
-                var shared = new Material[originals.Length];
-                for (int i = 0; i < shared.Length; i++)
-                {
-                    Material original = originals[i];
-                    if (original != null && converted.TryGetValue(original, out Material done))
-                    {
-                        shared[i] = done;
-                        continue;
-                    }
-                    shared[i] = Convert(original, baseMap);
-                    if (original != null) converted[original] = shared[i];
-                }
-                r.sharedMaterials = shared;
-            }
-        }
-
-        private static Material Convert(Material original, Texture2D baseMap)
-        {
-            var material = new Material(litTemplate)
-            {
-                name = original != null ? original.name + " (Lit)" : "CharacterLit",
-                color = original != null && original.HasProperty("_Color") ? original.color : Color.white,
-            };
-            Texture texture = baseMap != null ? baseMap
-                : original != null && original.HasProperty("_MainTex") ? original.mainTexture : null;
-            if (texture != null) material.mainTexture = texture;
-            return material;
-        }
+        // the Banana Man's Body/Joints), pink under URP: every material is rebuilt on the lit
+        // material (LitMaterials). baseMap, when set, replaces the texture of every material
+        // (Tripo: one texture for the whole body).
+        private static void ApplyMaterial(GameObject model, Texture2D baseMap) =>
+            new LitMaterials(onlyUnsupported: false, baseMap).Apply(model);
 
         private static void HidePlaceholder(Transform root)
         {
