@@ -59,9 +59,10 @@ namespace Basket.EditorTools
             n += Loop(ref c.free.runTurnRight, "RunningWideRight_102_06");
             n += Speeds(c.free, 1.5f, 4f);
 
-            // With the ball: holding it (free-throw routine before the shot), dribbling in every
-            // direction at walking pace, running legs + upper-body dribble above that.
-            n += Loop(ref c.withBall.idle, "Basketball_Free_Throw_124_04", 0.1f, 0.95f);
+            // With the ball: holding it (one frame of the free-throw routine, set with the ball
+            // before the shot -- its start bounces the ball, the head bobbing with it), dribbling
+            // in every direction at walking pace, running legs + upper-body dribble above that.
+            n += Loop(ref c.withBall.idle, "Basketball_Free_Throw_124_04", 3.8f, 3.8f);
             // Right-handed dribbles (the ball is carried on the right): 06_04 dribbles with the
             // left hand, so it is replaced where an earlier binding used it.
             n += Loop(ref c.withBall.forward, "basketball_forward_dribble_06_05", 0.5f, 2.7f,
@@ -75,8 +76,16 @@ namespace Basket.EditorTools
             n += Loop(ref c.withBall.runTurnLeft, "RunningWideLeft_102_07");
             n += Loop(ref c.withBall.runTurnRight, "RunningWideRight_102_06");
             n += Speeds(c.withBall, 1.3f, 4f);
-            n += Loop(ref c.dribbleUpperBody, "basketball_forward_dribble_06_05", 0.5f, 2.7f,
+            // Two bounces exactly, starting with the hand up on the ball (right elbow flexion
+            // peaks at 0.90, 1.73, 2.63 s): the arm then follows the gameplay ball.
+            n += Loop(ref c.dribbleUpperBody, "basketball_forward_dribble_06_05", 0.88f, 2.63f,
                 replacing: "basketball_forward_dribble_06_04");
+            if (c.dribbleBouncesInWindow <= 0f && c.dribbleUpperBody.clip != null
+                && c.dribbleUpperBody.clip.name == "basketball_forward_dribble_06_05")
+            {
+                c.dribbleBouncesInWindow = 2f;
+                n++;
+            }
 
             // Defensive guard: the stance (first frame of a stop-to-stop slide), side slides both
             // ways, forward shuffle (backwards for backing up).

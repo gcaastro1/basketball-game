@@ -517,3 +517,26 @@ No ataque, os pontos de espaçamento ignoravam onde estava a bola (companheiros 
 - A linha de 3 (arco + cantos) virou `Core.ThreePointLine`, usada pelo placar (`ScoringMath`) e pela IA
   (`MatchSnapshot.IsBeyondArc`): o arremesso do canto vale 3 para a IA também.
 
+## D-022 (adendo 5) — Bola nas mãos, drible contínuo e no ritmo da bola
+
+**Contexto (teste na quadra de treino).** "Segurando, a bola atravessa a mão e o personagem fica num
+loop abaixando e subindo a cabeça"; "a bola quica numa velocidade real, mas o personagem está muito
+rápido"; "quando está batendo a bola e para, ele não pode segurar de novo a bola"; "no arremesso a bola
+deve estar na palma da mão, não na ponta dos dedos". Causas: a pose de segurar tocava o começo do lance
+livre (os quiques de preparação); o IK puxava as mãos para a bola do jogo em todas as poses com bola,
+inclusive no arremesso (o clipe quer as mãos acima da cabeça); o braço do drible corria no ritmo do
+próprio clipe; e parar de andar virava "segurar a bola".
+
+**Decisão.**
+- Regra (`DribbleSystem`): depois do primeiro quique, o jogador continua quicando parado até arremessar
+  (`PickUp` no início do arremesso) ou a bola sair dele. Segurar = só antes do primeiro quique.
+- Drible: a camada de cima do corpo dribla sempre que há drible (parado, andando ou correndo) e segue a
+  bola do jogo: a janela do clipe 06_05 passou a [0,88 s, 2,63 s], exatamente 2 quiques começando com a
+  mão em cima da bola (picos de flexão do cotovelo direito em 0,90 / 1,73 / 2,63 s), e o tempo do clipe
+  vem da contagem de quiques do jogo (`dribbleBouncesInWindow` = 2).
+- Segurar: um quadro fixo do lance livre (3,8 s, pronto para arremessar), sem o balanço da cabeça.
+- Bola nas mãos: com o modelo de bola (`BallVisualFollower`), segurando, a bola visual vai para entre as
+  palmas e, no arremesso, para a palma da mão direita (virada para cima e para a cesta); os braços ficam
+  como no clipe. Ao sair da mão, volta suavemente para a bola do jogo. A bola física não muda. Sem modelo
+  de bola, o IK antigo continua.
+

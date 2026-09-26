@@ -107,6 +107,7 @@ namespace Basket.Presentation
                 Grounded = motor.IsGrounded,
                 VerticalVelocity = motor.Velocity.y,
                 HasBall = sim.Ball.CurrentHolder == player.transform,
+                Dribbling = sim.Ball.CurrentHolder == player.transform && sim.BallDribbling,
                 Shooting = shooting,
                 ShotType = shotType,
                 SincePass = sincePass,
@@ -139,7 +140,7 @@ namespace Basket.Presentation
                     Right = Vector3.Dot(velocity, body.right),
                     YawRate = yawRate,
                 };
-                clipBackend.Update(output.Pose, move, dt, shooting ? shotProgress : -1f);
+                clipBackend.Update(output.Pose, move, dt, shooting ? shotProgress : -1f, input.Dribbling ? sim.DribbleBounces : -1f);
                 // Procedural only where the clips have nothing: fade it in and out.
                 bool covered = output.Pose == AnimPose.Locomotion || clipBackend.HasClipFor(output.Pose);
                 overlayWeight = Mathf.MoveTowards(overlayWeight, covered ? 0f : 1f, dt / OverlayFadeSeconds);
@@ -159,7 +160,70 @@ namespace Basket.Presentation
             }
 
             GroundFeet();
-            if (input.HasBall) HandsOnBall(output.Pose);
+            if (!input.HasBall) return;
+            // With a ball model (BallVisualFollower) the ball goes to the hands when it is held
+            // or gathered for a shot: the clip's arms stay as recorded. Otherwise (and always
+            // while dribbling) the hands reach for the gameplay ball.
+            bool ballFollowsHands = output.Pose != AnimPose.Dribble && sim.Ball.transform.Find(ArenaDresser.BallModelName) != null
+                                    && TryHoldPoint(output.Pose, out heldBallCenter);
+            if (ballFollowsHands) heldBallFrame = Time.frameCount;
+            else HandsOnBall(output.Pose);
+        }
+
+        private Vector3 heldBallCenter;
+        private int heldBallFrame = -1;
+
+        // Where the ball is in this character's hands this frame (for the ball model), when it
+        // follows the hands rather than the other way round.
+        public bool TryGetHeldBallCenter(out Vector3 center)
+        {
+            center = heldBallCenter;
+            return heldBallFrame == Time.frameCount;
+        }
+
+        // Holding: between the palms. Shooting: on the shooting (right) palm, facing up and
+        // toward the rim, so the ball sits in the palm and not on the fingertips.
+        private bool TryHoldPoint(AnimPose pose, out Vector3 center)
+        {
+            center = default;
+            if (animator == null || !animator.isHuman) return false;
+            float r = sim.Ball.Radius;
+            Vector3 right = Palm(true, out Vector3 rightNormal);
+            if (right == Vector3.zero) return false;
+            Transform body = player.transform;
+            bool shot = pose == AnimPose.JumpShot || pose == AnimPose.FreeThrow || pose == AnimPose.Layup || pose == AnimPose.Dunk;
+            if (shot)
+            {
+                Vector3 up = (Vector3.up + body.forward * 0.5f).normalized;
+                Vector3 n = rightNormal.sqrMagnitude > 0.5f ? rightNormal : up;
+                if (Vector3.Dot(n, up) < 0f) n = -n;
+                center = right + n * r;
+                return true;
+            }
+            Vector3 left = Palm(false, out _);
+            if (left == Vector3.zero) return false;
+            center = (right + left) * 0.5f;
+            // Hands closer than the ball: push it out in front of them.
+            float gap = Vector3.Distance(right, left);
+            if (gap < 2f * r) center += body.forward * Mathf.Sqrt(Mathf.Max(0f, r * r - gap * gap * 0.25f));
+            return true;
+        }
+
+        // Middle of the palm (toward the middle finger's base) and its normal when the rig has
+        // finger bones (sign unknown: the caller orients it).
+        private Vector3 Palm(bool right, out Vector3 normal)
+        {
+            normal = Vector3.zero;
+            Transform hand = animator.GetBoneTransform(right ? HumanBodyBones.RightHand : HumanBodyBones.LeftHand);
+            if (hand == null) return Vector3.zero;
+            Transform middle = animator.GetBoneTransform(right ? HumanBodyBones.RightMiddleProximal : HumanBodyBones.LeftMiddleProximal);
+            Transform index = animator.GetBoneTransform(right ? HumanBodyBones.RightIndexProximal : HumanBodyBones.LeftIndexProximal);
+            Transform little = animator.GetBoneTransform(right ? HumanBodyBones.RightLittleProximal : HumanBodyBones.LeftLittleProximal);
+            if (index != null && little != null)
+                normal = Vector3.Cross(index.position - hand.position, little.position - hand.position).normalized;
+            if (middle != null) return Vector3.Lerp(hand.position, middle.position, 0.6f);
+            Transform lower = animator.GetBoneTransform(right ? HumanBodyBones.RightLowerArm : HumanBodyBones.LeftLowerArm);
+            return lower != null ? hand.position + (hand.position - lower.position).normalized * 0.06f : hand.position;
         }
 
         // Puts the lowest foot of the posed body on the gameplay body's feet (which rise in

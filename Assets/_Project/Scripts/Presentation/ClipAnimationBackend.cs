@@ -76,7 +76,9 @@ namespace Basket.Presentation
         }
 
         // shotProgress: gameplay shot progress (0 start .. 1 release), negative when not shooting.
-        public void Update(AnimPose pose, in LocomotionInput move, float dt, float shotProgress = -1f)
+        // dribbleBounces: the gameplay dribble's bounce count (x.5 = ball in the hand), negative
+        // when not dribbling; with dribbleBouncesInWindow set, the arm follows the real ball.
+        public void Update(AnimPose pose, in LocomotionInput move, float dt, float shotProgress = -1f, float dribbleBounces = -1f)
         {
             float fade = dt / CrossfadeSeconds;
             bool withBall = (pose == AnimPose.Dribble || pose == AnimPose.HoldBall) && HasClipFor(AnimPose.Dribble);
@@ -95,12 +97,17 @@ namespace Basket.Presentation
             ballMix = ball.Update(move, step);
             guardMix = guard.Update(move, step);
 
-            // Dribbling while running: legs from the run clip, arms from the dribble.
+            // Dribbling (standing, walking or running): the arms dribble over whatever the legs
+            // do, in time with the gameplay ball -- the window starts with the hand up on the
+            // ball, bounce x.5 -- or free-running when the clip's bounce count is unknown.
             if (upperDribble != null)
             {
-                float upper = withBall && pose == AnimPose.Dribble ? ballMix.Running : 0f;
+                float upper = withBall && pose == AnimPose.Dribble ? 1f : 0f;
                 upperWeight = Mathf.MoveTowards(upperWeight, upper, fade);
-                upperDribble.Advance(ballMix.MoveRate * step);
+                if (clips.dribbleBouncesInWindow > 0f && dribbleBounces >= 0f)
+                    upperDribble.SetPhase((dribbleBounces - 0.5f) / clips.dribbleBouncesInWindow);
+                else
+                    upperDribble.Advance(ballMix.MoveRate * step);
                 layers.SetInputWeight(1, upperWeight);
             }
 
@@ -196,6 +203,15 @@ namespace Basket.Presentation
 
             public string Describe() =>
                 $"{def.clip.name} [{def.From * length:0.00}-{def.To * length:0.00}s]{(def.reverse ? " rev" : "")} @ {playable.GetTime():0.00}s";
+
+            // Jumps to a point of the window: 0 = its start, 1 = its end (wraps).
+            public void SetPhase(float windowPhase)
+            {
+                phase = windowPhase - Mathf.Floor(windowPhase);
+                float span = (def.To - def.From) * length;
+                float p = def.reverse ? 1f - phase : phase;
+                playable.SetTime(def.From * length + p * span);
+            }
 
             // Advances by `seconds` of clip time (already scaled by rate and tempo).
             public void Advance(float seconds)

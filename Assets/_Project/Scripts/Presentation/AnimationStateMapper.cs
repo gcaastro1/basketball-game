@@ -27,6 +27,8 @@ namespace Basket.Presentation
         public bool Grounded;
         public float VerticalVelocity;
         public bool HasBall;
+        // Holding the ball after starting a dribble (it keeps bouncing standing still).
+        public bool Dribbling;
         public bool Shooting;
         public ShotType ShotType;
         // Seconds since this player threw a pass / their team scored (large = never).
@@ -78,7 +80,8 @@ namespace Basket.Presentation
             }
             if (i.SincePass < PassPoseSeconds) return AnimPose.Pass;
             if (!i.Grounded) return i.Defending ? AnimPose.Block : AnimPose.Airborne;
-            if (i.HasBall) return speedRatio > DribbleSpeedRatio ? AnimPose.Dribble : AnimPose.HoldBall;
+            // A dribbler keeps dribbling standing still; the ball is only held before the dribble.
+            if (i.HasBall) return i.Dribbling || speedRatio > DribbleSpeedRatio ? AnimPose.Dribble : AnimPose.HoldBall;
             if (i.Guarding) return AnimPose.Defense;
             if (i.SinceTeamScored < CelebrateSeconds && speedRatio < 0.5f) return AnimPose.Celebrate;
             return AnimPose.Locomotion;

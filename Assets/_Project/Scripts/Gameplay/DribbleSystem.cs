@@ -3,7 +3,9 @@ using Basket.Core;
 
 namespace Basket.Gameplay
 {
-    // Visual dribble only (placeholder): bounces the held ball while the holder moves.
+    // Bounces the held ball once the holder starts dribbling (by moving), and keeps bouncing
+    // when he stops -- a dribbler does not pick the ball up by standing still -- until the
+    // ball leaves him or he gathers it for a shot (PickUp).
     public sealed class DribbleSystem
     {
         private readonly BallController ball;
@@ -17,20 +19,27 @@ namespace Basket.Gameplay
             config = ballConfig;
         }
 
+        public bool IsDribbling { get; private set; }
+        // Bounces since the dribble started: x.0 = ball on the floor, x.5 = ball up in the hand.
+        public float Bounces => phase / Mathf.PI;
+
         public void Tick(bool isMoving, float dt)
         {
             if (ball.CurrentState != BallState.Held)
             {
                 phase = 0f;
                 lastHolder = null;
+                IsDribbling = false;
                 return;
             }
             if (ball.CurrentHolder != lastHolder)
             {
                 phase = 0f;
                 lastHolder = ball.CurrentHolder;
+                IsDribbling = false;
             }
-            if (!isMoving)
+            if (isMoving) IsDribbling = true;
+            if (!IsDribbling)
             {
                 ball.SetHeldLocalOffset(Vector3.zero);
                 return;
@@ -39,6 +48,15 @@ namespace Basket.Gameplay
             phase += dt * config.dribbleFrequency * Mathf.PI;
             float offsetY = DribbleMath.ComputeBounceOffsetY(phase, config.dribbleBounceHeight);
             ball.SetHeldLocalOffset(Vector3.up * offsetY);
+        }
+
+        // Gathering the ball (shot): the dribble ends, the ball comes back to the hands.
+        public void PickUp()
+        {
+            if (!IsDribbling && phase == 0f) return;
+            IsDribbling = false;
+            phase = 0f;
+            if (ball.CurrentState == BallState.Held) ball.SetHeldLocalOffset(Vector3.zero);
         }
     }
 }

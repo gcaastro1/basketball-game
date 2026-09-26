@@ -26,6 +26,15 @@ public class AnimationLogicTests
     }
 
     [Test]
+    public void Mapper_Dribbler_KeepsDribblingStandingStill()
+    {
+        var i = Standing();
+        i.HasBall = true;
+        i.Dribbling = true;
+        Assert.AreEqual(AnimPose.Dribble, AnimationStateMapper.Map(i).Pose, "a dribbler does not pick the ball up by stopping");
+    }
+
+    [Test]
     public void Mapper_ShotTypeWins_OverEverythingElse()
     {
         var i = Standing();

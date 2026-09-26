@@ -184,6 +184,7 @@ namespace Basket.Presentation
                 if (TryBounds(visual, out b)) visual.transform.position += ball.transform.position - b.center;
             }
             if (ball.TryGetComponent<Renderer>(out var sphere)) sphere.enabled = false;
+            visual.AddComponent<BallVisualFollower>();
             return visual;
         }
 

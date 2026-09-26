@@ -64,8 +64,8 @@ MonoBehaviour:
     withBall:
       idle:
         clip: {fileID: -7719264907022405827, guid: 5ff65d368f38c23449a90d98e41e6d3f, type: 3}
-        from: 0.011049723
-        to: 0.15193368
+        from: 0.62465
+        to: 0.62465
         reverse: 0
       forward:
         clip: {fileID: -4594471611963114080, guid: e46ecfac102c1b9498719f69f0c949b9, type: 3}
@@ -149,9 +149,10 @@ MonoBehaviour:
       runSpeed: 4
     dribbleUpperBody:
       clip: {fileID: -4594471611963114080, guid: e46ecfac102c1b9498719f69f0c949b9, type: 3}
-      from: 0.14583331
-      to: 0.83333325
+      from: 0.26458
+      to: 0.81146
       reverse: 0
+    dribbleBouncesInWindow: 2
     holdBall:
       clip: {fileID: 0}
       from: 0

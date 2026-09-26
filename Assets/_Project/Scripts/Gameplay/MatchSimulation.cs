@@ -47,6 +47,10 @@ namespace Basket.Gameplay
         public MatchSnapshot Snapshot => snapshot;
         public IReadOnlyList<PlayerEntity> Players => players;
         public BallController Ball => ball;
+        // The ball handler's dribble (presentation: dribble pose and arm timing). Bounces
+        // counts ball-in-hand at x.5; -1 when nobody is dribbling.
+        public bool BallDribbling => dribbleSystem.IsDribbling;
+        public float DribbleBounces => dribbleSystem.IsDribbling ? dribbleSystem.Bounces : -1f;
         public IShotReportSource ShotReports => shotSystem;
         public MatchStats Stats { get; } = new MatchStats();
         public event Action<string> OnMatchEvent;
@@ -188,7 +192,11 @@ namespace Basket.Gameplay
             player.Motor.Tick(command.Move, sprint, dt, face, speedMultiplier);
 
             if (live || freeThrow) shotSystem.Tick(index, player, command, snapshot, time);
-            if (shotSystem.IsShooting(index)) return;
+            if (shotSystem.IsShooting(index))
+            {
+                if (holding) dribbleSystem.PickUp();
+                return;
+            }
 
             if (holding)
             {
