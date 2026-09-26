@@ -41,11 +41,13 @@ namespace Basket.AI
         {
             Vector3 rim = s.GetAttackingHoop(s.GetTeam(index));
             float distance = FlatDistance(s.GetPosition(index), rim);
-            float skill = Attributes.Centered(s.GetAttribute(index, ShotSkill(distance, s.ThreePointRadius)), c.shotSkillAtZero, c.shotSkillAtMax);
+            bool three = s.IsBeyondArc(s.GetPosition(index), rim);
+            AttributeId skillId = three ? AttributeId.ThreePoint : ShotSkill(distance, float.MaxValue);
+            float skill = Attributes.Centered(s.GetAttribute(index, skillId), c.shotSkillAtZero, c.shotSkillAtMax);
             float make = Mathf.Clamp01((c.qualityAtRim - c.qualityFalloffPerMeter * distance) * skill);
             float value = make * (1f - c.contestWeight * ContestRead(s, index, c));
             float arcBonus = s.ArcValueRatio > 0f ? s.ArcValueRatio : c.threePointValueMultiplier;
-            return distance >= s.ThreePointRadius ? value * arcBonus : value;
+            return s.IsBeyondArc(s.GetPosition(index), rim) ? value * arcBonus : value;
         }
 
         // 1 = clean lane; drops toward 0 as a defender gets close to the passing line.

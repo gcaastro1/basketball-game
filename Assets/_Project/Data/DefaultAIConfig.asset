@@ -32,3 +32,4 @@ MonoBehaviour:
   reboundLeadSeconds: 0.3
   arrivalDistance: 0.2
   sprintWhenChasing: 1
+  zoneDefenseChance: 0.3

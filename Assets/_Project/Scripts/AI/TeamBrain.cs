@@ -30,6 +30,9 @@ namespace Basket.AI
         private int screenSide = 1;
         private ScreenPhase screenPhase;
         private float screenPhaseTime;
+        private DefenseScheme defense = DefenseScheme.ManToMan;
+        // Zone: each defender's spot in the formation (index into it), fixed for the possession.
+        private readonly int[] zoneSlot;
 
         public TeamBrain(TeamId team, int playerCount, AIConfig config = null, ITeamStrategy strategy = null, System.Random rng = null)
         {
@@ -42,8 +45,10 @@ namespace Basket.AI
             snapshotMatchups = new int[playerCount];
             cutUntil = new float[playerCount];
             nextCutAllowed = new float[playerCount];
+            zoneSlot = new int[playerCount];
             for (int i = 0; i < playerCount; i++)
             {
+                zoneSlot[i] = -1;
                 man[i] = -1;
                 snapshotMatchups[i] = int.MinValue;
             }
@@ -51,6 +56,7 @@ namespace Basket.AI
 
         public TeamId Team => team;
         public PlayType CurrentPlay => play;
+        public DefenseScheme CurrentDefense => defense;
         public TeamOrder GetOrder(int index) => orders[index];
         public int GetMan(int index) => man[index];
 
@@ -109,6 +115,11 @@ namespace Basket.AI
                 screenPhase = ScreenPhase.None;
                 screenSide = rng.NextDouble() < 0.5 ? 1 : -1;
             }
+            if (newPossession && holderTeam != team)
+            {
+                defense = strategy.ChooseDefense(s, team);
+                for (int i = 0; i < zoneSlot.Length; i++) zoneSlot[i] = -1;
+            }
             lastHolder = holder;
         }
 
@@ -161,8 +172,13 @@ namespace Basket.AI
                 }
             }
 
-            List<Vector3> slots = OffensePlanner.SpacingSlots(rimFloor, s.CourtCenter - rimFloor, config.spacingRadius,
-                Mathf.Max(offBall.Count, 1), clearOut: play == PlayType.Isolation);
+            // Spots just beyond the arc (whatever the line), away from the ball: nobody crowds the
+            // handler, and on a line with straight corners the corner spots stay inside the court.
+            float radius = Mathf.Max(config.spacingRadius, s.ThreePointRadius + config.spacingBeyondArc);
+            float maxSide = s.ThreePointCornerDistance > 0f ? s.ThreePointCornerDistance + config.spacingBeyondArc : float.MaxValue;
+            List<Vector3> candidates = OffensePlanner.SpacingSlots(rimFloor, s.CourtCenter - rimFloor, radius,
+                Mathf.Max(offBall.Count, 5), clearOut: play == PlayType.Isolation, maxSide);
+            List<Vector3> slots = OffensePlanner.AwayFrom(candidates, holderPos, config.spacingMinFromHandler, Mathf.Max(offBall.Count, 1));
             var positions = new List<Vector3>();
             foreach (int i in offBall) positions.Add(s.GetPosition(i));
             int[] assignment = OffensePlanner.AssignSlots(positions, slots);
@@ -254,6 +270,12 @@ namespace Basket.AI
         {
             Vector3 rimFloor = RimFloor(s, attacking: false);
             List<int> defenders = Teammates(s, -1);
+            if (defense == DefenseScheme.Zone)
+            {
+                PlanZone(s, holder, rimFloor, defenders);
+                PlanHelp(s, holder, rimFloor, defenders);
+                return;
+            }
 
             foreach (int d in defenders)
             {
@@ -269,24 +291,103 @@ namespace Basket.AI
 
             TrySwitch(s, holder, handlerDefender, defenders, now);
 
+            // On the ball: guard the handler. Off the ball: deny one pass away, sag to help
+            // farther away (DefenseFormation.OffBallSpot) instead of everyone hugging his man.
+            Vector3 ball = s.GetPosition(holder);
             foreach (int d in defenders)
             {
                 int m = man[d];
-                orders[d] = new TeamOrder(TeamOrderKind.Guard, m >= 0 ? s.GetPosition(m) : rimFloor, m);
+                if (m == holder || m < 0) orders[d] = new TeamOrder(TeamOrderKind.Guard, m >= 0 ? s.GetPosition(m) : rimFloor, m);
+                else orders[d] = new TeamOrder(TeamOrderKind.Position, DefenseFormation.OffBallSpot(s.GetPosition(m), ball, rimFloor, config), m);
+            }
+            PlanHelp(s, holder, rimFloor, defenders);
+        }
+
+        // Help: the driver beat his defender near the rim -> nearest other defender steps in.
+        private void PlanHelp(MatchSnapshot s, int holder, Vector3 rimFloor, List<int> defenders)
+        {
+            int handlerDefender = -1;
+            foreach (int d in defenders) if (man[d] == holder) handlerDefender = d;
+            if (handlerDefender < 0) return;
+            if (!DefensePlanner.IsBeaten(s.GetPosition(holder), s.GetPosition(handlerDefender), rimFloor, config.helpRadius, config.beatenMargin)) return;
+            Vector3 helpSpot = DefensePlanner.HelpSpot(s.GetPosition(holder), rimFloor, config.helpDepth);
+            var others = new List<int>(defenders);
+            others.Remove(handlerDefender);
+            if (others.Count == 0) return;
+            int helper = Closest(s, others, helpSpot);
+            orders[helper] = new TeamOrder(TeamOrderKind.Help, helpSpot, holder);
+        }
+
+        // Zone: everyone owns a spot of the formation (sliding with the ball). The defender
+        // whose spot is nearest the ball takes the handler; an attacker inside someone's zone
+        // is his to mark; an empty zone is held.
+        private void PlanZone(MatchSnapshot s, int holder, Vector3 rimFloor, List<int> defenders)
+        {
+            Vector3 ball = s.GetPosition(holder);
+            List<Vector3> spots = DefenseFormation.ZoneSpots(rimFloor, s.CourtCenter - rimFloor, ball, defenders.Count, config);
+            bool assigned = true;
+            foreach (int d in defenders) if (zoneSlot[d] < 0 || zoneSlot[d] >= spots.Count) assigned = false;
+            if (!assigned)
+            {
+                var positions = new List<Vector3>();
+                foreach (int d in defenders) positions.Add(s.GetPosition(d));
+                int[] slot = OffensePlanner.AssignSlots(positions, spots);
+                for (int k = 0; k < defenders.Count; k++) zoneSlot[defenders[k]] = slot[k];
             }
 
-            // Help: the driver beat his man near the rim -> nearest other defender steps in.
-            if (handlerDefender >= 0 && DefensePlanner.IsBeaten(s.GetPosition(holder), s.GetPosition(handlerDefender), rimFloor, config.helpRadius, config.beatenMargin))
+            int onBall = -1;
+            float best = float.MaxValue;
+            foreach (int d in defenders)
             {
-                Vector3 helpSpot = DefensePlanner.HelpSpot(s.GetPosition(holder), rimFloor, config.helpDepth);
-                var others = new List<int>(defenders);
-                others.Remove(handlerDefender);
-                if (others.Count > 0)
+                float dist = TeamMath.FlatDistance(spots[zoneSlot[d]], ball);
+                if (dist < best)
                 {
-                    int helper = Closest(s, others, helpSpot);
-                    orders[helper] = new TeamOrder(TeamOrderKind.Help, helpSpot, holder);
+                    best = dist;
+                    onBall = d;
                 }
             }
+
+            var marked = new HashSet<int> { holder };
+            foreach (int d in defenders)
+            {
+                if (d == onBall)
+                {
+                    man[d] = holder;
+                    orders[d] = new TeamOrder(TeamOrderKind.Guard, ball, holder);
+                    continue;
+                }
+                Vector3 spot = spots[zoneSlot[d]];
+                int attacker = NearestAttacker(s, spot, config.zoneMarkRadius, marked);
+                if (attacker >= 0)
+                {
+                    marked.Add(attacker);
+                    man[d] = attacker;
+                    orders[d] = new TeamOrder(TeamOrderKind.Zone, DefenseFormation.MarkSpot(s.GetPosition(attacker), rimFloor, config.zoneMarkDistance), attacker);
+                }
+                else
+                {
+                    // Nobody here: hold the spot, watching the nearest attacker who is not the ball.
+                    man[d] = NearestAttacker(s, spot, float.MaxValue, marked);
+                    orders[d] = new TeamOrder(TeamOrderKind.Zone, spot, man[d]);
+                }
+            }
+        }
+
+        private int NearestAttacker(MatchSnapshot s, Vector3 point, float within, HashSet<int> exclude)
+        {
+            int best = -1;
+            float bestDistance = within;
+            for (int i = 0; i < s.PlayerCount; i++)
+            {
+                if (s.GetTeam(i) == team || exclude.Contains(i)) continue;
+                float d = TeamMath.FlatDistance(s.GetPosition(i), point);
+                if (d <= bestDistance)
+                {
+                    bestDistance = d;
+                    best = i;
+                }
+            }
+            return best;
         }
 
         // An attacker standing on the handler's defender (a screen) -> swap assignments.
@@ -339,7 +440,7 @@ namespace Basket.AI
             }
             foreach (int d in mine)
             {
-                int m = man[d] >= 0 ? man[d] : s.FindNearestOpponent(d);
+                int m = defense == DefenseScheme.ManToMan && man[d] >= 0 ? man[d] : s.FindNearestOpponent(d);
                 if (m < 0) continue;
                 orders[d] = new TeamOrder(TeamOrderKind.BoxOut, DefensePlanner.BoxOutSpot(s.GetPosition(m), rimFloor, config.boxOutDistance), m);
             }

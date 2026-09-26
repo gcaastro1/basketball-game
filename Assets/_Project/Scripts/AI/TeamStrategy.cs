@@ -8,6 +8,8 @@ namespace Basket.AI
     public interface ITeamStrategy
     {
         PlayType ChoosePlay(MatchSnapshot snapshot, TeamId team, int handler);
+        // Defense for the possession the opponent just started.
+        DefenseScheme ChooseDefense(MatchSnapshot snapshot, TeamId team);
     }
 
     public sealed class AutoStrategy : ITeamStrategy
@@ -34,6 +36,12 @@ namespace Basket.AI
             if (roll < s) return PlayType.Spacing;
             if (roll < s + p) return PlayType.PickAndRoll;
             return PlayType.Isolation;
+        }
+
+        public DefenseScheme ChooseDefense(MatchSnapshot snapshot, TeamId team)
+        {
+            if (config.zoneDefenseChance <= 0f) return DefenseScheme.ManToMan;
+            return rng.NextDouble() < config.zoneDefenseChance ? DefenseScheme.Zone : DefenseScheme.ManToMan;
         }
     }
 }

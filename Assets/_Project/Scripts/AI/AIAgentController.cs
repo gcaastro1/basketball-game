@@ -108,6 +108,13 @@ namespace Basket.AI
                 Vector3 outward = p.SelfPosition - p.AttackHoop;
                 outward.y = 0f;
                 if (outward.sqrMagnitude < 0.0001f) outward = Vector3.back;
+                // Clear toward the top of the arc, not straight out of a corner (past the
+                // corner line the arc lies beyond the sideline).
+                if (snapshot != null)
+                {
+                    Vector3 axis = TeamMath.Flat(snapshot.CourtCenter - p.AttackHoop);
+                    if (axis.sqrMagnitude > 0.0001f) outward = outward.normalized + axis.normalized * config.clearTowardTop;
+                }
                 Vector3 clearSpot = new Vector3(p.AttackHoop.x, 0f, p.AttackHoop.z) + outward.normalized * (p.ThreePointRadius + config.clearMargin);
                 // Steer around players in the way: the under-basket restart puts the inbounder's
                 // defender at the arc right on this line, and running straight into him stalled
@@ -195,6 +202,10 @@ namespace Basket.AI
                     return Defend(p, order.Target, 0.15f);
                 case TeamOrderKind.Crash:
                     return new PlayerCommand(Steer(p, order.Target, config.arrivalDistance, -1), sprint: true);
+                case TeamOrderKind.Position:
+                case TeamOrderKind.Zone:
+                    // Off-ball spot (deny / help side / zone): sprint back when far from it.
+                    return Defend(p, order.Target, config.arrivalDistance, sprint: FlatDistance(p.SelfPosition, order.Target) > config.sprintDistance);
                 default:
                     // Get back on defense: sprint when far from where we need to be.
                     Vector3 spot = GuardSpot(p.OpponentPosition, p.DefendHoop, config.guardDistance);

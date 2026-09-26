@@ -7,7 +7,10 @@ namespace Basket.AI
     {
         // Perimeter spots around the rim: wings first, then corners, then the top.
         // `clearOut` (isolation) sends everyone to the corners.
-        public static List<Vector3> SpacingSlots(Vector3 rimFloor, Vector3 courtAxis, float radius, int count, bool clearOut)
+        // `maxSide` caps how far to the side of the rim a spot goes (the corners of a line with
+        // straight corner lines, which lie inside the sideline).
+        public static List<Vector3> SpacingSlots(Vector3 rimFloor, Vector3 courtAxis, float radius, int count, bool clearOut,
+            float maxSide = float.MaxValue)
         {
             float[] angles = clearOut ? new[] { 80f, -80f, 55f, -55f, 0f } : new[] { 50f, -50f, 80f, -80f, 0f };
             Vector3 axis = TeamMath.Flat(courtAxis);
@@ -16,9 +19,30 @@ namespace Basket.AI
             for (int i = 0; i < count; i++)
             {
                 float angle = angles[i % angles.Length];
-                slots.Add(rimFloor + Quaternion.AngleAxis(angle, Vector3.up) * axis * radius);
+                Vector3 offset = Quaternion.AngleAxis(angle, Vector3.up) * axis * radius;
+                Vector3 side = new Vector3(axis.z, 0f, -axis.x);
+                float lateral = Vector3.Dot(offset, side);
+                if (Mathf.Abs(lateral) > maxSide) offset -= side * (lateral - Mathf.Sign(lateral) * maxSide);
+                slots.Add(rimFloor + offset);
             }
             return slots;
+        }
+
+        // The first `count` spots at least `minDistance` from the ball handler, in order; when
+        // too few are that far, the farthest of the rest fill in.
+        public static List<Vector3> AwayFrom(List<Vector3> candidates, Vector3 handler, float minDistance, int count)
+        {
+            var result = new List<Vector3>(count);
+            var rest = new List<Vector3>();
+            foreach (Vector3 c in candidates)
+            {
+                if (result.Count < count && TeamMath.FlatDistance(c, handler) >= minDistance) result.Add(c);
+                else rest.Add(c);
+            }
+            rest.Sort((a, b) => TeamMath.FlatDistance(b, handler).CompareTo(TeamMath.FlatDistance(a, handler)));
+            for (int i = 0; result.Count < count && i < rest.Count; i++) result.Add(rest[i]);
+            while (result.Count < count) result.Add(candidates.Count > 0 ? candidates[result.Count % candidates.Count] : TeamMath.Flat(handler));
+            return result;
         }
 
         // Greedy nearest assignment: returns, for each player, the index of their slot.

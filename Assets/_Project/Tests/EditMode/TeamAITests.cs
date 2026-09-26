@@ -189,7 +189,7 @@ public class TeamAITests
         brain.Update(ThreeOnThree(pos, holder: 0));
 
         Assert.AreEqual(TeamOrderKind.Help, brain.GetOrder(4).Kind);
-        Assert.AreEqual(TeamOrderKind.Guard, brain.GetOrder(5).Kind);
+        Assert.AreEqual(TeamOrderKind.Position, brain.GetOrder(5).Kind, "off the ball: deny / help-side spot");
     }
 
     [Test]
@@ -349,5 +349,119 @@ public class TeamAITests
         var cmd = ai.Decide(ThreeOnThree(pos, holder: 0), 1);
         Assert.AreEqual(TeamOrderKind.Space, ai.CurrentOrder.Kind);
         Assert.Greater(cmd.Move.sqrMagnitude, 0.5f, "moves to his spacing spot");
+    }
+
+    // ---------- positioning (help defense, zone, spacing) ----------
+
+    [Test]
+    public void OffBallSpot_OnePassAway_Denies_WeakSide_SagsToHelp()
+    {
+        Vector3 ball = new Vector3(-6f, 0f, 7f);
+        // Man one pass away from the ball: tight, between him and the rim, a step toward the ball.
+        Vector3 nearMan = new Vector3(-6f, 0f, 11.5f);
+        Vector3 deny = DefenseFormation.OffBallSpot(nearMan, ball, RimFloor, config);
+        Assert.Less(TeamMath.FlatDistance(deny, nearMan), 2.2f, "stays with a man one pass away");
+        Assert.Less(TeamMath.FlatDistance(deny, RimFloor), TeamMath.FlatDistance(nearMan, RimFloor), "rim side of him");
+
+        // Man on the weak side, far from the ball: well off him, toward the lane on the ball side.
+        Vector3 farMan = new Vector3(6.5f, 0f, 10f);
+        Vector3 help = DefenseFormation.OffBallSpot(farMan, ball, RimFloor, config);
+        Assert.Greater(TeamMath.FlatDistance(help, farMan), 2.5f, "sags off a man two passes away");
+        Assert.LessOrEqual(TeamMath.FlatDistance(help, farMan), config.maxSagFromMan + 1e-3f, "can still close out");
+        Assert.Less(Mathf.Abs(help.x), Mathf.Abs(farMan.x) - 2f, "toward the middle (help side)");
+    }
+
+    [Test]
+    public void ManDefense_WeakSideDefenderHelps_InsteadOfHuggingHisMan()
+    {
+        var pos = Standard();
+        pos[0] = new Vector3(-6f, 0f, 7f);    // ball on the left
+        pos[3] = new Vector3(-5.5f, 0f, 8f);  // on the ball
+        pos[2] = new Vector3(6.5f, 0f, 10f);  // weak-side attacker
+        pos[5] = new Vector3(6f, 0f, 10.5f);  // his defender, hugging him
+        var brain = new TeamBrain(TeamId.Away, 6, config, rng: new System.Random(1));
+        brain.Update(ThreeOnThree(pos, holder: 0));
+
+        Assert.AreEqual(DefenseScheme.ManToMan, brain.CurrentDefense);
+        Assert.AreEqual(TeamOrderKind.Guard, brain.GetOrder(3).Kind, "on the ball");
+        TeamOrder weak = brain.GetOrder(5);
+        Assert.AreEqual(TeamOrderKind.Position, weak.Kind);
+        Assert.Greater(TeamMath.FlatDistance(weak.Target, pos[2]), 2.5f, "weak side sags toward the lane");
+    }
+
+    [Test]
+    public void Zone_OneDefenderOnTheBall_OthersHoldOrMarkTheirZones()
+    {
+        config.zoneDefenseChance = 1f;
+        var pos = Standard();
+        var brain = new TeamBrain(TeamId.Away, 6, config, rng: new System.Random(1));
+        brain.Update(ThreeOnThree(pos, holder: 0));
+
+        Assert.AreEqual(DefenseScheme.Zone, brain.CurrentDefense);
+        int onBall = 0, zone = 0;
+        for (int d = 3; d < 6; d++)
+        {
+            TeamOrder o = brain.GetOrder(d);
+            if (o.Kind == TeamOrderKind.Guard && o.TargetIndex == 0) onBall++;
+            if (o.Kind == TeamOrderKind.Zone)
+            {
+                zone++;
+                Assert.AreNotEqual(0, o.TargetIndex, "zone defenders do not double the ball");
+                Assert.Less(TeamMath.FlatDistance(o.Target, RimFloor), 7f, "inside the arc, around the rim");
+            }
+        }
+        Assert.AreEqual(1, onBall, "exactly one defender on the ball");
+        Assert.AreEqual(2, zone);
+    }
+
+    [Test]
+    public void ZoneSpots_SlideTowardTheBall_AndStayInFrontOfTheRim()
+    {
+        Vector3 axis = new Vector3(0f, 0f, -1f); // court center is toward -z
+        var left = DefenseFormation.ZoneSpots(RimFloor, axis, new Vector3(-6f, 0f, 7f), 5, config);
+        var right = DefenseFormation.ZoneSpots(RimFloor, axis, new Vector3(6f, 0f, 7f), 5, config);
+        Assert.AreEqual(5, left.Count);
+        for (int i = 0; i < 5; i++)
+        {
+            Assert.Less(left[i].x, right[i].x, "slides with the ball");
+            Assert.LessOrEqual(left[i].z, RimFloor.z - 0.8f + 1e-3f, "never behind the rim");
+        }
+    }
+
+    [Test]
+    public void Spacing_OffBallSpotsKeepAwayFromTheHandler()
+    {
+        config.spacingPlayWeight = 1f;
+        config.pickAndRollPlayWeight = 0f;
+        config.isolationPlayWeight = 0f;
+        config.cutTriggerDistance = 99f;
+        var pos = Standard();
+        pos[0] = new Vector3(-5f, 0f, 8.5f); // handler on the left wing
+        pos[1] = new Vector3(-4f, 0f, 7f);   // teammate right next to him
+        var brain = new TeamBrain(TeamId.Home, 6, config, rng: new System.Random(1));
+        brain.Update(ThreeOnThree(pos, holder: 0));
+
+        for (int i = 1; i < 3; i++)
+        {
+            Assert.AreEqual(TeamOrderKind.Space, brain.GetOrder(i).Kind);
+            Assert.GreaterOrEqual(TeamMath.FlatDistance(brain.GetOrder(i).Target, pos[0]), config.spacingMinFromHandler - 1e-3f);
+        }
+    }
+
+    [Test]
+    public void CornerThree_IsAThreeForTheAI_AndCornerSpotsStayInside()
+    {
+        var pos = Standard();
+        pos[1] = new Vector3(-6.9f, 0f, 13.1f); // corner, 6.9 m to the side: inside 7.24 but past 6.71
+        pos[4] = new Vector3(-1f, 0f, 3f);
+        var s = ThreeOnThree(pos, holder: 0);
+        s.SetThreePointLine(7.24f, 6.71f);
+        Assert.IsTrue(s.IsBeyondArc(pos[1], Rim));
+        float corner = TeamMath.ShotValue(s, 1, config);
+        s.SetThreePointLine(7.24f, 0f);
+        Assert.Greater(corner, TeamMath.ShotValue(s, 1, config) * 1.2f, "the corner line makes it worth three");
+
+        var slots = OffensePlanner.SpacingSlots(RimFloor, new Vector3(0f, 0f, -1f), 7.64f, 5, clearOut: false, maxSide: 7.11f);
+        foreach (Vector3 slot in slots) Assert.LessOrEqual(Mathf.Abs(slot.x), 7.11f + 1e-3f);
     }
 }

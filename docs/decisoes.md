@@ -32,6 +32,7 @@ de troca.
 | D-024 | Guarda defensiva por botão (Ctrl / LT, segurado, sem a bola): mais devagar (×0,75), sem sprint, de frente para a bola; IA entra em guarda ao marcar a bola a ≤ 3 m. Arremessador vira para a cesta. Velocidade 4,5 m/s (sprint ×1,45 = 6,5) | Aceita (valores: **provisórios**) |
 | D-025 | Personagem padrão Banana Man (1,8 m, provisório); materiais convertidos para URP um a um. Starter Assets (controles 1ª/3ª pessoa) e Cinemachine ficam como referência: o jogo mantém motor/input/câmera próprios | Aceita |
 | D-026 | Quadra NBA (a desenhada no piso do ginásio MarpaStudio): 28,65 × 15,24 m, aro a 1,6 m do fundo, linha de 3 a 7,24 m com cantos retos a 6,71 m. Ginásio e bola são só visuais (`ArenaDresser`), por cima dos colisores do placeholder | Aceita (escolha do usuário; valores em dados: **provisórios**) |
+| D-027 | IA posicional: defesa individual com ajuda (nega a um passe da bola, recua para a linha de ajuda no lado fraco, presa ao seu homem) e zona (2-3 / 2-2 / 1-2 deslizando com a bola, um só defensor na bola), escolhida por posse (`zoneDefenseChance`); ataque espaçado longe da bola, na linha de 3 da quadra; a IA lê a linha de 3 com os cantos | Aceita (valores em `DefaultAIConfig`: **provisórios**) |
 | P-001 | Modo B (controle do time) | **Pendente** — ponto de encaixe pronto: `ITeamStrategy` (e `IAgentController`) |
 | P-003 | Gacha definitivo (raridades, taxas, pity, custos, moedas) | **Provisória**: 3 níveis genéricos, 3/17/80%, pity 80 (soft 65, +6%), 50/50 com garantia, multi de 10 com garantia de nível 2 — tudo em `Data/Meta/StandardBanner.asset` |
 | P-002 | Semântica dos Limit Breaks | **Provisória**: 4 LBs (20→40, 40→50, 50→60, "Awakening" no 60 sem novo teto), tudo em `DefaultProgressionConfig` |
@@ -489,3 +490,30 @@ textura (15,24 × 28,65 m, linha de 3 a 7,24 m com cantos retos a 6,71 m); o jog
   o vidro da tabela (`RingGlass`, transparente no URP) com as linhas (borda e quadrado de
   0,61 × 0,457 m), um suporte do aro, e o poste acolchoado (`FoamFinal` + `FoamPoleFinal`) atrás da
   tabela com um braço até ela. O aro visível continua o do placeholder (laranja).
+
+## D-027 — IA posicional (Etapa 4.5)
+
+**Contexto.** "A IA parece um monte de formiga indo atrás de um pedaço de açúcar." Na defesa, todo
+defensor sem a bola ficava a 1,5 m do seu homem, entre ele e a cesta, onde quer que estivesse a bola:
+ninguém fechava o garrafão, e os arremessos saíam sempre contestados (log do 3x3 que falhou: 14
+arremessos em 120 s, quase todos com o relógio de posse a ~2 s, contestação 0,6–0,8, muitos tocos).
+No ataque, os pontos de espaçamento ignoravam onde estava a bola (companheiros colados no armador).
+
+**Decisão.**
+- Defesa individual "bola – você – homem" (`DefenseFormation.OffBallSpot`): a um passe da bola (até
+  `denyDistance`), entre o homem e a cesta, um passo na linha do passe; mais longe, recua para a linha de
+  ajuda (um ponto entre a cesta e a bola), no máximo `maxSag` do caminho e a `maxSagFromMan` do homem.
+  Ordem nova `Position`; o defensor da bola continua `Guard`; a ajuda no drible continua.
+- Zona (`DefenseScheme.Zone`, ordem `Zone`): formação por número de defensores (5: 2-3, 4: 2-2, 3: 1-2,
+  2: 1-1) em volta da cesta, deslizando `zoneShift` em direção à bola; cada defensor fica com um ponto na
+  posse; quem está mais perto da bola a marca, os outros marcam quem entra na sua área ou guardam o ponto.
+  Escolhida pela estratégia (`ITeamStrategy.ChooseDefense`) a cada posse do adversário, com
+  `zoneDefenseChance` (código: 0 = sempre individual; dados: 0,3, provisório). No rebote, a zona bloqueia
+  o mais próximo.
+- Ataque: pontos a `spacingBeyondArc` além da linha de 3 da quadra (7,24 m na NBA), os cantos dentro
+  da quadra (no máximo `canto + spacingBeyondArc` para o lado), e só pontos a pelo menos
+  `spacingMinFromHandler` de quem tem a bola. No 3x3, limpar a bola puxa para o topo do arco
+  (`clearTowardTop`), não para fora do canto.
+- A linha de 3 (arco + cantos) virou `Core.ThreePointLine`, usada pelo placar (`ScoringMath`) e pela IA
+  (`MatchSnapshot.IsBeyondArc`): o arremesso do canto vale 3 para a IA também.
+

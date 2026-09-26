@@ -18,8 +18,9 @@ public class AISimulationTests
     private const float TimeScale = 4f;
     private const float Minutes = SimulatedSeconds / 60f;
 
+    // zoneChance 0: man-to-man with help; 1: both teams always play zone.
     [UnityTest]
-    public IEnumerator AIvsAI_3v3_PlaysBasketball()
+    public IEnumerator AIvsAI_3v3_PlaysBasketball([Values(0f, 1f)] float zoneChance)
     {
         using var match = new TestMatch();
         // Real accuracy (the helper zeroes it for deterministic tests) and 3x3-style rules.
@@ -41,6 +42,7 @@ public class AISimulationTests
         match.Rules.afterMadeBasket = RestartKind.UnderBasket;
 
         var config = ScriptableObject.CreateInstance<AIConfig>();
+        config.zoneDefenseChance = zoneChance;
         var rng = new System.Random(7);
         var home = new TeamBrain(TeamId.Home, 6, config, rng: rng);
         var away = new TeamBrain(TeamId.Away, 6, config, rng: rng);
@@ -67,7 +69,7 @@ public class AISimulationTests
 
         TeamStats h = match.Sim.Stats.Get(TeamId.Home);
         TeamStats a = match.Sim.Stats.Get(TeamId.Away);
-        Debug.Log($"AI vs AI {SimulatedSeconds}s: HOME {match.Sim.Match.State.ScoreHome} - {match.Sim.Match.State.ScoreAway} AWAY\nHOME {h}\nAWAY {a}\n{match.ShotSummary()}\n{string.Join("\n", match.Timeline)}");
+        Debug.Log($"AI vs AI {SimulatedSeconds}s ({(zoneChance > 0f ? "zone" : "man")}): HOME {match.Sim.Match.State.ScoreHome} - {match.Sim.Match.State.ScoreAway} AWAY\nHOME {h}\nAWAY {a}\n{match.ShotSummary()}\n{string.Join("\n", match.Timeline)}");
 
         int shots = h.FieldGoalsAttempted + a.FieldGoalsAttempted;
         int passes = h.Passes + a.Passes;

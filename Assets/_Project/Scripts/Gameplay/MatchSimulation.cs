@@ -93,7 +93,7 @@ namespace Basket.Gameplay
             homeAttacks = hoop;
             awayAttacks = secondHoop != null ? secondHoop : hoop;
             AssignBaskets();
-            snapshot.SetThreePointRadius(rules.threePointRadius);
+            snapshot.SetThreePointLine(rules.threePointRadius, rules.threePointCornerDistance);
             snapshot.SetScoring(rules.pointsInsideArc, rules.pointsBeyondArc);
             snapshot.SetCourtCenter(court.CourtCenter);
 
