@@ -29,6 +29,7 @@ namespace Basket.Presentation
         private readonly AnimationMixerPlayable locomotion;
         private readonly AnimationClipPlayable[] locoClips = new AnimationClipPlayable[4];
         private readonly ActionSlot fullAction, upperAction;
+        private readonly float tempo;
 
         public ClipAnimationBackend(Animator animator, CharacterAnimationClips clips)
         {
@@ -38,6 +39,9 @@ namespace Basket.Presentation
             graph.SetTimeUpdateMode(DirectorUpdateMode.GameTime);
             var output = AnimationPlayableOutput.Create(graph, "Animation", animator);
 
+            // Global tempo of every clip (CharacterAnimationClips.playbackSpeed).
+            float tempo = clips.playbackSpeed > 0.01f ? clips.playbackSpeed : 1f;
+            this.tempo = tempo;
             locomotion = AnimationMixerPlayable.Create(graph, 4);
             ConnectLoco(LocoIdle, clips.idle);
             ConnectLoco(LocoWalk, clips.walk);
@@ -53,8 +57,8 @@ namespace Basket.Presentation
             layers.SetInputWeight(0, 1f);
             layers.SetLayerMaskFromAvatarMask(1, UpperBodyMask());
 
-            fullAction = new ActionSlot(graph, fullBody, 1);
-            upperAction = new ActionSlot(graph, layers, 1);
+            fullAction = new ActionSlot(graph, fullBody, 1, tempo);
+            upperAction = new ActionSlot(graph, layers, 1, tempo);
             output.SetSourcePlayable(layers);
             graph.Play();
         }
@@ -124,7 +128,7 @@ namespace Basket.Presentation
         {
             if (!locoClips[slot].IsValid()) return;
             locomotion.SetInputWeight(slot, weight);
-            locoClips[slot].SetSpeed(rate);
+            locoClips[slot].SetSpeed(rate * tempo);
         }
 
         // Arms, spine and head; the legs and hips stay with the full-body layer.
@@ -160,8 +164,11 @@ namespace Basket.Presentation
 
             public float Weight { get; private set; }
 
-            public ActionSlot(PlayableGraph graph, Playable mixer, int input)
+            private readonly float tempo;
+
+            public ActionSlot(PlayableGraph graph, Playable mixer, int input, float tempo)
             {
+                this.tempo = tempo;
                 this.graph = graph;
                 this.mixer = mixer;
                 this.input = input;
@@ -195,7 +202,7 @@ namespace Basket.Presentation
                     }
                     else
                     {
-                        playable.SetSpeed(1);
+                        playable.SetSpeed(tempo);
                     }
                 }
                 // Back to what is underneath: the last clip fades out instead of cutting.

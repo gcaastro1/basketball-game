@@ -42,6 +42,7 @@ namespace Basket.Bootstrap
 
         public MatchSimulation Simulation { get; private set; }
         private readonly List<System.IDisposable> disposables = new List<System.IDisposable>();
+        private readonly List<HumanInputProvider> humanInputs = new List<HumanInputProvider>();
         private ProfileRuntimeService profileService;
 
         // Testes PlayMode que carregam as cenas reais (VerticalSliceIntegrationTests) setam isto
@@ -112,6 +113,7 @@ namespace Basket.Bootstrap
                 if (human)
                 {
                     var input = new HumanInputProvider();
+                    humanInputs.Add(input);
                     disposables.Add(input);
                     controllers.Add(input);
                     if (cameraTarget == null) cameraTarget = player;
@@ -223,6 +225,10 @@ namespace Basket.Bootstrap
             {
                 controller = cam.gameObject.AddComponent<CameraController>();
             }
+            // Movement follows the camera: "forward" is where it looks, on either end of the court.
+            Transform view = cam.transform;
+            foreach (HumanInputProvider input in humanInputs) input.SetView(() => view.forward);
+
             MatchSimulation sim = Simulation;
             TeamId lastAttack = followedTeam;
             controller.Configure(target, cameraConfig, () =>

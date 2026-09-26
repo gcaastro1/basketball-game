@@ -182,7 +182,7 @@ namespace Basket.Gameplay
             errorRadius *= effect.errorMultiplier;
 
             Vector3 target = rimCenter + ShotMath.SampleDiscOffset(errorRadius, rng);
-            float arc = (shotType == ShotType.Layup ? config.layupArcHeight : config.arcHeight) * effect.arcHeightMultiplier;
+            float arc = (shotType == ShotType.Layup ? config.layupArcHeight : ShotArc.ApexAboveRim(distance, config)) * effect.arcHeightMultiplier;
             // A shooter against the placeholder arena's walls (corner and wing spots sit
             // right at them) had the ball overhead partly inside the wall: those shots died
             // there at once (shot traces: 4 of 11 long AI jumpers "first touched WallEast at

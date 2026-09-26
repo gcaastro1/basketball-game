@@ -1,6 +1,7 @@
 using NUnit.Framework;
 using UnityEngine;
 using Basket.Gameplay;
+using Basket.Input;
 
 // Broadcast follow camera: behind the player, facing the basket being attacked.
 public class CameraRigMathTests
@@ -65,5 +66,24 @@ public class CameraRigMathTests
 
         var under = CameraRigMath.Place(new Vector3(0f, 0f, 13.5f), Hoop, Vector3.forward, c);
         Assert.AreEqual(13.5f, under.LookAt.z, 1e-4f, "past the rim: looks at the player");
+    }
+
+    // Movement input follows the camera: "up" is where it looks, on either end of the court.
+    [Test]
+    public void Input_Up_MovesWhereTheCameraLooks()
+    {
+        Vector2 up = new Vector2(0f, 1f), right = new Vector2(1f, 0f);
+        AssertClose(up, CameraRelativeMove.Rotate(up, new Vector3(0f, -0.4f, 1f)), "facing +z: unchanged");
+        AssertClose(new Vector2(0f, -1f), CameraRelativeMove.Rotate(up, new Vector3(0f, -0.4f, -1f)), "other end: up goes -z");
+        AssertClose(new Vector2(-1f, 0f), CameraRelativeMove.Rotate(right, new Vector3(0f, 0f, -1f)), "other end: right goes -x");
+        AssertClose(new Vector2(1f, 0f), CameraRelativeMove.Rotate(up, new Vector3(1f, 0f, 0f)), "facing +x");
+        AssertClose(new Vector2(0f, -1f), CameraRelativeMove.Rotate(right, new Vector3(1f, 0f, 0f)), "facing +x: right goes -z");
+        AssertClose(up, CameraRelativeMove.Rotate(up, Vector3.down), "looking straight down: unchanged");
+    }
+
+    private static void AssertClose(Vector2 expected, Vector2 actual, string message)
+    {
+        Assert.AreEqual(expected.x, actual.x, 1e-4f, message);
+        Assert.AreEqual(expected.y, actual.y, 1e-4f, message);
     }
 }

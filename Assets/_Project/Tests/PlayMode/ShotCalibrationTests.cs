@@ -92,7 +92,7 @@ public class ShotCalibrationTests
             foreach (float angle in new[] { 0f, 40f, 70f })
             {
                 var o = new Outcome();
-                yield return Shoot(distance, angle, Vector3.zero, shots.arcHeight, o);
+                yield return Shoot(distance, angle, Vector3.zero, ShotArc.ApexAboveRim(distance, shots), o);
                 Vector3 c = o.Crossing ?? new Vector3(float.NaN, 0f, float.NaN);
                 log.AppendLine($"  d={distance:0.00} a={angle:0} crossing=({c.x:+0.000;-0.000}, {c.z:+0.000;-0.000}) |{new Vector2(c.x, c.z).magnitude:0.000}| {(o.Made ? "MADE" : "MISS")}");
                 if (!o.Made) misses.Add($"d={distance} a={angle}");
@@ -106,7 +106,7 @@ public class ShotCalibrationTests
     public IEnumerator MakeRate_FallsAsTheAimOffsetGrows()
     {
         yield return new WaitForFixedUpdate();
-        var log = new StringBuilder($"Make rate vs aim offset (arc {shots.arcHeight} m, {Angles} directions each):\n");
+        var log = new StringBuilder($"Make rate vs aim offset (entry {shots.entryAngleDegrees} deg: arc {ShotArc.ApexAboveRim(4.5f, shots):0.00} m at 4.5 m, {ShotArc.ApexAboveRim(6.75f, shots):0.00} m at 6.75 m; {Angles} directions each):\n");
         var rates = new List<float>();
         foreach (float distance in new[] { 4.5f, 6.75f })
         {
@@ -117,7 +117,7 @@ public class ShotCalibrationTests
                 {
                     float a = k * Mathf.PI * 2f / Angles;
                     var o = new Outcome();
-                    yield return Shoot(distance, 0f, new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * r, shots.arcHeight, o);
+                    yield return Shoot(distance, 0f, new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * r, ShotArc.ApexAboveRim(distance, shots), o);
                     if (o.Made) made++;
                 }
                 float rate = made / (float)Angles;

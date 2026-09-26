@@ -9,7 +9,13 @@ namespace Basket.Gameplay
     public class ShotConfig : ScriptableObject
     {
         [Header("Arcs (apex height above the higher of release point / rim)")]
-        public float arcHeight = 3.5f;
+        [Tooltip("Jump shots and free throws: the arc brings the ball into the rim at this angle " +
+                 "(real shooters: ~45 degrees). The apex grows with the distance.")]
+        public float entryAngleDegrees = 47f;
+        [Tooltip("Apex never lower than this above the rim (short shots)...")]
+        public float minArcHeight = 0.9f;
+        [Tooltip("...nor higher than this (long shots).")]
+        public float maxArcHeight = 2.6f;
         public float layupArcHeight = 0.9f;
 
         [Header("Shot selection by horizontal distance to the rim")]

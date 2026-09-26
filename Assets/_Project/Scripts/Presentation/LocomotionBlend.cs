@@ -2,7 +2,8 @@ namespace Basket.Presentation
 {
     // Weights and playback rates of the locomotion clips for a given ground speed: idle ->
     // walk -> run by speed, with the backward clip taking over as the movement turns away
-    // from where the body faces. Playback is scaled so the feet move at the real speed.
+    // from where the body faces. Playback follows the real speed only a little (0.8-1.15x):
+    // scaling it all the way (up to 1.6x) made every run and sprint look fast-forwarded.
     public readonly struct LocomotionWeights
     {
         public readonly float Idle, Walk, Run, Back;
@@ -22,8 +23,8 @@ namespace Basket.Presentation
 
     public static class LocomotionBlend
     {
-        public const float MinRate = 0.6f;
-        public const float MaxRate = 1.6f;
+        public const float MinRate = 0.8f;
+        public const float MaxRate = 1.15f;
 
         // speed: horizontal m/s; forward: its component along the body's facing (m/s).
         public static LocomotionWeights Compute(float speed, float forward, float walkSpeed, float runSpeed, bool hasWalk, bool hasBack)

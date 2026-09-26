@@ -41,6 +41,8 @@ namespace Basket.Characters
         public float walkSpeed = 1.5f;
         [Tooltip("Speed (m/s) the run clip's feet move at.")]
         public float runSpeed = 4.5f;
+        [Tooltip("Plays every clip faster (>1) or slower (<1).")]
+        [Range(0.5f, 1.5f)] public float playbackSpeed = 1f;
 
         [Header("Upper body over locomotion (legs keep running)")]
         public AnimationClip dribble;

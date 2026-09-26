@@ -368,3 +368,36 @@ aro por `aimAtHoop` (0 = transmissão, 1 = atrás da linha jogador→aro); câme
 **Consequências.** Em meia quadra (3x3) a câmera sempre olha para a mesma cesta; em quadra inteira ela
 dá a volta quando a posse muda. Ajustes em `Data/DefaultCameraConfig.asset`.
 
+## D-010 (revisão 2) — Arco do arremesso pelo ângulo de entrada
+
+**Contexto.** Teste do usuário: "os arremessos estão indo muito alto". O arco era fixo: topo 3,5 m acima
+do aro em qualquer distância (~6,5 m de altura, entrada a ~63°).
+
+**Decisão.** `ShotArc`: o topo fica H = D·tan(θ)/4 acima do aro (D = distância horizontal), com θ =
+`entryAngleDegrees` 47° (arremessadores reais: ~45°), entre `minArcHeight` 0,9 m e `maxArcHeight` 2,6 m:
+~1,1 m no lance livre, ~1,9 m na bola de 3. Bandeja mantém `layupArcHeight`. Habilidades continuam
+multiplicando o arco.
+
+**Consequências.** Entrada mais rasa deixa o aro "menor" para a bola: a curva de acerto física
+(`ShotCalibrationTests`) muda e os raios de erro/`calibratedMakeRadius` podem precisar de reajuste
+com os números do CI (**provisório**).
+
+## D-023 (adendo) — Movimento relativo à câmera
+
+**Contexto.** No 5v5, quando a câmera vira para a outra cesta, "para frente" continuava sendo +z do
+mundo: o jogador ia para o lado errado.
+
+**Decisão.** `HumanInputProvider.SetView`: o direcional é girado pela direção da câmera no chão
+(`CameraRelativeMove`); o `GameBootstrap` liga a câmera principal. "Para cima" é sempre para onde a
+câmera olha (o passe mirado pelo direcional segue junto).
+
+## D-022 (adendo 2) — Ritmo das animações
+
+**Contexto.** "As animações parecem em 2x." O playback da locomoção acompanhava a velocidade do jogo
+até 1,6× (jogador a 6 m/s, sprint a 9,6 m/s).
+
+**Decisão.** Playback entre 0,8× e 1,15× da velocidade do clipe (pés podem deslizar um pouco em alta
+velocidade, em vez de parecer acelerado) e `playbackSpeed` global no `CharacterAnimationClips` para
+ajuste no Inspector. A velocidade de movimento do jogo (`maxSpeed` 6, `sprintMultiplier` 1,6) fica
+como está até decisão do usuário.
+

@@ -12,7 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: acea3468b2970a044b309488be86b544, type: 3}
   m_Name: DefaultShotConfig
   m_EditorClassIdentifier: Basket.Gameplay::Basket.Gameplay.ShotConfig
-  arcHeight: 3.5
+  entryAngleDegrees: 47
+  minArcHeight: 0.9
+  maxArcHeight: 2.6
   layupArcHeight: 0.9
   layupRange: 2.6
   dunkRange: 2.2

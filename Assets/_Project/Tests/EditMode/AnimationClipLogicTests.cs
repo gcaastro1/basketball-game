@@ -66,7 +66,8 @@ public class AnimationClipLogicTests
     public void Playback_FollowsTheRealSpeed_WithinLimits()
     {
         Assert.AreEqual(1f, Blend(Run, Run).RunRate, 1e-4f, "at the clip's own speed");
-        Assert.AreEqual(6f / Run, Blend(6f, 6f).RunRate, 1e-4f, "faster feet when faster");
+        Assert.AreEqual(5f / Run, Blend(5f, 5f).RunRate, 1e-4f, "a bit faster when faster");
+        Assert.AreEqual(LocomotionBlend.MaxRate, Blend(9f, 9f).RunRate, 1e-4f, "a sprint is not fast-forwarded");
         Assert.AreEqual(LocomotionBlend.MaxRate, Blend(20f, 20f).RunRate, 1e-4f);
         Assert.AreEqual(LocomotionBlend.MinRate, Blend(0.1f, 0.1f).WalkRate, 1e-4f);
     }

@@ -15,6 +15,10 @@ namespace Basket.Input
         private readonly InputBuffer primaryBuffer = new InputBuffer(BufferSeconds);
         private readonly InputBuffer secondaryBuffer = new InputBuffer(BufferSeconds);
         private bool? wasHolding;
+        private Func<Vector3> viewForward;
+
+        // Makes movement camera-relative: "up" goes where this direction points (on the floor).
+        public void SetView(Func<Vector3> forward) => viewForward = forward;
 
         // A null snapshot means "no match context" (tests): treated as holding the ball.
         public PlayerCommand Decide(MatchSnapshot snapshot, int selfIndex)
@@ -34,6 +38,7 @@ namespace Basket.Input
             if (actions.Secondary.WasPressedThisFrame()) secondaryBuffer.Press(time);
 
             Vector2 move = GetMoveInput();
+            if (viewForward != null) move = CameraRelativeMove.Rotate(move, viewForward());
             bool sprint = actions.Sprint.IsPressed();
             bool ability = actions.Ability.WasPressedThisFrame();
             return holding
