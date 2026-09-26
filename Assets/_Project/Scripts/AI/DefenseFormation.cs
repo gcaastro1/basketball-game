@@ -44,7 +44,9 @@ namespace Basket.AI
             {
                 case 1: return new[] { new Vector2(0f, 2.5f) };
                 case 2: return new[] { new Vector2(0f, 5.5f), new Vector2(0f, 1.6f) };
-                case 3: return new[] { new Vector2(0f, 6f), new Vector2(-2.8f, 2f), new Vector2(2.8f, 2f) };
+                // 1-2: the two low defenders stay near the lane (wider left the rim open: 9 dunks
+                // in 10 tries in the zone AI-vs-AI run).
+                case 3: return new[] { new Vector2(0f, 5.6f), new Vector2(-2.1f, 1.6f), new Vector2(2.1f, 1.6f) };
                 case 4: return new[] { new Vector2(-2.4f, 5.6f), new Vector2(2.4f, 5.6f), new Vector2(-2.8f, 1.8f), new Vector2(2.8f, 1.8f) };
                 default:
                     var five = new List<Vector2>

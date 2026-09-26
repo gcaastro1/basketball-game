@@ -57,7 +57,7 @@ public class DribbleSystemTests
         Assert.IsFalse(dribble.IsDribbling, "gathered for a shot");
         dribble.Tick(isMoving: true, dt: 0.1f);
         var other = new GameObject("Other");
-        ball.Catch(other.transform);
+        ball.ResetToHolder(other.transform); // a held ball changes hands only by the rules
         dribble.Tick(isMoving: false, dt: 0.1f);
         Assert.IsFalse(dribble.IsDribbling, "a new holder starts holding the ball");
 

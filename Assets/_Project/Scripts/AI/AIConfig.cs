@@ -14,6 +14,9 @@ namespace Basket.AI
         public float guardDistance = 1.5f;
         // Within this distance of the ball handler (not sprinting), the defender takes the guard stance.
         public float guardStanceDistance = 3f;
+        // Closing out: the ball's defender sprints to his spot when farther than this from it
+        // (off-ball defenders sprint only beyond sprintDistance).
+        public float closeoutSprintDistance = 2f;
         // Jump to block when the shooter is airborne within this distance...
         public float blockRange = 1.6f;
         // ...and their vertical speed has dropped below this (reaction delay).

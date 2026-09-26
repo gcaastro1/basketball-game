@@ -22,6 +22,9 @@ public class CharacterGameplayTests
         var defaults = ScriptableObject.CreateInstance<ShotConfig>();
         match.ShotConfig.jumpShotBaseError = defaults.jumpShotBaseError;
         match.ShotConfig.jumpShotErrorPerMeter = defaults.jumpShotErrorPerMeter;
+        // An apex release would be in the shot meter's green (no aim error at all): this test
+        // measures the aim error itself.
+        match.ShotConfig.useGreenWindow = false;
         match.Start((TeamId.Home, TestMatch.ShootAtApex()));
         match.Players[0].SetCharacter("Shooter", With(AttributeId.ThreePoint, threePoint), null, AITendencies.Neutral);
 
@@ -96,6 +99,9 @@ public class CharacterGameplayTests
         var defaults = ScriptableObject.CreateInstance<ShotConfig>();
         match.ShotConfig.jumpShotBaseError = defaults.jumpShotBaseError;
         match.ShotConfig.jumpShotErrorPerMeter = defaults.jumpShotErrorPerMeter;
+        // An apex release would be in the shot meter's green (no aim error at all): this test
+        // measures the aim error itself.
+        match.ShotConfig.useGreenWindow = false;
         var shoot = TestMatch.ShootAtApex();
         bool used = false;
         match.Start((TeamId.Home, (s, self) =>

@@ -195,7 +195,8 @@ namespace Basket.Presentation
         public bool TryGetHeldBallCenter(out Vector3 center)
         {
             center = heldBallCenter;
-            return heldBallFrame == Time.frameCount;
+            // This frame's, or last frame's when asked before this frame's LateUpdate.
+            return heldBallFrame >= 0 && Time.frameCount - heldBallFrame <= 1;
         }
 
         // Holding: between the palms. Shooting: on the shooting (right) palm, facing up and

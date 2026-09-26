@@ -225,7 +225,10 @@ namespace Basket.AI
                 default:
                     // Get back on defense: sprint when far from where we need to be.
                     Vector3 spot = GuardSpot(p.OpponentPosition, p.DefendHoop, config.guardDistance);
-                    return Defend(p, spot, config.arrivalDistance, sprint: FlatDistance(p.SelfPosition, spot) > config.sprintDistance);
+                    // Close out on the ball at full speed: jogging out to a handler who had just
+                    // cleared the ball left every 3x3 jumper uncontested (AI-vs-AI log: contest 0.00).
+                    float sprintBeyond = p.FocusHasBall ? config.closeoutSprintDistance : config.sprintDistance;
+                    return Defend(p, spot, config.arrivalDistance, sprint: FlatDistance(p.SelfPosition, spot) > sprintBeyond);
             }
         }
 
