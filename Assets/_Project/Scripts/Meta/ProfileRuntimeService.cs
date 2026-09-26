@@ -74,7 +74,14 @@ namespace Basket.Meta
             Reward reward = rewardRules.For(ownScore, opponentScore);
             List<ObtainResult> obtainResults = RewardGranter.Grant(reward, Profile.Inventory, Profile.Economy,
                 progressionConfig, obtainRules, reason: "match_result", xpTo: playedCharacterIds);
-            Save();
+
+            // I6 (mitigação extra): recompensa genuinamente vazia (sem itens, sem personagens,
+            // sem XP) não precisa gravar no disco -- reduz a superfície do I/O síncrono na cadeia
+            // de fim de partida sem mudar o resultado observável.
+            bool isNoOpReward = (reward.items == null || reward.items.Count == 0)
+                && (reward.characters == null || reward.characters.Count == 0)
+                && reward.characterXp <= 0;
+            if (!isNoOpReward) Save();
 
             List<string> itemDescriptions = reward.items?.Select(cost => $"{cost.itemId} x{cost.count}").ToList()
                 ?? new List<string>();

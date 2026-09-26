@@ -30,6 +30,7 @@ de troca.
 | P-001 | Modo B (controle do time) | **Pendente** — ponto de encaixe pronto: `ITeamStrategy` (e `IAgentController`) |
 | P-003 | Gacha definitivo (raridades, taxas, pity, custos, moedas) | **Provisória**: 3 níveis genéricos, 3/17/80%, pity 80 (soft 65, +6%), 50/50 com garantia, multi de 10 com garantia de nível 2 — tudo em `Data/Meta/StandardBanner.asset` |
 | P-002 | Semântica dos Limit Breaks | **Provisória**: 4 LBs (20→40, 40→50, 50→60, "Awakening" no 60 sem novo teto), tudo em `DefaultProgressionConfig` |
+| P-004 | `GameBootstrap` assume que o time do jogador é Home ao calcular a recompensa de partida | **Provisória** |
 
 ---
 
@@ -281,3 +282,23 @@ partida. Três pontos exigiam decisão:
   (antes ausente de propósito) e só instancia/chama nos pontos certos (início, fim de partida, saída).
 
 Plano completo: `docs/etapas/etapa-8.5-meta-consolidacao.md`.
+
+## P-004 — GameBootstrap assume que o time do jogador é Home (provisória)
+
+**Contexto.** `GameBootstrap.cs`, no lambda de `Simulation.Match.OnMatchEnded`, calcula
+`ownScore`/`opponentScore` para `ProfileRuntimeService.ApplyMatchReward` usando
+`finalState.ScoreHome` como "meu placar" e `finalState.ScoreAway` como "do adversário" — sem
+checar de qual time é, de fato, o slot humano. Hoje isso é inofensivo porque todo `MatchSetup`
+usado em jogo real (`MatchSetup3v3`, `MatchSetup5v5`) põe o humano no time Home, mas a suposição
+não estava registrada em lugar nenhum (achado M1 da revisão final da Etapa 8.5).
+
+**Decisão.** Fica como está por ora — `ScoreHome` = "own", `ScoreAway` = "opponent" —, documentado
+aqui como provisório. Quando existir a possibilidade real do humano jogar pelo time Away
+(`MatchSetup` customizado, Modo B — P-001, multiplayer), `GameBootstrap` precisa calcular
+`ownScore`/`opponentScore` a partir do time de fato controlado pelo jogador (ex.: o `TeamId` do
+primeiro slot humano em `matchSetup.slots`), não de um lado fixo.
+
+**Consequências.** Nenhuma mudança de comportamento agora. Quem alterar `MatchSetup` para pôr o
+humano no time Away sem ajustar essa suposição em `GameBootstrap` vai inverter silenciosamente
+vitória/derrota nas recompensas de partida — ponto de atenção para quem tocar isso antes desta
+decisão ser revisitada.

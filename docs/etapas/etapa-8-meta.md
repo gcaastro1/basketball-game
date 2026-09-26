@@ -43,3 +43,8 @@ história (Etapa 9) e partida em andamento.
 ## Ainda não ligado
 Telas (Etapa 10), recompensas no fim da partida e personagens do perfil no `MatchSetup` (ligação do
 fluxo de jogo) — o serviço está pronto para isso.
+
+**Resolvido na Etapa 8.5** (`docs/etapas/etapa-8.5-meta-consolidacao.md`): recompensas no fim da
+partida e personagens do perfil no `MatchSetup` já estão ligados via `GameBootstrap` +
+`ProfileRuntimeService`. As telas placeholder (inventário, resultado de partida/gacha) também
+existem (`ProfileHud`); a UI final continua na Etapa 10.

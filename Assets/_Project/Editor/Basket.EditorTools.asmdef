@@ -8,7 +8,8 @@
         "Basket.AI",
         "Basket.Input",
         "Basket.UI",
-        "Basket.Bootstrap"
+        "Basket.Bootstrap",
+        "Basket.Meta"
     ],
     "includePlatforms": [
         "Editor"

@@ -24,20 +24,23 @@ namespace Basket.UI
         {
             if (profile == null) return;
 
-            GUI.Label(new Rect(10, 70, 400, 20), $"Gemas: {profile.Amount("currency_gems")}");
-            GUI.Label(new Rect(10, 90, 400, 20), $"Personagens: {System.Linq.Enumerable.Count(profile.OwnedCharacterIds)}");
+            // x ~620 (não 10): DebugHud cresce dinamicamente desde y=10 e cobre a faixa
+            // y=70-130 onde este HUD desenha; lado a lado em vez de sobreposto.
+            const int x = 620;
+            GUI.Label(new Rect(x, 70, 400, 20), $"Gemas: {profile.Amount("currency_gems")}");
+            GUI.Label(new Rect(x, 90, 400, 20), $"Personagens: {System.Linq.Enumerable.Count(profile.OwnedCharacterIds)}");
 
             int y = 110;
             if (lastReward.HasValue)
             {
                 var r = lastReward.Value;
-                GUI.Label(new Rect(10, y, 500, 20), $"Última partida: {(r.Won ? "Vitória" : "Derrota")} — {string.Join(", ", r.ItemsGranted)}");
+                GUI.Label(new Rect(x, y, 500, 20), $"Última partida: {(r.Won ? "Vitória" : "Derrota")} — {string.Join(", ", r.ItemsGranted)}");
                 y += 20;
             }
             if (lastPull.HasValue)
             {
                 var p = lastPull.Value;
-                GUI.Label(new Rect(10, y, 500, 20), p.Success
+                GUI.Label(new Rect(x, y, 500, 20), p.Success
                     ? $"Gacha: {string.Join(", ", p.ResultDescriptions)}"
                     : $"Gacha falhou: {p.FailureReason}");
             }

@@ -1,4 +1,5 @@
 using System.Collections;
+using System.IO;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -12,6 +13,25 @@ public class VerticalSliceIntegrationTests
 {
     private const string SliceScene = "01_VerticalSlice_HalfCourt";
     private const string FullCourtScene = "02_FullCourt_5v5";
+    private string saveDirectory;
+
+    // I5 (etapa 8.5): estas cenas carregam GameBootstrap de verdade, que agora (I1) monta o
+    // elenco/save do perfil em Awake(). Sem isto, os testes leriam/escreveriam no save real da
+    // máquina do desenvolvedor (Application.persistentDataPath). Seta ANTES de qualquer
+    // LoadSceneAsync e limpa depois de cada teste.
+    [SetUp]
+    public void RedirectSaveDirectoryToTemp()
+    {
+        saveDirectory = Path.Combine(Path.GetTempPath(), "vslice_save_" + System.Guid.NewGuid());
+        GameBootstrap.SaveDirectoryOverride = saveDirectory;
+    }
+
+    [TearDown]
+    public void RestoreSaveDirectory()
+    {
+        GameBootstrap.SaveDirectoryOverride = null;
+        if (Directory.Exists(saveDirectory)) Directory.Delete(saveDirectory, recursive: true);
+    }
 
     // The slice scene builds a full arena at the same coordinates the other tests use;
     // unload it so it cannot leak players/balls/hoops into later tests.

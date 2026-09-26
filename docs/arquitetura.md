@@ -65,6 +65,7 @@ Eventos
 | O que um dupe além do 6º vira | `Data/Meta/CharacterObtainRules.asset` |
 | Recompensas de partida | `Data/Meta/MatchRewardRules.asset` |
 | Formato do save / migração | `Meta/PlayerSave.cs` (`CurrentVersion`, `SaveMigrator`) |
+| Ligar o perfil ao fluxo de partida (elenco do perfil no `MatchSetup`, recompensa ao fim, save nos pontos certos) | `Meta/ProfileRuntimeService.cs` (coordenador); `characterId → CharacterDefinition` em `Data/Meta/CharacterCatalog.asset`; evento de fim de partida em `Gameplay/MatchManager.cs` (`OnMatchEnded`); fiação em `Bootstrap/GameBootstrap.cs` |
 | Novo tipo de controle (Modo B, replay, rede) | nova implementação de `Core/IAgentController` |
 | Nova regra | `Gameplay/MatchManager` + campo em `MatchRules` (nunca nos controllers) |
 

@@ -1,41 +1,47 @@
 # Próximos passos
 
-Estado em 25/09/2026: etapas 0–8 prontas, CI verde (EditMode 243/243, PlayMode 52/52).
-As tarefas abaixo são independentes; a ordem sugerida é A → B → C. D depende do usuário.
+Estado em 26/09/2026: etapas 0–8.5 prontas (EditMode 258/258, PlayMode 52/53 — a única falha é
+pré-existente e sensível à seed em `AISimulationTests.AIvsAI_3v3_PlaysBasketball`, ver
+"Pendências menores conhecidas" abaixo). Item A concluído (Etapa 8.5); seguem B → C. D depende
+do usuário.
 
 Para cada uma: escreva o plano em `docs/etapas/`, adicione/atualize a linha no
 `docs/roadmap-mestre.md`, cubra com testes e registre decisões em `docs/decisoes.md`.
 
 ---
 
-## A. Ligar o meta (Etapa 8) ao fluxo do jogo
+## A. Ligar o meta (Etapa 8) ao fluxo do jogo — ✅ feito (Etapa 8.5)
 
-Hoje `Basket.Meta` existe e está testado, mas **nada no jogo o usa**.
+`Basket.Meta` existia e estava testado, mas nada no jogo o usava. Os 5 sub-itens abaixo foram
+feitos na Etapa 8.5 (`docs/etapas/etapa-8.5-meta-consolidacao.md`, `docs/decisoes.md` D-021):
 
-1. **Fim de partida.** Não existe evento de fim: `MatchManager` só muda `State.Phase` para
-   `MatchPhase.Ended` (`Scripts/Core/MatchPhase.cs`). Acrescente
-   `event Action<MatchState> OnMatchEnded` em `Gameplay/MatchManager.cs`, disparado uma vez
-   quando a fase vira `Ended`, e teste em EditMode.
-2. **Serviço de perfil em runtime.** Um componente (novo assembly ou dentro de `Bootstrap`,
-   que pode passar a referenciar `Basket.Meta`) que:
-   - carrega o save com `SaveService` + `FileSaveStorage`
-     (`Application.persistentDataPath`) + `JsonSaveSerializer` → `PlayerProfile.FromSave`;
-   - trata `SaveLoadStatus` (`NewerVersion` = não sobrescrever; avisar);
-   - salva em pontos seguros (fim de partida, depois do gacha, ao sair).
-3. **Recompensas.** No `OnMatchEnded`: `MatchRewardRules.For(placarDoTime, placarAdversário)`
-   → `RewardGranter.Grant(...)`, com XP só para os personagens que jogaram.
-   Dados: `Data/Meta/MatchRewardRules.asset`.
-4. **Time vindo do perfil.** Hoje o elenco vem do asset `MatchSetup` no `GameBootstrap`
-   (`Bootstrap/GameBootstrap.cs`, loop em `matchSetup.slots`). Crie o `MatchSetup` em runtime
-   a partir dos personagens do `Inventory` (nível, LB e dupes da instância), mantendo o asset
-   como fallback.
-5. **Telas mínimas (placeholder).** Inventário, gacha (usa `GachaService.Pull` e só lê o
-   `PullOutcome`) e resultado da partida. Visual provisório — a UI final é da Etapa 10.
-   A UI só conhece `Core` hoje; se precisar ler o meta, decida (e registre) se a UI passa a
-   referenciar `Basket.Meta` ou se recebe dados por interface em `Core`.
+1. **Fim de partida.** ✅ `event Action<MatchState> OnMatchEnded` em `Gameplay/MatchManager.cs`,
+   disparado uma vez quando a fase vira `Ended` (`MatchManagerOnMatchEndedTests`).
+2. **Serviço de perfil em runtime.** ✅ `Meta/ProfileRuntimeService.cs` (POCO): carrega o save
+   com `SaveService` + `FileSaveStorage` (`Application.persistentDataPath`, com override para
+   testes — `GameBootstrap.SaveDirectoryOverride`) + `JsonSaveSerializer` → `PlayerProfile.FromSave`;
+   trata `SaveLoadStatus.NewerVersion` (não sobrescreve; `GameBootstrap.Awake` avisa com
+   `Debug.LogWarning`); salva no fim de partida e em `OnDestroy`.
+3. **Recompensas.** ✅ `GameBootstrap` chama `ProfileRuntimeService.ApplyMatchReward` no
+   `OnMatchEnded`, que usa `MatchRewardRules.For(...)` → `RewardGranter.Grant(...)` com XP só
+   para quem jogou. Dados: `Data/Meta/MatchRewardRules.asset`. A cadeia de I/O de disco dentro do
+   handler tem `try/catch` no composition root (achado I6 da revisão final).
+4. **Time vindo do perfil.** ✅ `GameBootstrap.Awake` monta um `MatchSetup` em runtime a partir de
+   `ProfileRuntimeService.BuildRosterOrNull`, com o asset do Inspector como fallback. Catálogo
+   novo `CharacterCatalog` (`Data/Meta/CharacterCatalog.asset`) dá o `characterId → CharacterDefinition`
+   que faltava.
+5. **Telas mínimas (placeholder).** ✅ `ProfileHud` (IMGUI, estilo `DebugHud`) mostra saldo,
+   elenco e o último resultado de partida/gacha. Decisão registrada (D-021): UI continua só
+   conhecendo `Core`, via `IPlayerProfileReadOnly`.
 
-**Pronto quando:** jogar uma partida dá moedas/XP, o save sobrevive a fechar e abrir o jogo,
-uma tiragem no gacha adiciona o personagem ao time. Testes PlayMode para o ciclo completo.
+**Pronto quando:** jogar uma partida dá moedas/XP, o save sobrevive a fechar e abrir o jogo, uma
+tiragem no gacha adiciona o personagem ao time — coberto por `MetaIntegrationTests` (PlayMode).
+
+**Ressalva (revisão final da Etapa 8.5, achados PARKED, fora desta rodada):** nenhum teste ainda
+cobre a integração real `GameBootstrap` → `OnMatchEnded` → recompensa de ponta a ponta (I2;
+`MetaIntegrationTests` chama `ApplyMatchReward` direto, não via `MatchManager`/cena), e
+`ProfileRuntimeService.Pull`/`ProfileHud.ShowGachaResult` não têm nenhum chamador de produção — a
+tela de gacha nunca é de fato acionável em jogo (I3). Candidatos a uma etapa-8.6 curta.
 
 ## B. Etapa 9 — framework de história
 

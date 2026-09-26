@@ -5,6 +5,7 @@ using Basket.AI;
 using Basket.Bootstrap;
 using Basket.Characters;
 using Basket.Gameplay;
+using Basket.Meta;
 
 namespace Basket.EditorTools
 {
@@ -16,6 +17,7 @@ namespace Basket.EditorTools
         private const string ScenePath = "Assets/_Project/Scenes/01_VerticalSlice_HalfCourt.unity";
         private const string FullCourtScenePath = "Assets/_Project/Scenes/02_FullCourt_5v5.unity";
         private const string DataFolder = "Assets/_Project/Data";
+        private const string MetaFolder = "Assets/_Project/Data/Meta";
 
         [MenuItem("Basket/Build Vertical Slice Scene")]
         public static void Build() =>
@@ -43,6 +45,12 @@ namespace Basket.EditorTools
             so.FindProperty("aiConfig").objectReferenceValue = LoadOrCreateAsset<AIConfig>("DefaultAIConfig");
             so.FindProperty("progressionConfig").objectReferenceValue = LoadOrCreateAsset<ProgressionConfig>("DefaultProgressionConfig");
             so.FindProperty("attributeTuning").objectReferenceValue = LoadOrCreateAsset<AttributeTuning>("DefaultAttributeTuning");
+            // Meta (Etapa 8.5, I1): sem isto, EnsureConfigs() sempre cai nos defaults em branco
+            // em jogo real -- o elenco do perfil nunca entra e a recompensa nunca paga.
+            so.FindProperty("itemCatalog").objectReferenceValue = LoadOrCreateAsset<ItemCatalog>("ItemCatalog", MetaFolder);
+            so.FindProperty("characterCatalog").objectReferenceValue = LoadOrCreateAsset<CharacterCatalog>("CharacterCatalog", MetaFolder);
+            so.FindProperty("obtainRules").objectReferenceValue = LoadOrCreateAsset<CharacterObtainRules>("CharacterObtainRules", MetaFolder);
+            so.FindProperty("rewardRules").objectReferenceValue = LoadOrCreateAsset<MatchRewardRules>("MatchRewardRules", MetaFolder);
             so.ApplyModifiedPropertiesWithoutUndo();
 
             EditorSceneManager.SaveScene(scene, scenePath);
@@ -65,9 +73,9 @@ namespace Basket.EditorTools
             EditorBuildSettings.scenes = scenes.ToArray();
         }
 
-        private static T LoadOrCreateAsset<T>(string assetName) where T : ScriptableObject
+        private static T LoadOrCreateAsset<T>(string assetName, string folder = DataFolder) where T : ScriptableObject
         {
-            string path = $"{DataFolder}/{assetName}.asset";
+            string path = $"{folder}/{assetName}.asset";
             var existing = AssetDatabase.LoadAssetAtPath<T>(path);
             if (existing != null) return existing;
 

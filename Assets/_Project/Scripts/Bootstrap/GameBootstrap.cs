@@ -44,16 +44,28 @@ namespace Basket.Bootstrap
         private readonly List<System.IDisposable> disposables = new List<System.IDisposable>();
         private ProfileRuntimeService profileService;
 
+        // Testes PlayMode que carregam as cenas reais (VerticalSliceIntegrationTests) setam isto
+        // ANTES do SceneManager.LoadSceneAsync para não acoplar Awake() ao save real da máquina
+        // (Application.persistentDataPath) -- I5, docs/etapas/etapa-8.5-meta-consolidacao.md.
+        public static string SaveDirectoryOverride;
+
         private void Awake()
         {
             EnsureConfigs();
 
             // Meta (Etapa 8.5): the profile's real roster replaces the Inspector's exhibition
             // MatchSetup when the player already owns enough characters for every slot.
+            string saveDirectory = string.IsNullOrEmpty(SaveDirectoryOverride) ? Application.persistentDataPath : SaveDirectoryOverride;
             profileService = new ProfileRuntimeService(
-                new SaveService(new FileSaveStorage(Application.persistentDataPath), new JsonSaveSerializer()),
+                new SaveService(new FileSaveStorage(saveDirectory), new JsonSaveSerializer()),
                 itemCatalog, characterCatalog, progressionConfig, obtainRules, rewardRules);
             profileService.LoadOrCreate();
+            if (profileService.LastLoadStatus == SaveLoadStatus.NewerVersion)
+            {
+                // I4: a spec (docs/proximos-passos.md, item A.2) pede "avisar"; o composition
+                // root é a fronteira certa para isso, não o ProfileRuntimeService (POCO).
+                Debug.LogWarning("Save foi feito por uma versão mais nova do jogo; progresso desta sessão não será salvo.");
+            }
 
             List<CharacterDefinition> ownedRoster = profileService.BuildRosterOrNull(matchSetup.slots.Count);
             if (ownedRoster != null)
@@ -122,13 +134,25 @@ namespace Basket.Bootstrap
 
             // Meta (Etapa 8.5): recompensa de partida pros personagens que jogaram, ao fim da
             // partida. Simulation.Match (o MatchManager) já existe aqui.
+            // P-004 (docs/decisoes.md): assume que o time do jogador é Home (ScoreHome = "own").
             Simulation.Match.OnMatchEnded += finalState =>
             {
-                IEnumerable<string> playedIds = matchSetup.slots
-                    .Where(s => s.character != null)
-                    .Select(s => s.character.characterId);
-                MatchRewardSummary summary = profileService.ApplyMatchReward(finalState.ScoreHome, finalState.ScoreAway, playedIds);
-                profileHud.ShowMatchReward(summary);
+                // I6: I/O de disco síncrono (Save() -> File.WriteAllText/File.Move) pode lançar
+                // IOException (disco cheio, antivírus travando o .bak); sem isto, a exceção subiria
+                // sem tratamento até MatchSimulation.Tick e abortaria o resto do frame. O composition
+                // root é a fronteira certa para essa guarda, não o ProfileRuntimeService.
+                try
+                {
+                    IEnumerable<string> playedIds = matchSetup.slots
+                        .Where(s => s.character != null)
+                        .Select(s => s.character.characterId);
+                    MatchRewardSummary summary = profileService.ApplyMatchReward(finalState.ScoreHome, finalState.ScoreAway, playedIds);
+                    profileHud.ShowMatchReward(summary);
+                }
+                catch (System.Exception e)
+                {
+                    Debug.LogException(e);
+                }
             };
 
             // Character models (Etapa 6): presentation only, attached once the simulation exists.
