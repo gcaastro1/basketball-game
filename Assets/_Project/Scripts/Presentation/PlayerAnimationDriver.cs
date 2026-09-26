@@ -37,6 +37,16 @@ namespace Basket.Presentation
         public bool UsesClips => clipBackend != null;
         // Procedural only (no clips); with clips it still covers the poses they lack.
         public bool UsesProcedural => procedural != null && clipBackend == null;
+        // Practice court panel: pose, body speed/turn and what the animation backend plays.
+        public string DebugDescription()
+        {
+            if (player == null) return "";
+            Vector3 v = player.Motor != null ? player.Motor.HorizontalVelocity : Vector3.zero;
+            string head = $"pose {CurrentPose}  speed {new Vector2(v.x, v.z).magnitude:0.00} m/s  overlay {overlayWeight:0.00}\n";
+            if (clipBackend != null) return head + clipBackend.Describe();
+            return head + (procedural != null ? "procedural animation (no clips)" : "no humanoid rig");
+        }
+
         public Vector3 RightHandPosition => rightHand != null ? rightHand.HandPosition : transform.position;
         public Vector3 LeftHandPosition => leftHand != null ? leftHand.HandPosition : transform.position;
 

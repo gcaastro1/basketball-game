@@ -30,6 +30,8 @@ namespace Basket.Bootstrap
         [SerializeField] private BallConfig ballConfig;
         // Optional art over the gameplay arena (stadium, ball model); null = placeholder only.
         [SerializeField] private ArenaVisualDefinition arenaVisual;
+        // Practice court (scene 03): slow motion, pause, camera angles and the animation panel.
+        [SerializeField] private bool practiceTools;
         [SerializeField] private ShotConfig shotConfig;
         [SerializeField] private DefenseConfig defenseConfig;
         [SerializeField] private PlayerMovementConfig movementConfig;
@@ -161,18 +163,24 @@ namespace Basket.Bootstrap
             };
 
             // Character models (Etapa 6): presentation only, attached once the simulation exists.
+            CharacterVisual followedVisual = null;
             for (int i = 0; i < players.Count; i++)
             {
                 MatchSetup.PlayerSlot slot = matchSetup.slots[i];
                 if (slot.character == null || slot.character.visual == null) continue;
                 bool human = slot.control == AgentControlType.Human;
                 Color ring = human ? HumanMarker : (slot.team == TeamId.Home ? HomeColor : AwayColor);
-                CharacterVisual.Attach(players[i], Simulation, slot.character.visual, ring);
+                CharacterVisual visual = CharacterVisual.Attach(players[i], Simulation, slot.character.visual, ring);
+                if (players[i] == cameraTarget || (cameraTarget == null && followedVisual == null)) followedVisual = visual;
             }
 
             if (cameraTarget == null && players.Count > 0) cameraTarget = players[0];
-            BuildCamera(cameraTarget != null ? cameraTarget.transform : arena.Ball.transform,
+            if (practiceTools) practice = gameObject.AddComponent<PracticeTools>();
+            CameraController cameraController = BuildCamera(cameraTarget != null ? cameraTarget.transform : arena.Ball.transform,
                 cameraTarget != null ? cameraTarget.Team : TeamId.Home);
+            if (practice != null)
+                practice.Configure(followedVisual != null ? followedVisual.Driver : null,
+                    cameraTarget != null ? cameraTarget.transform : arena.Ball.transform, cameraController.GetComponent<Camera>(), cameraController);
 
             var hud = new GameObject("DebugHud").AddComponent<DebugHud>();
             hud.Configure(Simulation.Match.State, arena.Ball, aiControllers, Simulation, Simulation.Stats);
@@ -215,7 +223,9 @@ namespace Basket.Bootstrap
 
         // Broadcast camera behind the followed player, facing the basket the team with the
         // ball attacks (the player's own team's basket when nobody has it).
-        private void BuildCamera(Transform target, TeamId followedTeam)
+        private PracticeTools practice;
+
+        private CameraController BuildCamera(Transform target, TeamId followedTeam)
         {
             Camera cam = Camera.main;
             if (cam == null)
@@ -230,7 +240,9 @@ namespace Basket.Bootstrap
             }
             // Movement follows the camera: "forward" is where it looks, on either end of the court.
             Transform view = cam.transform;
-            foreach (HumanInputProvider input in humanInputs) input.SetView(() => view.forward);
+            // (On the practice court's side/front views, movement keeps the broadcast forward.)
+            foreach (HumanInputProvider input in humanInputs)
+                input.SetView(() => practice != null ? practice.MoveForward : view.forward);
 
             MatchSimulation sim = Simulation;
             TeamId lastAttack = followedTeam;
@@ -239,6 +251,7 @@ namespace Basket.Bootstrap
                 if (sim.Match.State.PossessionTeam is TeamId team) lastAttack = team;
                 return sim.Snapshot.GetAttackingHoop(lastAttack);
             }, courtConfig.CourtCenter);
+            return controller;
         }
 
         private void EnsureConfigs()

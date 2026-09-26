@@ -20,6 +20,21 @@ e uma bola real (`Assets/TierrasDeRol/Basketball`). Objetivo: usar os dois no jo
 
 A física e as simulações não mudam: colisores de piso, paredes, tabela e aro são os do placeholder.
 
+## Quadra de treino (cena `03_Practice_Solo`)
+
+Pedido do usuário: jogar sozinho para ver as animações e entender o que corrigir.
+
+- `MatchSetupPractice` (só o jogador humano) + `PracticeMatchRules` (2/3 pontos, sem placar final, sem
+  relógios, check ball depois da cesta), meia quadra com o ginásio. Menu **Basket → Build Practice Scene**
+  recria a cena.
+- `GameBootstrap.practiceTools` liga o `PracticeTools`: **Z** muda a velocidade do jogo (1 / 0,5 / 0,25 /
+  0,1), **X** pausa, **C** troca a câmera (transmissão / lado / frente / por cima do ombro; fora da
+  transmissão, "para frente" continua o da câmera de transmissão).
+- Painel no canto: pose, velocidade, e o que a animação toca (`PlayerAnimationDriver.DebugDescription` →
+  `ClipAnimationBackend.Describe`): cada conjunto de locomoção com o peso, os clipes misturados com peso,
+  janela e tempo, o drible da parte de cima e a ação (arremesso etc.).
+- Teste: `VerticalSliceIntegrationTests.ScenePractice_OnePlayerWithTheBall_ToolsDescribeTheAnimation`.
+
 ## Saída verificável
 
 - `ArenaVisualTests` (PlayMode):

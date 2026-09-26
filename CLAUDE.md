@@ -40,7 +40,8 @@ Controle de jogador = `Core/IAgentController` (humano, IA, teste). Regras = `Mat
 ## Ambiente
 
 - Unity **6000.6.2f1**, URP, Input System. Cenas: `Assets/_Project/Scenes/01_VerticalSlice_HalfCourt`
-  (meia quadra) e `02_FullCourt_5v5`. Menu **Basket → Build Vertical Slice Scene** recria a cena.
+  (meia quadra), `02_FullCourt_5v5` e `03_Practice_Solo` (treino sozinho: Z velocidade, X pausa, C câmera,
+  painel da animação). Menu **Basket → Build Vertical Slice Scene** recria a cena.
 - Modelos 3D vêm do **Tripo3D** (`Assets/TripoModels`); o pacote `com.tripo3d.unitybridge` aponta
   para um caminho local em `D:/` no `Packages/manifest.json` — **não remova** (só o CI o tira).
   `Editor/TripoHumanoidImporter.cs` importa novos FBX como Humanoid.
