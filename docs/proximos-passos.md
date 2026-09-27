@@ -86,5 +86,6 @@ jogadas? trocar o jogador controlado? pausar e dar ordens?). Pontos de encaixe j
 
 - Arena e jogadores placeholder montados em runtime (D-003, provisória).
 - Animação é procedural até existirem clipes (D-019): basta preencher os `clips` do
-  `CharacterVisualDefinition`.
+  `CharacterVisualDefinition`. A lista de clipes a gerar (com prompt do Kimodo e avisos de
+  segmentação) está em `docs/animacoes-lista.md`.
 - Valores provisórios: gacha (P-003), Limit Breaks (P-002), faltas (D-012), precisão (D-010).
