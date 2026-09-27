@@ -199,7 +199,7 @@ namespace Basket.Gameplay
             }
 
             int points = ScoringMath.PointsForRelease(scoreEvent.ReleasePosition, scoreEvent.HoopCenter ?? rimCenter,
-                rules.threePointRadius, rules.pointsInsideArc, rules.pointsBeyondArc);
+                rules.threePointRadius, rules.pointsInsideArc, rules.pointsBeyondArc, rules.threePointCornerDistance);
             State.RegisterScore(team, points);
             OnBasketCounted?.Invoke(team, points, scoreEvent.ShotType);
             if (State.Phase == MatchPhase.Ended) return;

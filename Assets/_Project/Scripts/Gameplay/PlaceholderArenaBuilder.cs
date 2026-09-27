@@ -31,19 +31,19 @@ namespace Basket.Gameplay
         private static readonly Color BackboardColor = new Color(0.92f, 0.92f, 0.96f);
         private static readonly Color BallColor = new Color(0.9f, 0.42f, 0.12f);
 
-        public static Arena Build(CourtConfig court, BallConfig ballConfig, float threePointRadius)
+        public static Arena Build(CourtConfig court, BallConfig ballConfig, float threePointRadius, float threePointCornerDistance = 0f)
         {
             var root = new GameObject("Arena");
             BuildLight(root.transform);
             BuildFloor(court, root.transform);
             BuildWalls(court, root.transform);
-            BuildThreePointLine(court, court.rimCenter, threePointRadius, root.transform);
+            BuildThreePointLine(court, court.rimCenter, threePointRadius, threePointCornerDistance, root.transform);
             BuildBackboard(court, court.backboardCenter, root.transform);
             HoopController hoop = BuildRim(court, court.rimCenter, root.transform);
             HoopController second = null;
             if (court.fullCourt)
             {
-                BuildThreePointLine(court, court.Mirror(court.rimCenter), threePointRadius, root.transform);
+                BuildThreePointLine(court, court.Mirror(court.rimCenter), threePointRadius, threePointCornerDistance, root.transform);
                 BuildBackboard(court, court.Mirror(court.backboardCenter), root.transform);
                 second = BuildRim(court, court.Mirror(court.rimCenter), root.transform);
                 BuildCenterMarks(court, root.transform);
@@ -124,14 +124,31 @@ namespace Basket.Gameplay
             go.AddComponent<BoxCollider>().size = size;
         }
 
-        // Arc facing the court's center (works for either basket).
-        private static void BuildThreePointLine(CourtConfig court, Vector3 rimCenter, float radius, Transform parent)
+        // Arc facing the court's center (works for either basket); with a corner distance, the
+        // arc is cut where it meets two straight lines running to the baseline (ScoringMath.IsBeyondArc).
+        private static void BuildThreePointLine(CourtConfig court, Vector3 rimCenter, float radius, float cornerDistance, Transform parent)
         {
             var line = new GameObject("ThreePointLine");
             line.transform.SetParent(parent, false);
             Vector3 center = new Vector3(rimCenter.x, 0f, rimCenter.z);
             float facing = court.CourtCenter.z >= center.z ? 0f : 180f;
-            BuildArc(center, radius, facing - 90f, facing + 90f, 48, line.transform, court);
+            if (cornerDistance <= 0f || cornerDistance >= radius)
+            {
+                BuildArc(center, radius, facing - 90f, facing + 90f, 48, line.transform, court);
+                return;
+            }
+
+            float half = Mathf.Asin(cornerDistance / radius) * Mathf.Rad2Deg;
+            BuildArc(center, radius, facing - half, facing + half, 40, line.transform, court);
+            float toCenter = facing == 0f ? 1f : -1f;
+            float baseline = facing == 0f ? 0f : court.depth;
+            float meet = center.z + toCenter * Mathf.Sqrt(radius * radius - cornerDistance * cornerDistance);
+            foreach (float side in new[] { -1f, 1f })
+            {
+                GameObject seg = CreateVisual(PrimitiveType.Cube, "Corner", line.transform, LineColor, keepCollider: false);
+                seg.transform.position = new Vector3(center.x + side * cornerDistance, 0.005f, (baseline + meet) * 0.5f);
+                seg.transform.localScale = new Vector3(0.05f, 0.01f, Mathf.Abs(meet - baseline));
+            }
         }
 
         private static void BuildBackboard(CourtConfig court, Vector3 boardCenter, Transform parent)

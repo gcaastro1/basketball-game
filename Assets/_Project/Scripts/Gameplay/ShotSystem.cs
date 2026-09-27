@@ -30,6 +30,7 @@ namespace Basket.Gameplay
         private readonly float[] apexTime;
         private readonly float[] takeoffSpeedRatio;
         private readonly bool[] previousHeld;
+        private readonly float[] lastRelease, lastTiming, lastGreen;
         private int freeThrowShooter = -1;
 
         public event Action<ShotReport> OnShotTaken;
@@ -50,6 +51,10 @@ namespace Basket.Gameplay
             apexTime = new float[playerCount];
             takeoffSpeedRatio = new float[playerCount];
             previousHeld = new bool[playerCount];
+            lastRelease = new float[playerCount];
+            lastTiming = new float[playerCount];
+            lastGreen = new float[playerCount];
+            for (int i = 0; i < playerCount; i++) lastRelease[i] = float.NegativeInfinity;
         }
 
         public bool IsShooting(int index) => phase[index] != Phase.None;
@@ -65,6 +70,36 @@ namespace Basket.Gameplay
             progress = span > 1e-4f ? Mathf.Clamp01((time - startTime[index]) / span) : 1f;
             return true;
         }
+
+        // For the shot meter while a timed shot (jump shot / free throw) is in the air: seconds
+        // since takeoff and to the apex, and the green half-width it would have if released
+        // now (contest and movement as they are). False when no timed shot is in progress.
+        public bool TryGetMeter(int index, PlayerEntity player, MatchSnapshot snapshot, float time, out ShotMeterReading reading)
+        {
+            reading = default;
+            if (phase[index] == Phase.None || (type[index] != ShotType.JumpShot && type[index] != ShotType.FreeThrow)) return false;
+            Vector3 rimCenter = RimFor(snapshot, player);
+            Vector3 feet = player.FeetPosition;
+            float distance = FlatDistance(feet, rimCenter);
+            float contest = type[index] == ShotType.FreeThrow ? 0f : MaxContest(index, feet, snapshot);
+            float rating = player.Attributes != null
+                ? Attributes.Normalized(player.Attributes.Get(tuning.ShotAttribute(type[index], distance, threePointRadius)))
+                : config.defaultShooterRating;
+            reading = new ShotMeterReading(time - startTime[index], apexTime[index] - startTime[index],
+                ShotAccuracyModel.GreenHalfWidth(type[index], distance, contest, takeoffSpeedRatio[index], rating, config));
+            return true;
+        }
+
+        // The last timed release of this player (for the meter's result flash).
+        public bool TryGetLastRelease(int index, float time, float within, out float timingError, out float greenHalfWidth)
+        {
+            timingError = lastTiming[index];
+            greenHalfWidth = lastGreen[index];
+            return time - lastRelease[index] <= within;
+        }
+
+        public ShotTimingGrade Grade(float timingError, float greenHalfWidth) =>
+            ShotAccuracyModel.Grade(timingError, greenHalfWidth, config);
 
         // During a free throw only this player shoots, and their shot is a free throw.
         public void SetFreeThrowShooter(int index) => freeThrowShooter = index;
@@ -112,6 +147,13 @@ namespace Basket.Gameplay
 
         private static Vector3 RimFor(MatchSnapshot s, PlayerEntity p) => s.GetAttackingHoop(p.Team);
 
+        // Horizontal speed toward the rim.
+        private static float ApproachSpeed(PlayerMotor motor, Vector3 feet, Vector3 rim)
+        {
+            Vector3 toRim = new Vector3(rim.x - feet.x, 0f, rim.z - feet.z);
+            return toRim.sqrMagnitude > 0.0001f ? Vector3.Dot(motor.HorizontalVelocity, toRim.normalized) : 0f;
+        }
+
         private void Begin(int index, PlayerEntity player, PlayerCommand command, MatchSnapshot snapshot, float time)
         {
             Vector3 rimCenter = RimFor(snapshot, player);
@@ -121,7 +163,7 @@ namespace Basket.Gameplay
             float reachAtApex = feet.y + player.StandingReach + motor.JumpHeight;
             ShotType shotType = index == freeThrowShooter
                 ? ShotType.FreeThrow
-                : ShotAccuracyModel.Classify(distance, command.Sprint, reachAtApex, rimCenter.y, config);
+                : ShotAccuracyModel.Classify(distance, command.Sprint, reachAtApex, rimCenter.y, config, ApproachSpeed(motor, feet, rimCenter));
             // Dunking takes the Dunk attribute as well as the reach.
             if (shotType == ShotType.Dunk && Attr(player, AttributeId.Dunk) < tuning.minDunkAttribute) shotType = ShotType.Layup;
 
@@ -176,7 +218,8 @@ namespace Basket.Gameplay
                 ? Attributes.Normalized(player.Attributes.Get(tuning.ShotAttribute(shotType, distance, threePointRadius)))
                 : config.defaultShooterRating;
             var input = new ShotAccuracyInput(shotType, distance, timingError, contest, takeoffSpeedRatio[index], rating);
-            float errorRadius = ShotAccuracyModel.ErrorRadius(input, config);
+            float green = ShotAccuracyModel.GreenHalfWidth(shotType, distance, contest, takeoffSpeedRatio[index], rating, config);
+            float errorRadius = ShotAccuracyModel.ErrorRadius(input, green, config);
             errorRadius *= Mathf.Lerp(1f, tuning.tiredErrorAtEmpty, tuning.Tiredness(player.Stamina));
             ShotEffect effect = player.Abilities != null ? player.Abilities.TakeShotEffect(shotType) : ShotEffect.None;
             errorRadius *= effect.errorMultiplier;
@@ -194,7 +237,10 @@ namespace Basket.Gameplay
             phase[index] = Phase.None;
             ball.ReleaseAt(BallState.Shooting, origin, velocity, shotType);
             ball.BeginShotTrace(rimCenter, target);
-            OnShotTaken?.Invoke(new ShotReport(index, shotType, distance, timingError, contest, errorRadius));
+            lastRelease[index] = time;
+            lastTiming[index] = timingError;
+            lastGreen[index] = green;
+            OnShotTaken?.Invoke(new ShotReport(index, shotType, distance, timingError, contest, errorRadius, green));
         }
 
         private void FinishDunk(int index, PlayerEntity player, MatchSnapshot snapshot, float time)
@@ -244,6 +290,22 @@ namespace Basket.Gameplay
         {
             float dx = a.x - b.x, dz = a.z - b.z;
             return Mathf.Sqrt(dx * dx + dz * dz);
+        }
+    }
+
+    // Shot meter state: the meter fills from takeoff (0 s) to the apex (ApexTime); the green
+    // window is +-GreenHalfWidth around the apex.
+    public readonly struct ShotMeterReading
+    {
+        public readonly float Elapsed;
+        public readonly float ApexTime;
+        public readonly float GreenHalfWidth;
+
+        public ShotMeterReading(float elapsed, float apexTime, float greenHalfWidth)
+        {
+            Elapsed = elapsed;
+            ApexTime = apexTime;
+            GreenHalfWidth = greenHalfWidth;
         }
     }
 }

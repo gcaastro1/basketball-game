@@ -6,7 +6,7 @@ namespace UnityEngine.InputSystem.Controls {
 namespace UnityEngine.InputSystem {
   using UnityEngine.InputSystem.Controls;
   public class InputDevice {}
-  public class Keyboard : InputDevice { public static Keyboard current; public KeyControl wKey,aKey,sKey,dKey,eKey,qKey,rKey,fKey,spaceKey,leftShiftKey,tabKey,enterKey,escapeKey,f1Key; }
+  public class Keyboard : InputDevice { public static Keyboard current; public KeyControl wKey,aKey,sKey,dKey,eKey,qKey,rKey,fKey,zKey,xKey,cKey,spaceKey,leftShiftKey,tabKey,enterKey,escapeKey,f1Key; }
   public class Gamepad : InputDevice { public static Gamepad current; public StickControl leftStick,rightStick; public ButtonControl leftStickButton,buttonWest,buttonSouth,buttonNorth,buttonEast,leftShoulder,rightShoulder,startButton,selectButton; }
   public static class InputSystem { public static T AddDevice<T>() where T: InputDevice, new() => new T(); public static void Update(){} }
   public class InputTestFixture { public virtual void Setup(){} public virtual void TearDown(){} public void Press(ButtonControl c, double time = -1, double timeOffset = 0, bool queueEventOnly = false){} public void Release(ButtonControl c, double time = -1, double timeOffset = 0, bool queueEventOnly = false){} public void PressAndRelease(ButtonControl c, double time = -1, double timeOffset = 0, bool queueEventOnly = false){} }

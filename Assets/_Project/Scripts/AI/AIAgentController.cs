@@ -15,6 +15,7 @@ namespace Basket.AI
         private readonly System.Random rng;
 
         private float attackStartTime;
+        private bool wasClearing;
         private bool drivingThisPossession;
         private bool shotInProgress;
         private float releaseOffsetSeconds;
@@ -38,6 +39,19 @@ namespace Basket.AI
         public TeamOrder CurrentOrder => order;
 
         public AIState CurrentState => fsm.CurrentState;
+        public TacticalRole CurrentRole { get; private set; }
+
+        // The role from the ball and the team's order (see TacticalRole). Animation hook: a
+        // role change is where a "ready" stance (defense) or a "call for the ball" gesture
+        // (off-ball offense) would be triggered by the presentation layer.
+        public static TacticalRole RoleFor(AIPerception p, TeamOrder order)
+        {
+            if (p.SelfHasBall) return TacticalRole.OffenseWithBall;
+            if (p.TeammateHasBall) return TacticalRole.OffenseOffBall;
+            if (!p.OpponentHasBall) return TacticalRole.Idle;
+            bool onBall = p.FocusHasBall && (order.Kind == TeamOrderKind.Guard || order.Kind == TeamOrderKind.None);
+            return onBall ? TacticalRole.DefenseOnBall : TacticalRole.DefenseHelp;
+        }
 
         public PlayerCommand Decide(MatchSnapshot s, int self)
         {
@@ -70,6 +84,7 @@ namespace Basket.AI
             if (snapshot == null) order = TeamOrder.None;
             AIState previous = fsm.CurrentState;
             fsm.Evaluate(p);
+            CurrentRole = RoleFor(p, order);
             AIState state = fsm.CurrentState;
             if (state == AIState.Attack && previous != AIState.Attack)
             {
@@ -83,7 +98,9 @@ namespace Basket.AI
                 AIState.Attack => Attack(p),
                 AIState.Chase => Chase(p),
                 AIState.Guard => Guard(p),
-                AIState.ContestShot => Defend(p, p.OpponentPosition, config.contestStandoff),
+                // On the ball: between the handler and the rim at the marking distance -- never on
+                // the ball itself (that is what made everyone swarm it).
+                AIState.ContestShot => Defend(p, GuardSpot(p.OpponentPosition, p.DefendHoop, config.contestStandoff), config.arrivalDistance),
                 AIState.Idle => FollowOrder(p),
                 _ => PlayerCommand.None
             };
@@ -102,12 +119,23 @@ namespace Basket.AI
                 return new PlayerCommand(Vector2.zero, shootHeld: !release);
             }
 
+            // Done clearing: the team sets up from here (see settleAfterClearSeconds).
+            if (wasClearing && !p.MustClear)
+                attackStartTime = p.Time + config.settleAfterClearSeconds - config.minHoldSecondsBeforeShot;
+            wasClearing = p.MustClear;
             if (p.MustClear)
             {
                 // 3x3: take the ball beyond the arc before looking to score.
                 Vector3 outward = p.SelfPosition - p.AttackHoop;
                 outward.y = 0f;
                 if (outward.sqrMagnitude < 0.0001f) outward = Vector3.back;
+                // Clear toward the top of the arc, not straight out of a corner (past the
+                // corner line the arc lies beyond the sideline).
+                if (snapshot != null)
+                {
+                    Vector3 axis = TeamMath.Flat(snapshot.CourtCenter - p.AttackHoop);
+                    if (axis.sqrMagnitude > 0.0001f) outward = outward.normalized + axis.normalized * config.clearTowardTop;
+                }
                 Vector3 clearSpot = new Vector3(p.AttackHoop.x, 0f, p.AttackHoop.z) + outward.normalized * (p.ThreePointRadius + config.clearMargin);
                 // Steer around players in the way: the under-basket restart puts the inbounder's
                 // defender at the arc right on this line, and running straight into him stalled
@@ -195,10 +223,17 @@ namespace Basket.AI
                     return Defend(p, order.Target, 0.15f);
                 case TeamOrderKind.Crash:
                     return new PlayerCommand(Steer(p, order.Target, config.arrivalDistance, -1), sprint: true);
+                case TeamOrderKind.Position:
+                case TeamOrderKind.Zone:
+                    // Off-ball spot (deny / help side / zone): sprint back when far from it.
+                    return Defend(p, order.Target, config.arrivalDistance, sprint: FlatDistance(p.SelfPosition, order.Target) > config.sprintDistance);
                 default:
                     // Get back on defense: sprint when far from where we need to be.
                     Vector3 spot = GuardSpot(p.OpponentPosition, p.DefendHoop, config.guardDistance);
-                    return Defend(p, spot, config.arrivalDistance, sprint: FlatDistance(p.SelfPosition, spot) > config.sprintDistance);
+                    // Close out on the ball at full speed: jogging out to a handler who had just
+                    // cleared the ball left every 3x3 jumper uncontested (AI-vs-AI log: contest 0.00).
+                    float sprintBeyond = p.FocusHasBall ? config.closeoutSprintDistance : config.sprintDistance;
+                    return Defend(p, spot, config.arrivalDistance, sprint: FlatDistance(p.SelfPosition, spot) > sprintBeyond);
             }
         }
 

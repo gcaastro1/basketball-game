@@ -100,6 +100,16 @@ namespace Basket.Presentation
                     c.KneeBendL = c.KneeBendR = 0.4f;
                     c.LegSwingL = c.LegSwingR = 0.15f;
                     break;
+                case AnimPose.PickUp:
+                    // Bent down with both hands at the ball on the floor (t = 0), straightening
+                    // up into the hold as the ball comes up with the hands (t = 1).
+                    float up = t * t * (3f - 2f * t);
+                    SetArms(ref c, raise: Lerp(0.05f, 0.35f, up), elbow: Lerp(0.15f, 0.65f, up), swing: Lerp(0.35f, 0.6f, up));
+                    c.Crouch = Lerp(1f, 0.1f, up);
+                    c.SpineLean = Lerp(1f, 0.1f, up);
+                    c.KneeBendL = c.KneeBendR = Lerp(0.9f, 0.1f, up);
+                    c.LegSwingL = c.LegSwingR = Lerp(0.35f, 0f, up);
+                    break;
                 case AnimPose.Celebrate:
                     c.ArmRaiseR = 1f;
                     c.ElbowBendR = 0.4f + 0.2f * Mathf.Abs(Mathf.Sin(p.StridePhase * 2f));

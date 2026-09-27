@@ -53,7 +53,7 @@ namespace Basket.UI
             Line(ref y, $"Ball: {ball.CurrentState}");
             if (ais != null)
             {
-                for (int i = 0; i < ais.Count; i++) Line(ref y, $"AI {i}: {ais[i].CurrentState}");
+                for (int i = 0; i < ais.Count; i++) Line(ref y, $"AI {i}: {ais[i].CurrentRole} ({ais[i].CurrentState})");
             }
             Line(ref y, "WASD move | Shift sprint | Space: shoot (hold, release at top) / jump | E: pass / steal | Ctrl (hold): defensive guard | Q: ability");
             if (stats != null && showStats)

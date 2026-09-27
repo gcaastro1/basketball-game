@@ -20,6 +20,8 @@ namespace Basket.Gameplay
         public int pointsBeyondArc = 3;
         public int freeThrowPoints = 1;
         public float threePointRadius = 6.75f;
+        // Straight corner lines this far to each side of the rim (NBA: 6.71 m); 0 = arc only.
+        public float threePointCornerDistance = 0f;
         // 0 = no score limit (knockout win).
         public int winningScore = 21;
 

@@ -2,7 +2,8 @@ using UnityEngine;
 
 namespace Basket.Gameplay
 {
-    // Geometry of the (placeholder) half court. Real-world measurements (FIBA) in meters.
+    // Geometry of the court. Real-world measurements in meters; the data assets use the NBA
+    // court drawn on the stadium floor (docs/decisoes.md, D-026). Code defaults: FIBA half court.
     // When an authored arena replaces PlaceholderArenaBuilder, only the positions read by
     // gameplay (rim, check-ball spot) need to stay consistent with this asset.
     [CreateAssetMenu(fileName = "CourtConfig", menuName = "Basket/Court Config")]
@@ -35,6 +36,8 @@ namespace Basket.Gameplay
 
         public Vector3 RimFloorProjection => new Vector3(rimCenter.x, 0f, rimCenter.z);
         public Vector3 CourtCenter => new Vector3(0f, 0f, depth * 0.5f);
+        // Center of the whole court: this one's center, or the midcourt line (z = 0) of a half court.
+        public Vector3 FullCourtCenter => fullCourt ? CourtCenter : Vector3.zero;
 
         // Mirror of a point across the center line (the other basket's side).
         public Vector3 Mirror(Vector3 p) => new Vector3(p.x, p.y, depth - p.z);

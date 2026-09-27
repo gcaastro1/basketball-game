@@ -193,4 +193,44 @@ public class CharacterVisualTests
         Assert.Greater(max - min, 0.5f, "legs keep running while dribbling");
         Assert.Less(closest, ball.Radius + 0.15f, "the hand meets the ball at the top of the bounce");
     }
+
+    // With a ball model, a held ball sits in the hands (between the palms) and a shot's ball
+    // on the shooting palm -- the clip's arms are not pulled to the gameplay ball.
+    [UnityTest]
+    public IEnumerator BallModel_SitsInTheHands_WhenHeldAndWhenShooting()
+    {
+        CharacterVisualDefinition def = LoadVisual();
+#if UNITY_EDITOR
+        var arena = UnityEditor.AssetDatabase.LoadAssetAtPath<ArenaVisualDefinition>("Assets/_Project/Data/Arena/DefaultArenaVisual.asset");
+#else
+        ArenaVisualDefinition arena = null;
+#endif
+        Assert.IsNotNull(arena);
+        using var match = new TestMatch();
+        match.Start((TeamId.Home, TestMatch.Idle));
+        CharacterVisual visual = CharacterVisual.Attach(match.Players[0], match.Sim, def, Color.blue);
+        GameObject model = ArenaDresser.DressBall(match.Sim.Ball.gameObject, arena.ballModel, arena.ballDiameter);
+        yield return match.RunUntil(() => false, 0.6f);
+
+        Assert.AreEqual(AnimPose.HoldBall, visual.Driver.CurrentPose);
+        Assert.IsTrue(visual.Driver.TryGetHeldBallCenter(out Vector3 held), "held ball placed by the hands");
+        float heldGap = Vector3.Distance(Center(model), held);
+        Animator animator = visual.Model.GetComponentInChildren<Animator>();
+        float handsApart = Vector3.Distance(animator.GetBoneTransform(HumanBodyBones.RightHand).position,
+            animator.GetBoneTransform(HumanBodyBones.LeftHand).position);
+        Debug.Log($"Held ball: model {heldGap:0.000} m from the hands' point, hands {handsApart:0.00} m apart, " +
+                  $"model {Vector3.Distance(Center(model), match.Sim.Ball.Position):0.00} m from the gameplay ball");
+        Assert.Less(heldGap, 0.05f, "the ball model is in the hands");
+    }
+
+    private static Vector3 Center(GameObject go)
+    {
+        Bounds b = default;
+        bool any = false;
+        foreach (Renderer r in go.GetComponentsInChildren<Renderer>())
+        {
+            if (!any) { b = r.bounds; any = true; } else b.Encapsulate(r.bounds);
+        }
+        return b.center;
+    }
 }

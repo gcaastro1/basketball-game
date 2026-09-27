@@ -40,7 +40,8 @@ Controle de jogador = `Core/IAgentController` (humano, IA, teste). Regras = `Mat
 ## Ambiente
 
 - Unity **6000.6.2f1**, URP, Input System. Cenas: `Assets/_Project/Scenes/01_VerticalSlice_HalfCourt`
-  (meia quadra) e `02_FullCourt_5v5`. Menu **Basket → Build Vertical Slice Scene** recria a cena.
+  (meia quadra), `02_FullCourt_5v5` e `03_Practice_Solo` (treino sozinho: Z velocidade, X pausa, C câmera,
+  painel da animação). Menu **Basket → Build Vertical Slice Scene** recria a cena.
 - Modelos 3D vêm do **Tripo3D** (`Assets/TripoModels`); o pacote `com.tripo3d.unitybridge` aponta
   para um caminho local em `D:/` no `Packages/manifest.json` — **não remova** (só o CI o tira).
   `Editor/TripoHumanoidImporter.cs` importa novos FBX como Humanoid.
@@ -55,6 +56,10 @@ Controle de jogador = `Core/IAgentController` (humano, IA, teste). Regras = `Mat
   `Data/Characters/DefaultCharacterVisual.asset` (só visual; o corpo de gameplay tem 1,9 m). O modelo
   Tripo (1,68 m) continua em `Assets/TripoModels`. Materiais do Standard antigo são convertidos para o
   Lit do URP em runtime, um a um (`CharacterVisual`).
+- Ginásio: `Assets/MarpaStudio` (Basket Ball Stadium, materiais do Standard antigo, convertidos em
+  runtime) e bola `Assets/TierrasDeRol/Basketball` (URP). O jogo monta o ginásio a partir de
+  `Data/Arena/MarpaStadiumLayout.asset` (gerado por `tools/stadium/extract_layout.py` a partir da cena de
+  demonstração) via `Data/Arena/DefaultArenaVisual.asset`; é só visual. Quadra com medidas NBA (D-026).
 - `Assets/Starter Assets` (controles 1ª/3ª pessoa da Unity) + Cinemachine: referência, não usados pelo
   jogo (o jogo tem motor, input e câmera próprios — D-025).
 

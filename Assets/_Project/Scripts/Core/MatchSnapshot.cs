@@ -101,6 +101,15 @@ namespace Basket.Core
         }
 
         public void SetThreePointRadius(float radius) => ThreePointRadius = radius;
+        // Straight corner lines of the three-point line (0 = arc only).
+        public float ThreePointCornerDistance { get; private set; }
+        public void SetThreePointLine(float radius, float cornerDistance)
+        {
+            ThreePointRadius = radius;
+            ThreePointCornerDistance = cornerDistance;
+        }
+        public bool IsBeyondArc(Vector3 position, Vector3 rim) =>
+            ThreePointLine.IsBeyond(position, rim, ThreePointRadius, ThreePointCornerDistance);
         public void SetScoring(int pointsInside, int pointsBeyond) =>
             ArcValueRatio = pointsInside > 0 ? pointsBeyond / (float)pointsInside : 0f;
         public void SetCourtCenter(Vector3 center) => CourtCenter = center;

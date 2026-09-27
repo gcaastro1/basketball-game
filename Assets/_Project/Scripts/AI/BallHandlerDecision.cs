@@ -52,7 +52,7 @@ namespace Basket.AI
             }
 
             float own = TeamMath.ShotValue(s, self, c);
-            if (distance >= s.ThreePointRadius) own *= Pref(t.threePointPreference);
+            if (s.IsBeyondArc(s.GetPosition(self), rim)) own *= Pref(t.threePointPreference);
             int mate = BestPassTarget(s, self, c, out float mateValue);
             bool settled = heldFor >= c.minHoldSecondsBeforeShot;
             float threshold = c.shootQualityThreshold * Attributes.Centered(s.GetAttribute(self, AttributeId.ShotSelection), 0.8f, 1.15f);

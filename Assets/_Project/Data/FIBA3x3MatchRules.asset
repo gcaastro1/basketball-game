@@ -15,7 +15,8 @@ MonoBehaviour:
   pointsInsideArc: 1
   pointsBeyondArc: 2
   freeThrowPoints: 1
-  threePointRadius: 6.75
+  threePointRadius: 7.24
+  threePointCornerDistance: 6.71
   winningScore: 21
   useGameClock: 1
   periods: 1

@@ -5,6 +5,7 @@ using Basket.AI;
 using Basket.Bootstrap;
 using Basket.Characters;
 using Basket.Gameplay;
+using Basket.Presentation;
 using Basket.Meta;
 
 namespace Basket.EditorTools
@@ -16,6 +17,7 @@ namespace Basket.EditorTools
     {
         private const string ScenePath = "Assets/_Project/Scenes/01_VerticalSlice_HalfCourt.unity";
         private const string FullCourtScenePath = "Assets/_Project/Scenes/02_FullCourt_5v5.unity";
+        private const string PracticeScenePath = "Assets/_Project/Scenes/03_Practice_Solo.unity";
         private const string DataFolder = "Assets/_Project/Data";
         private const string MetaFolder = "Assets/_Project/Data/Meta";
 
@@ -28,7 +30,12 @@ namespace Basket.EditorTools
         public static void BuildFullCourt() =>
             BuildScene(FullCourtScenePath, "MatchSetup5v5", "FIBA5v5MatchRules", "Court5v5Config");
 
-        private static void BuildScene(string scenePath, string setup, string rules, string court)
+        // Practice court: the player alone on the half court, no clocks, with the animation tools.
+        [MenuItem("Basket/Build Practice Scene")]
+        public static void BuildPractice() =>
+            BuildScene(PracticeScenePath, "MatchSetupPractice", "PracticeMatchRules", "DefaultCourtConfig", practice: true);
+
+        private static void BuildScene(string scenePath, string setup, string rules, string court, bool practice = false)
         {
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
@@ -38,6 +45,9 @@ namespace Basket.EditorTools
             so.FindProperty("matchRules").objectReferenceValue = LoadOrCreateAsset<MatchRules>(rules);
             so.FindProperty("courtConfig").objectReferenceValue = LoadOrCreateAsset<CourtConfig>(court);
             so.FindProperty("ballConfig").objectReferenceValue = LoadOrCreateAsset<BallConfig>("DefaultBallConfig");
+            // Art over the gameplay arena (Etapa 6.6): stadium and ball model; optional.
+            so.FindProperty("arenaVisual").objectReferenceValue =
+                AssetDatabase.LoadAssetAtPath<ArenaVisualDefinition>(DataFolder + "/Arena/DefaultArenaVisual.asset");
             so.FindProperty("shotConfig").objectReferenceValue = LoadOrCreateAsset<ShotConfig>("DefaultShotConfig");
             so.FindProperty("defenseConfig").objectReferenceValue = LoadOrCreateAsset<DefenseConfig>("DefaultDefenseConfig");
             so.FindProperty("movementConfig").objectReferenceValue = LoadOrCreateAsset<PlayerMovementConfig>("DefaultPlayerMovementConfig");
@@ -51,6 +61,7 @@ namespace Basket.EditorTools
             so.FindProperty("characterCatalog").objectReferenceValue = LoadOrCreateAsset<CharacterCatalog>("CharacterCatalog", MetaFolder);
             so.FindProperty("obtainRules").objectReferenceValue = LoadOrCreateAsset<CharacterObtainRules>("CharacterObtainRules", MetaFolder);
             so.FindProperty("rewardRules").objectReferenceValue = LoadOrCreateAsset<MatchRewardRules>("MatchRewardRules", MetaFolder);
+            so.FindProperty("practiceTools").boolValue = practice;
             so.ApplyModifiedPropertiesWithoutUndo();
 
             EditorSceneManager.SaveScene(scene, scenePath);
@@ -62,7 +73,7 @@ namespace Basket.EditorTools
         public static void AddSceneToBuildSettings()
         {
             var scenes = new System.Collections.Generic.List<EditorBuildSettingsScene>(EditorBuildSettings.scenes);
-            string[] ours = { ScenePath, FullCourtScenePath };
+            string[] ours = { ScenePath, FullCourtScenePath, PracticeScenePath };
             for (int i = 0; i < ours.Length; i++)
             {
                 string path = ours[i];

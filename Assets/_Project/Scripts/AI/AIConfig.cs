@@ -14,6 +14,9 @@ namespace Basket.AI
         public float guardDistance = 1.5f;
         // Within this distance of the ball handler (not sprinting), the defender takes the guard stance.
         public float guardStanceDistance = 3f;
+        // Closing out: the ball's defender sprints to his spot when farther than this from it
+        // (off-ball defenders sprint only beyond sprintDistance).
+        public float closeoutSprintDistance = 2f;
         // Jump to block when the shooter is airborne within this distance...
         public float blockRange = 1.6f;
         // ...and their vertical speed has dropped below this (reaction delay).
@@ -31,6 +34,10 @@ namespace Basket.AI
         public float driveFinishDistance = 1.8f;
         // Minimum time holding the ball before a shot (no instant catch-and-fire loops).
         public float minHoldSecondsBeforeShot = 0.5f;
+        // After clearing the ball (3x3), the offense sets up this long before the handler's
+        // shoot / pass / drive decision (it counts as holding from the clear): clearing and
+        // shooting at once, before any defender could close out, left 3x3 without passes.
+        public float settleAfterClearSeconds = 1.0f;
         // Std-dev of release timing around the jump apex (0 = perfect every time).
         public float releaseTimingJitterSeconds = 0.06f;
         // A jump shot starts only once the shooter has slowed below this (m/s): they stop
@@ -44,6 +51,9 @@ namespace Basket.AI
         public float shotClockUrgencySeconds = 2.5f;
         // How far beyond the arc to take the ball when it must be cleared.
         public float clearMargin = 0.8f;
+        // Bend the clear toward the top of the arc (0 = straight out from the rim; out of a
+        // corner that would be past the sideline on an NBA line).
+        public float clearTowardTop = 0.6f;
 
         [Header("Rebound")]
         // Jump for a descending loose ball this high above the feet...
@@ -61,8 +71,14 @@ namespace Basket.AI
         public float isolationPlayWeight = 0.2f;
 
         [Header("Team: offense")]
-        // Distance from the rim of perimeter spacing spots (just beyond a 6.75 m arc).
+        // Distance from the rim of perimeter spacing spots (just beyond a 6.75 m arc); on a
+        // longer line they go spacingBeyondArc past it.
         public float spacingRadius = 7.3f;
+        public float spacingBeyondArc = 0.4f;
+        // Off-ball spots closer than this to the ball handler are left empty (no crowding him).
+        public float spacingMinFromHandler = 4f;
+        // Hand-placed spacing spots (Inspector); empty = computed on the arc above.
+        public SpacingLayout spacingLayout;
         // A cutter goes when their defender is at least this far from them.
         public float cutTriggerDistance = 2.4f;
         public float cutDurationSeconds = 1.6f;
@@ -119,6 +135,31 @@ namespace Basket.AI
         public float screenSwitchDistance = 1.0f;
         public float switchCooldownSeconds = 1.5f;
         public float boxOutDistance = 0.8f;
+
+        [Header("Team: off-ball defense (man-to-man)")]
+        // Guarding a man this close to the ball (one pass away): deny, stay tight.
+        public float denyDistance = 5.5f;
+        // How far the denying defender steps into the passing lane, toward the ball.
+        public float denyLaneStep = 0.6f;
+        // At this distance from the ball (two passes away, weak side) the defender sags fully...
+        public float helpFullDistance = 10f;
+        // ...toward the help line: this fraction of the way from the rim to the ball...
+        public float helpLineFraction = 0.35f;
+        // ...by at most this share of the way from his man to that point...
+        [Range(0f, 1f)] public float maxSag = 0.7f;
+        // ...and never farther than this from his man (he must be able to close out).
+        public float maxSagFromMan = 5f;
+
+        [Header("Team: zone defense")]
+        // Chance of playing zone on a defensive possession (0 = always man-to-man).
+        [Range(0f, 1f)] public float zoneDefenseChance = 0f;
+        // Zone spots slide toward the ball by this share of its offset from them...
+        public float zoneShift = 0.35f;
+        // ...by at most this far.
+        public float zoneShiftMax = 2.5f;
+        // An attacker this close to a defender's zone spot is his to mark (between him and the rim).
+        public float zoneMarkRadius = 2.2f;
+        public float zoneMarkDistance = 1f;
 
         [Header("Movement")]
         public float arrivalDistance = 0.2f;

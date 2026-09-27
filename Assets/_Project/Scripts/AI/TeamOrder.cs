@@ -2,7 +2,9 @@ using UnityEngine;
 
 namespace Basket.AI
 {
-    public enum TeamOrderKind { None, Handle, Space, Cut, Screen, Roll, Crash, Guard, Help, BoxOut }
+    // Guard = on the ball (or a man with no better read); Position = off-ball man-to-man spot
+    // (deny / help side); Zone = zone spot or the attacker in one's zone.
+    public enum TeamOrderKind { None, Handle, Space, Cut, Screen, Roll, Crash, Guard, Help, BoxOut, Position, Zone }
 
     public enum PlayType { Spacing, PickAndRoll, Isolation }
 

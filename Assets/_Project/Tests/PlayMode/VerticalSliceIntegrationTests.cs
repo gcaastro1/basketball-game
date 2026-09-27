@@ -13,6 +13,7 @@ public class VerticalSliceIntegrationTests
 {
     private const string SliceScene = "01_VerticalSlice_HalfCourt";
     private const string FullCourtScene = "02_FullCourt_5v5";
+    private const string PracticeScene = "03_Practice_Solo";
     private string saveDirectory;
 
     // I5 (etapa 8.5): estas cenas carregam GameBootstrap de verdade, que agora (I1) monta o
@@ -47,6 +48,15 @@ public class VerticalSliceIntegrationTests
         }
     }
 
+    // Etapa 6.6: the scenes dress the arena (DefaultArenaVisual): stadium + ball model.
+    private static void AssertStadiumAndBallModel(MatchSimulation sim)
+    {
+        GameObject stadium = GameObject.Find(ArenaDresser.StadiumName);
+        Assert.IsNotNull(stadium, "the scene builds the stadium (GameBootstrap.arenaVisual set)");
+        Assert.Greater(stadium.transform.childCount, 1000);
+        Assert.IsNotNull(sim.Ball.transform.Find(ArenaDresser.BallModelName), "the ball uses the ball model");
+    }
+
     [UnityTest]
     public IEnumerator Scene3v3_StartsWithCheckBallAndRunsTenSeconds()
     {
@@ -61,6 +71,7 @@ public class VerticalSliceIntegrationTests
         Assert.AreEqual(6, sim.Players.Count, "the scene plays 3v3");
         Assert.AreEqual(BallState.Held, sim.Ball.CurrentState, "match starts with a check ball");
         Assert.AreEqual(6, CountInScene<CharacterVisual>(), "every player has a character model");
+        AssertStadiumAndBallModel(sim);
 
         float elapsed = 0f;
         while (elapsed < 10f)
@@ -68,6 +79,39 @@ public class VerticalSliceIntegrationTests
             yield return null;
             elapsed += Time.deltaTime;
         }
+    }
+
+    // Practice court: the human player alone with the ball, no clocks, animation tools on.
+    [UnityTest]
+    public IEnumerator ScenePractice_OnePlayerWithTheBall_ToolsDescribeTheAnimation()
+    {
+        yield return SceneManager.LoadSceneAsync(PracticeScene, LoadSceneMode.Single);
+        yield return null;
+
+        var bootstrap = Object.FindAnyObjectByType<GameBootstrap>();
+        Assert.IsNotNull(bootstrap);
+        MatchSimulation sim = bootstrap.Simulation;
+        Assert.AreEqual(1, sim.Players.Count, "alone on the court");
+        Assert.AreEqual(MatchPhase.Live, sim.Match.State.Phase);
+        Assert.AreEqual(BallState.Held, sim.Ball.CurrentState, "starts with the ball");
+        AssertStadiumAndBallModel(sim);
+        var tools = Object.FindAnyObjectByType<PracticeTools>();
+        Assert.IsNotNull(tools, "practice tools on");
+
+        float elapsed = 0f;
+        while (elapsed < 3f)
+        {
+            yield return null;
+            elapsed += Time.deltaTime;
+        }
+        var driver = Object.FindAnyObjectByType<PlayerAnimationDriver>();
+        Assert.IsNotNull(driver);
+        string text = driver.DebugDescription();
+        Debug.Log("Practice animation panel:\n" + text);
+        StringAssert.Contains("pose", text);
+        if (driver.UsesClips) StringAssert.Contains("withBall set", text, "holding the ball uses the with-ball clips");
+        Assert.AreNotEqual(MatchPhase.Ended, sim.Match.State.Phase, "practice never ends");
+        Assert.AreEqual(1f, Time.timeScale);
     }
 
     [UnityTest]
@@ -83,6 +127,7 @@ public class VerticalSliceIntegrationTests
         Assert.AreEqual(10, sim.Players.Count, "the scene plays 5v5");
         Assert.AreEqual(2, CountInScene<HoopController>(), "full court: two baskets");
         Assert.AreEqual(BallState.Free, sim.Ball.CurrentState, "the game starts with a jump ball");
+        AssertStadiumAndBallModel(sim);
 
         float elapsed = 0f;
         while (elapsed < 10f)

@@ -42,6 +42,8 @@ namespace Basket.Characters
         [Header("With the ball")]
         [Tooltip("Upper body over the running legs when the ball handler runs faster than the set's moveSpeed.")]
         public LoopClip dribbleUpperBody;
+        [Tooltip("Ball bounces in the dribble window (it starts with the hand up on the ball): the arm then follows the real ball. 0 = free-running.")]
+        public float dribbleBouncesInWindow;
         [Tooltip("Standing still holding the ball (full body).")]
         public LoopClip holdBall;
 

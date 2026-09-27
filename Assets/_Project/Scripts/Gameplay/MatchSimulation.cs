@@ -47,6 +47,10 @@ namespace Basket.Gameplay
         public MatchSnapshot Snapshot => snapshot;
         public IReadOnlyList<PlayerEntity> Players => players;
         public BallController Ball => ball;
+        // The ball handler's dribble (presentation: dribble pose and arm timing). Bounces
+        // counts ball-in-hand at x.5; -1 when nobody is dribbling.
+        public bool BallDribbling => dribbleSystem.IsDribbling;
+        public float DribbleBounces => dribbleSystem.IsDribbling ? dribbleSystem.Bounces : -1f;
         public IShotReportSource ShotReports => shotSystem;
         public MatchStats Stats { get; } = new MatchStats();
         public event Action<string> OnMatchEvent;
@@ -55,6 +59,12 @@ namespace Basket.Gameplay
         public float SimTime => time;
         public bool TryGetShot(int index, out ShotType type, out float progress) =>
             shotSystem.TryGetShot(index, time, out type, out progress);
+        // Shot meter (presentation/UI): the timed shot in progress, and the last release.
+        public bool TryGetShotMeter(int index, out ShotMeterReading reading) =>
+            shotSystem.TryGetMeter(index, players[index], snapshot, time, out reading);
+        public bool TryGetLastShotRelease(int index, float within, out float timingError, out float greenHalfWidth) =>
+            shotSystem.TryGetLastRelease(index, time, within, out timingError, out greenHalfWidth);
+        public ShotTimingGrade GradeRelease(float timingError, float greenHalfWidth) => shotSystem.Grade(timingError, greenHalfWidth);
 
         public MatchSimulation(IReadOnlyList<PlayerEntity> players, IReadOnlyList<IAgentController> controllers,
             BallController ball, HoopController hoop, CourtConfig court, MatchRules rules,
@@ -93,7 +103,7 @@ namespace Basket.Gameplay
             homeAttacks = hoop;
             awayAttacks = secondHoop != null ? secondHoop : hoop;
             AssignBaskets();
-            snapshot.SetThreePointRadius(rules.threePointRadius);
+            snapshot.SetThreePointLine(rules.threePointRadius, rules.threePointCornerDistance);
             snapshot.SetScoring(rules.pointsInsideArc, rules.pointsBeyondArc);
             snapshot.SetCourtCenter(court.CourtCenter);
 
@@ -188,7 +198,11 @@ namespace Basket.Gameplay
             player.Motor.Tick(command.Move, sprint, dt, face, speedMultiplier);
 
             if (live || freeThrow) shotSystem.Tick(index, player, command, snapshot, time);
-            if (shotSystem.IsShooting(index)) return;
+            if (shotSystem.IsShooting(index))
+            {
+                if (holding) dribbleSystem.PickUp();
+                return;
+            }
 
             if (holding)
             {
@@ -325,8 +339,7 @@ namespace Basket.Gameplay
         private bool IsBeyondArc(Vector3 feet, TeamId team)
         {
             Vector3 hoop = snapshot.GetAttackingHoop(team);
-            float dx = feet.x - hoop.x, dz = feet.z - hoop.z;
-            return dx * dx + dz * dz >= rules.threePointRadius * rules.threePointRadius;
+            return ScoringMath.IsBeyondArc(feet, hoop, rules.threePointRadius, rules.threePointCornerDistance);
         }
 
         // The half of the court with the basket this team attacks (always true on a half court).
@@ -726,6 +739,7 @@ namespace Basket.Gameplay
         {
             bool timed = r.Type == ShotType.JumpShot || r.Type == ShotType.FreeThrow;
             string timing = !timed ? "auto"
+                : r.GreenWindow > 0f ? $"{shotSystem.Grade(r.TimingError, r.GreenWindow)} {r.TimingError:+0.000;-0.000}s (green +-{r.GreenWindow * 1000f:0} ms)"
                 : Mathf.Abs(r.TimingError) <= 0.05f ? "PERFECT"
                 : r.TimingError < 0f ? $"early {-r.TimingError:0.00}s" : $"late {r.TimingError:0.00}s";
             Raise($"{r.Type} by {players[r.ShooterIndex].name}: {r.Distance:0.0} m, {timing}, contest {r.Contest:0.00}, error {r.ErrorRadius:0.00} m");

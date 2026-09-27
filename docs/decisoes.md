@@ -31,6 +31,9 @@ de troca.
 | D-023 | Câmera de transmissão: atrás e acima do jogador seguido, sempre virada para a cesta atacada pelo time com a bola; vira suavemente (só no ângulo horizontal) quando o ataque troca de lado | Aceita (valores em `DefaultCameraConfig`: **provisórios**) |
 | D-024 | Guarda defensiva por botão (Ctrl / LT, segurado, sem a bola): mais devagar (×0,75), sem sprint, de frente para a bola; IA entra em guarda ao marcar a bola a ≤ 3 m. Arremessador vira para a cesta. Velocidade 4,5 m/s (sprint ×1,45 = 6,5) | Aceita (valores: **provisórios**) |
 | D-025 | Personagem padrão Banana Man (1,8 m, provisório); materiais convertidos para URP um a um. Starter Assets (controles 1ª/3ª pessoa) e Cinemachine ficam como referência: o jogo mantém motor/input/câmera próprios | Aceita |
+| D-026 | Quadra NBA (a desenhada no piso do ginásio MarpaStudio): 28,65 × 15,24 m, aro a 1,6 m do fundo, linha de 3 a 7,24 m com cantos retos a 6,71 m. Ginásio e bola são só visuais (`ArenaDresser`), por cima dos colisores do placeholder | Aceita (escolha do usuário; valores em dados: **provisórios**) |
+| D-027 | IA posicional: defesa individual com ajuda (nega a um passe da bola, recua para a linha de ajuda no lado fraco, presa ao seu homem) e zona (2-3 / 2-2 / 1-2 deslizando com a bola, um só defensor na bola), escolhida por posse (`zoneDefenseChance`); ataque espaçado longe da bola, na linha de 3 da quadra; a IA lê a linha de 3 com os cantos | Aceita (valores em `DefaultAIConfig`: **provisórios**) |
+| D-028 | Medidor de arremesso (estilo NBA 2K): janela verde em volta do topo do pulo; soltar no verde = arremesso perfeito (sem erro de mira); o verde cresce com o atributo do arremesso e encolhe com marcação, distância e movimento | Aceita (pedido do usuário; tamanhos em `ShotConfig`: **provisórios**) |
 | P-001 | Modo B (controle do time) | **Pendente** — ponto de encaixe pronto: `ITeamStrategy` (e `IAgentController`) |
 | P-003 | Gacha definitivo (raridades, taxas, pity, custos, moedas) | **Provisória**: 3 níveis genéricos, 3/17/80%, pity 80 (soft 65, +6%), 50/50 com garantia, multi de 10 com garantia de nível 2 — tudo em `Data/Meta/StandardBanner.asset` |
 | P-002 | Semântica dos Limit Breaks | **Provisória**: 4 LBs (20→40, 40→50, 50→60, "Awakening" no 60 sem novo teto), tudo em `DefaultProgressionConfig` |
@@ -455,4 +458,182 @@ frente escolhido (`06_04`) é com a mão esquerda, e a bola fica na direita.
 para frente e da parte de cima do corpo = `06_05` (mão direita); drible para a esquerda = `06_08` de trás
 para frente (espelhado, driblaria com a esquerda); o binder troca os clipes antigos também em assets já
 ligados. `playbackSpeed` é lido a cada quadro (ajuste no Inspector durante o Play).
+
+## D-026 — Quadra NBA, ginásio e bola reais (Etapa 6.6)
+
+**Contexto.** O usuário trouxe dois pacotes: um ginásio (MarpaStudio "Basket Ball Stadium") e uma
+bola (TierrasDeRol "Basketball", com materiais URP). O piso do ginásio é uma quadra NBA desenhada na
+textura (15,24 × 28,65 m, linha de 3 a 7,24 m com cantos retos a 6,71 m); o jogo usava medidas FIBA
+(15 × 28 m, linha de 6,75 m) e as linhas não bateriam. O usuário escolheu as medidas NBA.
+
+**Decisão.**
+- Dados (`Court5v5Config`, `DefaultCourtConfig` = meia quadra da mesma quadra, e os três
+  `MatchRules`): quadra 15,24 × 28,65 m, aro a 1,6 m do fundo e a 3,05 m de altura, tabela
+  1,83 × 1,07 m a 1,22 m do fundo, lance livre a 4,19 m do aro, linha de 3 a 7,24 m com cantos a
+  6,71 m (`MatchRules.threePointCornerDistance`, 0 = só o arco). Os nomes dos assets de regras
+  (FIBA...) não mudaram, para não quebrar referências. Os padrões **no código** continuam os FIBA
+  (os testes com `CreateInstance` não mudam).
+- Pontuação: `ScoringMath.IsBeyondArc` (arco + cantos retos) no placar e na posse. A IA e a escolha
+  do atributo de arremesso continuam usando só a distância (aproximação: um arremesso de canto entre
+  6,71 e 7,24 m é "de 3" no placar, mas a IA o avalia como meia distância).
+- Visual (`Basket.Presentation`): `ArenaVisualDefinition` (`Data/Arena/DefaultArenaVisual.asset`) =
+  ginásio + modelo da bola. O ginásio é um `StadiumLayout` (1307 peças: posição/rotação/escala e
+  materiais de cada uma, relativas ao centro da quadra) extraído da cena de demonstração do pacote
+  por `tools/stadium/extract_layout.py`; o jogo o monta ao iniciar, centrado em
+  `CourtConfig.FullCourtCenter` (meia quadra: linha do meio em z = 0). As peças não ganham colisores,
+  os materiais do shader Standard antigo viram Lit do URP (`LitMaterials`, compartilhado com o
+  personagem) e o piso/linhas do placeholder somem (o colisor do piso continua).
+- A bola do jogo ganha o modelo (`URPOrange`) escalado para o diâmetro físico (0,24 m); a esfera do
+  placeholder some; física igual.
+- Cestas: o `Ring.fbx` do ginásio tem aro de ~0,85 m de diâmetro a 2,89 m de altura (medido no CI),
+  fora da regra; não dá para alinhar com o aro físico (0,457 m a 3,05 m). Usamos só as peças que
+  servem, em volta do aro do jogo: a rede (`Net`) escalada para o diâmetro do aro e pendurada nele,
+  o vidro da tabela (`RingGlass`, transparente no URP) com as linhas (borda e quadrado de
+  0,61 × 0,457 m), um suporte do aro, e o poste acolchoado (`FoamFinal` + `FoamPoleFinal`) atrás da
+  tabela com um braço até ela. O aro visível continua o do placeholder (laranja).
+
+## D-027 — IA posicional (Etapa 4.5)
+
+**Contexto.** "A IA parece um monte de formiga indo atrás de um pedaço de açúcar." Na defesa, todo
+defensor sem a bola ficava a 1,5 m do seu homem, entre ele e a cesta, onde quer que estivesse a bola:
+ninguém fechava o garrafão, e os arremessos saíam sempre contestados (log do 3x3 que falhou: 14
+arremessos em 120 s, quase todos com o relógio de posse a ~2 s, contestação 0,6–0,8, muitos tocos).
+No ataque, os pontos de espaçamento ignoravam onde estava a bola (companheiros colados no armador).
+
+**Decisão.**
+- Defesa individual "bola – você – homem" (`DefenseFormation.OffBallSpot`): a um passe da bola (até
+  `denyDistance`), entre o homem e a cesta, um passo na linha do passe; mais longe, recua para a linha de
+  ajuda (um ponto entre a cesta e a bola), no máximo `maxSag` do caminho e a `maxSagFromMan` do homem.
+  Ordem nova `Position`; o defensor da bola continua `Guard`; a ajuda no drible continua.
+- Zona (`DefenseScheme.Zone`, ordem `Zone`): formação por número de defensores (5: 2-3, 4: 2-2, 3: 1-2,
+  2: 1-1) em volta da cesta, deslizando `zoneShift` em direção à bola; cada defensor fica com um ponto na
+  posse; quem está mais perto da bola a marca, os outros marcam quem entra na sua área ou guardam o ponto.
+  Escolhida pela estratégia (`ITeamStrategy.ChooseDefense`) a cada posse do adversário, com
+  `zoneDefenseChance` (código: 0 = sempre individual; dados: 0,3, provisório). No rebote, a zona bloqueia
+  o mais próximo.
+- Ataque: pontos a `spacingBeyondArc` além da linha de 3 da quadra (7,24 m na NBA), os cantos dentro
+  da quadra (no máximo `canto + spacingBeyondArc` para o lado), e só pontos a pelo menos
+  `spacingMinFromHandler` de quem tem a bola. No 3x3, limpar a bola puxa para o topo do arco
+  (`clearTowardTop`), não para fora do canto.
+- A linha de 3 (arco + cantos) virou `Core.ThreePointLine`, usada pelo placar (`ScoringMath`) e pela IA
+  (`MatchSnapshot.IsBeyondArc`): o arremesso do canto vale 3 para a IA também.
+
+## D-022 (adendo 5) — Bola nas mãos, drible contínuo e no ritmo da bola
+
+**Contexto (teste na quadra de treino).** "Segurando, a bola atravessa a mão e o personagem fica num
+loop abaixando e subindo a cabeça"; "a bola quica numa velocidade real, mas o personagem está muito
+rápido"; "quando está batendo a bola e para, ele não pode segurar de novo a bola"; "no arremesso a bola
+deve estar na palma da mão, não na ponta dos dedos". Causas: a pose de segurar tocava o começo do lance
+livre (os quiques de preparação); o IK puxava as mãos para a bola do jogo em todas as poses com bola,
+inclusive no arremesso (o clipe quer as mãos acima da cabeça); o braço do drible corria no ritmo do
+próprio clipe; e parar de andar virava "segurar a bola".
+
+**Decisão.**
+- Regra (`DribbleSystem`): depois do primeiro quique, o jogador continua quicando parado até arremessar
+  (`PickUp` no início do arremesso) ou a bola sair dele. Segurar = só antes do primeiro quique.
+- Drible: a camada de cima do corpo dribla sempre que há drible (parado, andando ou correndo) e segue a
+  bola do jogo: a janela do clipe 06_05 passou a [0,88 s, 2,63 s], exatamente 2 quiques começando com a
+  mão em cima da bola (picos de flexão do cotovelo direito em 0,90 / 1,73 / 2,63 s), e o tempo do clipe
+  vem da contagem de quiques do jogo (`dribbleBouncesInWindow` = 2).
+- Segurar: um quadro fixo do lance livre (3,8 s, pronto para arremessar), sem o balanço da cabeça.
+- Bola nas mãos: com o modelo de bola (`BallVisualFollower`), segurando, a bola visual vai para entre as
+  palmas e, no arremesso, para a palma da mão direita (virada para cima e para a cesta); os braços ficam
+  como no clipe. Ao sair da mão, volta suavemente para a bola do jogo. A bola física não muda. Sem modelo
+  de bola, o IK antigo continua.
+
+## D-028 — Medidor de arremesso (janela verde)
+
+**Contexto.** Pedido do usuário: "uma barra de força: quanto mais perto do verde, maior a chance de
+acertar; no verde é um arremesso perfeito, 100%. O tamanho do verde depende de quão marcado está o
+jogador e dos atributos relevantes para aquele arremesso (bandeja, 3 pontos, meia distância)."
+
+**Decisão.**
+- Arremessos cronometrados (arremesso e lance livre): a barra enche do salto até o topo do pulo; a janela
+  verde é ±`GreenHalfWidth` em volta do topo. Soltar dentro dela = erro de mira 0 (a bola vai no centro
+  do aro; no aro físico, até ~0,09 m do centro sempre entra). Fora dela, a penalidade de tempo conta a
+  partir da borda do verde (antes: de uma janela fixa de ±0,05 s). Um toco ainda pode parar a bola.
+- Tamanho (`ShotAccuracyModel.GreenHalfWidth`, dados em `ShotConfig`): interpola de
+  `greenHalfWidthAtRatingZero` (4 ms) a `greenHalfWidthAtRatingOne` (18 ms) pelo atributo do arremesso
+  (3PT além da linha, meia distância, arremesso curto, lance livre); vezes (1 − 0,7 × marcação), (1 − 0,4 ×
+  velocidade), (1 − 6 %/m além de 4,5 m), nunca abaixo de 25 %. Bandeja e enterrada soltam sozinhas: sem
+  medidor (pode vir depois).
+- Tela: `ShotMeterView` ao lado do jogador humano. A barra sobe do salto até o topo no ápice do pulo, onde
+  fica o verde; segurando além do ápice ela volta a descer (tarde). Depois de soltar, marca onde soltou e o
+  resultado em 7 níveis (`ShotAccuracyModel.Grade`): muito cedo / cedo / pouco cedo / perfeito / pouco
+  tarde / tarde / muito tarde — "pouco" até `slightTimingMargin` (0,03 s) além do verde, "muito" além de
+  `timingMargin` (0,08 s). O evento do arremesso mostra o nível e o tamanho do verde.
+- `useGreenWindow` = falso volta ao modelo antigo. A IA usa o mesmo verde (sua soltura tem uma variação
+  que diminui com o QI ofensivo); isso aumenta um pouco o acerto dela nos arremessos livres.
+
+## D-022 (adendo 6) — Parado sem bola e segurando a bola, escolhidos por cinemática
+
+**Contexto.** "Após o arremesso o personagem fica com os braços pra cima." O parado sem bola era
+`basketball_signals_32_07` [18 s, 20 s]: calculando a posição das mãos pela cadeia de ossos (script de
+cinemática direta sobre os FBX), as duas mãos ficam acima dos ombros ali — um sinal de árbitro. E o
+quadro de "segurar" (lance livre, 3,8 s) era o jogador já subindo para o arremesso.
+
+**Decisão.** Varrer todos os clipes por quadros parados (quadril e mãos quase sem velocidade) com as
+mãos mais baixas: parado sem bola = `basketball_signals_27_06` [3,45 s, 4,45 s] (braços soltos, mãos na
+altura do quadril; o binder troca o 32_07 onde ainda estiver ligado). Segurar = lance livre em 0,2 s (em
+pé, mãos a 0,23 m uma da outra — a largura da bola — na altura da cintura).
+
+## D-027 (adendo) — Papéis táticos, marcação da bola e espaçamento editável
+
+**Contexto.** O usuário pediu uma IA em duas camadas (técnico do time + máquina de estados por jogador,
+estados Idle / OffenseWithBall / OffenseOffBall / DefenseOnBall / DefenseHelp) com NavMeshAgent e pontos
+de espaçamento como Transforms. Escolha do usuário: adaptar à arquitetura existente (o `TeamBrain` já é o
+técnico e o `AIAgentController` o jogador; NavMeshAgent passaria por cima do `PlayerMotor`, do
+`MatchManager` e dos testes de simulação).
+
+**Decisão.**
+- `Core.TacticalRole` com os 5 papéis pedidos; `IAIController.CurrentRole`, derivado da bola e da ordem
+  do time (`AIAgentController.RoleFor`); o painel mostra "AI n: Papel (estado)".
+- Defensor da bola: sempre no ponto entre o atacante e a cesta, a `contestStandoff` (1,1 m) dele — antes,
+  ao chegar perto, ele ia direto na bola.
+- Pontos de espaçamento editáveis no Inspector: `SpacingLayout` (lado, profundidade em metros a partir do
+  aro, em ordem de prioridade; um conjunto para 3 e outro para 5), ligado em `AIConfig.spacingLayout`
+  (`Data/DefaultSpacingLayout.asset`: asas e topo além da linha de 3, cantos a 7 m, "dunker spots" no 5x5).
+  Sem layout, os pontos saem do arco como antes. Dados no lugar de Transforms de cena: a cena só tem o
+  bootstrap (D-003), e os mesmos pontos servem às duas cestas.
+
+## D-024 (adendo) — Bandeja em infiltração
+
+**Contexto.** "Se o jogador arremessa correndo em direção à cesta, perto dela, quero que ative uma
+animação de bandeja." Antes, só a distância decidia: bandeja até 2,6 m, arremesso além disso.
+
+**Decisão.** `ShotAccuracyModel.Classify(..., approachSpeed)`: arremessar indo em direção ao aro a pelo
+menos `drivingLayupMinApproachSpeed` (2,5 m/s) de até `drivingLayupRange` (4,2 m) é bandeja (a
+infiltração leva o jogador até o aro; animação `Lay_Up_124_06`, soltura automática no ápice, sem
+medidor). Parado, de lado ou se afastando continua arremesso; a enterrada continua tendo prioridade.
+Valores em `ShotConfig` (provisórios).
+
+## D-022 (adendo 7) — Pegar a bola do chão e corpo sem girar no ar
+
+**Contexto.** "Quando a bola está no chão, ela só teleporta para a mão" (nenhum clipe da pasta tem o
+jogador abaixando: calculado por cinemática em todos os 69, as mãos nunca descem abaixo do joelho); "após
+o arremesso o personagem já está virando de lado se aperto a tecla no ar — quero movimentos naturais".
+
+**Decisão.**
+- Pose procedural `PickUp` (sem clipe; troca por um clipe "Picking Up" do Mixamo quando houver): ao pegar
+  uma bola solta a até 0,7 m do chão, com os pés no chão, o personagem começa agachado, tronco inclinado,
+  mãos embaixo, e se levanta em 0,4 s até a pose de segurar.
+- A bola visual (`BallVisualFollower`) não salta mais para a mão: ao ser pega (do chão, num passe ou
+  rebote), sai de onde estava e viaja até as mãos.
+- Motor (`PlayerMovementConfig.airTurnMultiplier` = 0): no ar o corpo mantém a direção; o comando só
+  desvia um pouco a trajetória (controle aéreo), e a virada acontece ao tocar o chão. Virar para a cesta
+  durante o arremesso continua.
+
+## D-022 (adendo 8) — Ligação de clipes: uma só fonte, com os trechos medidos
+
+**Contexto.** Uma sessão local ligou outros clipes no `DefaultCharacterVisual` (Idle/Walking/Running e
+Offensive Idle do Mixamo/UAL, `Dribble.fbx`, drible 06_02/06_04 e 06_08_Mirror) com janelas padrão (clipe
+inteiro nos laços, 0–0,5 nas ações) e um script próprio de ligação. Isso desfazia as medições (janelas de
+soltura dos arremessos, laços sem o quadro de calibração, drible de 2 quiques sincronizado com a bola) e
+voltava a usar dribles com a mão esquerda (06_04, 06_08 espelhado), fora do pedido de usar só as animações
+de basquete.
+
+**Decisão.** Revisão do PR: o asset volta às ligações medidas; a ligação de clipes tem uma só fonte, o
+`CharacterClipBinder` (menu **Basket → Bind Character Animations**). O menu **Basket → Debug → List
+Animation Clips** fica (lista os clipes dos FBX). Trocar para clipes do Mixamo, se o usuário quiser, passa
+pelo binder com as janelas medidas.
 

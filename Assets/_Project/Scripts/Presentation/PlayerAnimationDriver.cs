@@ -18,6 +18,8 @@ namespace Basket.Presentation
         private const float TwoPi = Mathf.PI * 2f;
         private const float ToeHeight = 0.03f;
         private const float OverlayFadeSeconds = 0.15f;
+        // A loose ball caught at most this high above the feet is picked up off the floor.
+        private const float PickUpMaxBallHeight = 0.7f;
 
         private PlayerEntity player;
         private MatchSimulation sim;
@@ -28,7 +30,9 @@ namespace Basket.Presentation
         private Transform leftSole, rightSole;
         private float soleHeight;
         private float stridePhase, dribblePhase;
-        private float sincePass = 99f, sinceScored = 99f;
+        private float sincePass = 99f, sinceScored = 99f, sincePickUp = 99f;
+        private bool wasHolding;
+        private float looseBallHeight = 99f;
         private float overlayWeight;
         private float lastYaw;
         private bool hasYaw;
@@ -37,6 +41,16 @@ namespace Basket.Presentation
         public bool UsesClips => clipBackend != null;
         // Procedural only (no clips); with clips it still covers the poses they lack.
         public bool UsesProcedural => procedural != null && clipBackend == null;
+        // Practice court panel: pose, body speed/turn and what the animation backend plays.
+        public string DebugDescription()
+        {
+            if (player == null) return "";
+            Vector3 v = player.Motor != null ? player.Motor.HorizontalVelocity : Vector3.zero;
+            string head = $"pose {CurrentPose}  speed {new Vector2(v.x, v.z).magnitude:0.00} m/s  overlay {overlayWeight:0.00}\n";
+            if (clipBackend != null) return head + clipBackend.Describe();
+            return head + (procedural != null ? "procedural animation (no clips)" : "no humanoid rig");
+        }
+
         public Vector3 RightHandPosition => rightHand != null ? rightHand.HandPosition : transform.position;
         public Vector3 LeftHandPosition => leftHand != null ? leftHand.HandPosition : transform.position;
 
@@ -70,6 +84,8 @@ namespace Basket.Presentation
             }
         }
 
+        private bool motor0Grounded() => player.Motor == null || player.Motor.IsGrounded;
+
         private void OnPassThrown(int passer)
         {
             if (player != null && passer == player.Index) sincePass = 0f;
@@ -86,6 +102,13 @@ namespace Basket.Presentation
             float dt = Time.deltaTime;
             sincePass += dt;
             sinceScored += dt;
+            sincePickUp += dt;
+            // A loose ball caught low (off the floor, not in the air): the pick-up pose.
+            bool holdingNow = sim.Ball.CurrentHolder == player.transform;
+            if (holdingNow && !wasHolding && looseBallHeight - player.FeetPosition.y < PickUpMaxBallHeight && motor0Grounded())
+                sincePickUp = 0f;
+            wasHolding = holdingNow;
+            looseBallHeight = sim.Ball.CurrentState == BallState.Free ? sim.Ball.Position.y : 99f;
 
             bool shooting = sim.TryGetShot(player.Index, out ShotType shotType, out float shotProgress);
             PlayerMotor motor = player.Motor;
@@ -97,6 +120,8 @@ namespace Basket.Presentation
                 Grounded = motor.IsGrounded,
                 VerticalVelocity = motor.Velocity.y,
                 HasBall = sim.Ball.CurrentHolder == player.transform,
+                Dribbling = sim.Ball.CurrentHolder == player.transform && sim.BallDribbling,
+                PickingUp = sincePickUp < AnimationStateMapper.PickUpSeconds,
                 Shooting = shooting,
                 ShotType = shotType,
                 SincePass = sincePass,
@@ -111,6 +136,7 @@ namespace Basket.Presentation
             dribblePhase = (dribblePhase + dt * DribbleHz * TwoPi) % TwoPi;
             float actionT = shooting ? shotProgress
                 : output.Pose == AnimPose.Pass ? sincePass / AnimationStateMapper.PassPoseSeconds
+                : output.Pose == AnimPose.PickUp ? sincePickUp / AnimationStateMapper.PickUpSeconds
                 : 0f;
 
             float overlay = 1f;
@@ -129,10 +155,12 @@ namespace Basket.Presentation
                     Right = Vector3.Dot(velocity, body.right),
                     YawRate = yawRate,
                 };
-                clipBackend.Update(output.Pose, move, dt, shooting ? shotProgress : -1f);
+                clipBackend.Update(output.Pose, move, dt, shooting ? shotProgress : -1f, input.Dribbling ? sim.DribbleBounces : -1f);
                 // Procedural only where the clips have nothing: fade it in and out.
                 bool covered = output.Pose == AnimPose.Locomotion || clipBackend.HasClipFor(output.Pose);
                 overlayWeight = Mathf.MoveTowards(overlayWeight, covered ? 0f : 1f, dt / OverlayFadeSeconds);
+                // The pick-up is short and starts bent down: no fade in, or it never bends.
+                if (output.Pose == AnimPose.PickUp && sincePickUp <= dt) overlayWeight = 1f;
                 overlay = overlayWeight;
             }
             if (procedural != null && overlay > 0f)
@@ -149,7 +177,71 @@ namespace Basket.Presentation
             }
 
             GroundFeet();
-            if (input.HasBall) HandsOnBall(output.Pose);
+            if (!input.HasBall) return;
+            // With a ball model (BallVisualFollower) the ball goes to the hands when it is held
+            // or gathered for a shot: the clip's arms stay as recorded. Otherwise (and always
+            // while dribbling) the hands reach for the gameplay ball.
+            bool ballFollowsHands = output.Pose != AnimPose.Dribble && sim.Ball.transform.Find(ArenaDresser.BallModelName) != null
+                                    && TryHoldPoint(output.Pose, out heldBallCenter);
+            if (ballFollowsHands) heldBallFrame = Time.frameCount;
+            else HandsOnBall(output.Pose);
+        }
+
+        private Vector3 heldBallCenter;
+        private int heldBallFrame = -1;
+
+        // Where the ball is in this character's hands this frame (for the ball model), when it
+        // follows the hands rather than the other way round.
+        public bool TryGetHeldBallCenter(out Vector3 center)
+        {
+            center = heldBallCenter;
+            // This frame's, or last frame's when asked before this frame's LateUpdate.
+            return heldBallFrame >= 0 && Time.frameCount - heldBallFrame <= 1;
+        }
+
+        // Holding: between the palms. Shooting: on the shooting (right) palm, facing up and
+        // toward the rim, so the ball sits in the palm and not on the fingertips.
+        private bool TryHoldPoint(AnimPose pose, out Vector3 center)
+        {
+            center = default;
+            if (animator == null || !animator.isHuman) return false;
+            float r = sim.Ball.Radius;
+            Vector3 right = Palm(true, out Vector3 rightNormal);
+            if (right == Vector3.zero) return false;
+            Transform body = player.transform;
+            bool shot = pose == AnimPose.JumpShot || pose == AnimPose.FreeThrow || pose == AnimPose.Layup || pose == AnimPose.Dunk;
+            if (shot)
+            {
+                Vector3 up = (Vector3.up + body.forward * 0.5f).normalized;
+                Vector3 n = rightNormal.sqrMagnitude > 0.5f ? rightNormal : up;
+                if (Vector3.Dot(n, up) < 0f) n = -n;
+                center = right + n * r;
+                return true;
+            }
+            Vector3 left = Palm(false, out _);
+            if (left == Vector3.zero) return false;
+            center = (right + left) * 0.5f;
+            // Hands closer than the ball: push it out in front of them.
+            float gap = Vector3.Distance(right, left);
+            if (gap < 2f * r) center += body.forward * Mathf.Sqrt(Mathf.Max(0f, r * r - gap * gap * 0.25f));
+            return true;
+        }
+
+        // Middle of the palm (toward the middle finger's base) and its normal when the rig has
+        // finger bones (sign unknown: the caller orients it).
+        private Vector3 Palm(bool right, out Vector3 normal)
+        {
+            normal = Vector3.zero;
+            Transform hand = animator.GetBoneTransform(right ? HumanBodyBones.RightHand : HumanBodyBones.LeftHand);
+            if (hand == null) return Vector3.zero;
+            Transform middle = animator.GetBoneTransform(right ? HumanBodyBones.RightMiddleProximal : HumanBodyBones.LeftMiddleProximal);
+            Transform index = animator.GetBoneTransform(right ? HumanBodyBones.RightIndexProximal : HumanBodyBones.LeftIndexProximal);
+            Transform little = animator.GetBoneTransform(right ? HumanBodyBones.RightLittleProximal : HumanBodyBones.LeftLittleProximal);
+            if (index != null && little != null)
+                normal = Vector3.Cross(index.position - hand.position, little.position - hand.position).normalized;
+            if (middle != null) return Vector3.Lerp(hand.position, middle.position, 0.6f);
+            Transform lower = animator.GetBoneTransform(right ? HumanBodyBones.RightLowerArm : HumanBodyBones.LeftLowerArm);
+            return lower != null ? hand.position + (hand.position - lower.position).normalized * 0.06f : hand.position;
         }
 
         // Puts the lowest foot of the posed body on the gameplay body's feet (which rise in

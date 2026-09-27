@@ -21,6 +21,10 @@ namespace Basket.Gameplay
         [Header("Shot selection by horizontal distance to the rim")]
         public float layupRange = 2.6f;
         public float dunkRange = 2.2f;
+        // Shooting while running at the rim (at least this fast toward it) from within this
+        // distance is a layup, not a jump shot: the drive carries the player in.
+        public float drivingLayupRange = 4.2f;
+        public float drivingLayupMinApproachSpeed = 2.5f;
         // Reach at the jump apex must clear the rim by this much to dunk.
         public float dunkReachClearance = 0.1f;
         // Horizontal distance from the raised hand to the rim center at the apex to finish a dunk.
@@ -33,6 +37,28 @@ namespace Basket.Gameplay
         public float shotPocketHeight = 2.1f;
         // Releasing within this many seconds of the jump apex costs nothing.
         public float perfectReleaseWindow = 0.05f;
+
+        [Header("Shot meter (green window, NBA 2K style)")]
+        // Jump shots and free throws: releasing within the green window around the jump apex
+        // is a perfect shot (no aim error); outside it the error grows with the distance from
+        // the green. The green's half-width (s) for a shooter rated 0 / 1 on the shot's
+        // attribute, open, standing, up to greenFreeDistance...
+        public bool useGreenWindow = true;
+        public float greenHalfWidthAtRatingZero = 0.004f;
+        public float greenHalfWidthAtRatingOne = 0.018f;
+        // ...shrinks by this share at full contest...
+        [Range(0f, 1f)] public float greenContestShrink = 0.7f;
+        // ...by this share when moving at full speed...
+        [Range(0f, 1f)] public float greenMoveShrink = 0.4f;
+        // ...and by this share per meter beyond greenFreeDistance...
+        public float greenFreeDistance = 4.5f;
+        public float greenShrinkPerMeter = 0.06f;
+        // ...never below this share of its size.
+        [Range(0f, 1f)] public float greenMinScale = 0.25f;
+        // Grades outside the green (s beyond its edge): "slightly" up to the first margin,
+        // plain early/late up to the second, "very" beyond.
+        public float slightTimingMargin = 0.03f;
+        public float timingMargin = 0.08f;
 
         [Header("Accuracy: aim error radius (m) = base x modifiers")]
         // Calibrated against the physical rim (ShotCalibrationTests): shots within ~0.09 m
