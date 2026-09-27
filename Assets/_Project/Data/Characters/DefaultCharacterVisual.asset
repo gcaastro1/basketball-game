@@ -20,14 +20,14 @@ MonoBehaviour:
   clips:
     free:
       idle:
-        clip: {fileID: -203655887218126122, guid: 8aaf8ece6306ab04496cd8187c88eeea, type: 3}
-        from: 0
-        to: 1
+        clip: {fileID: -1695994301879622127, guid: 7f8a490c2c0b8234c923af103e25fa09, type: 3}
+        from: 0.6840101
+        to: 0.7601522
         reverse: 0
       forward:
-        clip: {fileID: -203655887218126122, guid: 29166b2e3980ce7499b3fd0b1bda5282, type: 3}
+        clip: {fileID: 0}
         from: 0
-        to: 1
+        to: 0
         reverse: 0
       backward:
         clip: {fileID: 0}
@@ -45,7 +45,7 @@ MonoBehaviour:
         to: 0
         reverse: 0
       run:
-        clip: {fileID: -203655887218126122, guid: 899a64a826f775e42a3d60271b1eb1f4, type: 3}
+        clip: {fileID: 1276554151355037085, guid: 9c07d8e8c0ef1f545bc09d7a38909119, type: 3}
         from: 0
         to: 1
         reverse: 0
@@ -63,42 +63,42 @@ MonoBehaviour:
       runSpeed: 4
     withBall:
       idle:
-        clip: {fileID: -203655887218126122, guid: 16a184ca120f93749a09199286467f8d, type: 3}
-        from: 0
-        to: 1
+        clip: {fileID: -7719264907022405827, guid: 5ff65d368f38c23449a90d98e41e6d3f, type: 3}
+        from: 0.027624
+        to: 0.027624
         reverse: 0
       forward:
-        clip: {fileID: 5557685315722513228, guid: b10777f33df33a64a9658d4fc7d21d92, type: 3}
-        from: 0
-        to: 1
+        clip: {fileID: -4594471611963114080, guid: e46ecfac102c1b9498719f69f0c949b9, type: 3}
+        from: 0.14583331
+        to: 0.83333325
         reverse: 0
       backward:
         clip: {fileID: -7115244112544354414, guid: 343d90f55377fc24999dcd1f49082454, type: 3}
-        from: 0
-        to: 1
+        from: 0.13999999
+        to: 0.86
         reverse: 0
       left:
         clip: {fileID: -2762197070796644060, guid: 32516bb50deaf214b8ad11976b7646c2, type: 3}
-        from: 0
-        to: 1
-        reverse: 0
+        from: 0.12941176
+        to: 0.8705882
+        reverse: 1
       right:
-        clip: {fileID: -9023232736527643687, guid: 32516bb50deaf214b8ad11976b7646c2, type: 3}
-        from: 0
-        to: 1
+        clip: {fileID: -2762197070796644060, guid: 32516bb50deaf214b8ad11976b7646c2, type: 3}
+        from: 0.12941176
+        to: 0.8705882
         reverse: 0
       run:
-        clip: {fileID: 2690570975491581429, guid: 344723d4013ce2f44ae68e8b7a1a8c41, type: 3}
+        clip: {fileID: 1276554151355037085, guid: 9c07d8e8c0ef1f545bc09d7a38909119, type: 3}
         from: 0
         to: 1
         reverse: 0
       runTurnLeft:
-        clip: {fileID: -5346246187910684454, guid: 93acd229b3b36e04a959dfc3c10f1ec8, type: 3}
+        clip: {fileID: -5966854608649423899, guid: d5447f9d54799984eb4052e0ff2965b8, type: 3}
         from: 0
         to: 1
         reverse: 0
       runTurnRight:
-        clip: {fileID: 1474239695091568814, guid: 9b07ef0293b6c0943b7605565c80ccfd, type: 3}
+        clip: {fileID: -7911303198779574586, guid: a6f80bd16c9f68d4484e912a3761b4f1, type: 3}
         from: 0
         to: 1
         reverse: 0
@@ -148,31 +148,39 @@ MonoBehaviour:
       moveSpeed: 2.5
       runSpeed: 4
     dribbleUpperBody:
-      clip: {fileID: -203655887218126122, guid: 153e2541d1d70da4697076699ac5ee6d, type: 3}
-      from: 0
-      to: 1
+      clip: {fileID: -4594471611963114080, guid: e46ecfac102c1b9498719f69f0c949b9, type: 3}
+      from: 0.26458
+      to: 0.81146
       reverse: 0
     dribbleBouncesInWindow: 2
     holdBall:
-      clip: {fileID: -203655887218126122, guid: 16a184ca120f93749a09199286467f8d, type: 3}
+      clip: {fileID: 0}
       from: 0
-      to: 1
+      to: 0
       reverse: 0
     jumpShots:
     - clip: {fileID: 7100330683614207621, guid: 6b6af349b1f7dc9469c94292dc1d610f, type: 3}
       window:
-        start: 0
-        release: 0.5
+        start: 0.45634514
+        release: 0.5172589
+    - clip: {fileID: -9079710841767445568, guid: c82a4faf3973a334a9fa74c868cac483, type: 3}
+      window:
+        start: 0.47458333
+        release: 0.51708335
     jumpShotsMoving:
     - clip: {fileID: -7580858245864702808, guid: a552e5456bf968741821775598084843, type: 3}
       window:
-        start: 0
-        release: 0.5
+        start: 0.5529411
+        release: 0.6323529
+    - clip: {fileID: -5472612865768438084, guid: 2a389faae8ca27543b569b9c896693f2, type: 3}
+      window:
+        start: 0.5210084
+        release: 0.5966387
     layup:
       clip: {fileID: -3657674074738342631, guid: 2aa010f4a37be7443a1f40c89878e5ab, type: 3}
       window:
-        start: 0
-        release: 0.5
+        start: 0.49710983
+        release: 0.58901733
     dunk:
       clip: {fileID: -3657674074738342631, guid: 2aa010f4a37be7443a1f40c89878e5ab, type: 3}
       window:
@@ -181,8 +189,8 @@ MonoBehaviour:
     freeThrow:
       clip: {fileID: -7719264907022405827, guid: 5ff65d368f38c23449a90d98e41e6d3f, type: 3}
       window:
-        start: 0
-        release: 0.5
+        start: 0.66906077
+        release: 0.735359
     pass:
       clip: {fileID: 0}
       window:

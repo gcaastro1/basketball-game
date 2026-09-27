@@ -34,6 +34,7 @@ public class PlayerMotorTests
         var floor = GameObject.CreatePrimitive(PrimitiveType.Cube);
         floor.transform.localScale = new Vector3(10f, 0.2f, 10f);
         floor.transform.position = new Vector3(0f, -0.1f, 0f);
+        Physics.SyncTransforms(); // the scaled floor must be what the controller collides with
         var config = ScriptableObject.CreateInstance<PlayerMovementConfig>();
         PlayerEntity player = PlaceholderPlayerFactory.Create("Jumper", Basket.Core.TeamId.Home, config, Color.gray, Color.yellow);
         yield return null;
@@ -67,6 +68,10 @@ public class PlayerMotorTests
         var floor = GameObject.CreatePrimitive(PrimitiveType.Cube);
         floor.transform.localScale = new Vector3(40f, 0.2f, 40f); // wide: the air drift must land on it
         floor.transform.position = new Vector3(0f, -0.1f, 0f);
+        // Without this the floor collider can still be the unscaled 1 m cube when the ticks run
+        // (no physics step in between, depending on test order): the drifting jumper then came
+        // down past its edge and fell forever (CI log: landed False at x 11.3, y -31).
+        Physics.SyncTransforms();
         var config = ScriptableObject.CreateInstance<PlayerMovementConfig>();
         PlayerEntity player = PlaceholderPlayerFactory.Create("Jumper", Basket.Core.TeamId.Home, config, Color.gray, Color.yellow);
         yield return null;

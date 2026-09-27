@@ -623,3 +623,17 @@ o arremesso o personagem já está virando de lado se aperto a tecla no ar — q
   desvia um pouco a trajetória (controle aéreo), e a virada acontece ao tocar o chão. Virar para a cesta
   durante o arremesso continua.
 
+## D-022 (adendo 8) — Ligação de clipes: uma só fonte, com os trechos medidos
+
+**Contexto.** Uma sessão local ligou outros clipes no `DefaultCharacterVisual` (Idle/Walking/Running e
+Offensive Idle do Mixamo/UAL, `Dribble.fbx`, drible 06_02/06_04 e 06_08_Mirror) com janelas padrão (clipe
+inteiro nos laços, 0–0,5 nas ações) e um script próprio de ligação. Isso desfazia as medições (janelas de
+soltura dos arremessos, laços sem o quadro de calibração, drible de 2 quiques sincronizado com a bola) e
+voltava a usar dribles com a mão esquerda (06_04, 06_08 espelhado), fora do pedido de usar só as animações
+de basquete.
+
+**Decisão.** Revisão do PR: o asset volta às ligações medidas; a ligação de clipes tem uma só fonte, o
+`CharacterClipBinder` (menu **Basket → Bind Character Animations**). O menu **Basket → Debug → List
+Animation Clips** fica (lista os clipes dos FBX). Trocar para clipes do Mixamo, se o usuário quiser, passa
+pelo binder com as janelas medidas.
+
