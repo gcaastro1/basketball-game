@@ -47,6 +47,34 @@ Como gerar um clipe com esse aviso (na ordem de preferência):
 
 Os loops de locomoção **não** têm aviso: o jogo mistura (blend) entre eles continuamente.
 
+## Substituição das animações atuais
+
+A meta é o jogo ter **só animações próprias**, feitas do zero. O bloco **A** cobre todas as
+vagas de `CharacterAnimationClips`; nenhuma vaga fica de fora. Hoje o
+`DefaultCharacterVisual.asset` usa clipes do pacote Basquete (`Assets/TripoModels`) nestas
+vagas, e cada uma tem o substituto abaixo:
+
+| Vaga | Hoje | Substituto |
+|---|---|---|
+| `free` (8 vagas) | clipes do pacote Basquete | A1.1–A1.8 |
+| `withBall` (8 vagas) | clipes do pacote Basquete | A2.1–A2.8 |
+| `guard` (8 vagas) | clipes do pacote Basquete | A3.1–A3.8 |
+| `dribbleUpperBody` | clipe do pacote (janela de 2 quiques) | A4.1 |
+| `jumpShots` (2) | clipes do pacote | A5.1–A5.3 |
+| `jumpShotsMoving` (2) | clipes do pacote | A5.4–A5.6 |
+| `layup` | clipe do pacote | A5.7 |
+| `dunk` | mesmo clipe da bandeja | A5.8 (clipe próprio) |
+| `freeThrow` | clipe do pacote | A5.9 |
+| `block` | clipe do pacote | A6.2 |
+| `airborne` | mesmo clipe do bloqueio | A6.3 (clipe próprio) |
+| `holdBall` | **vazio** (pose procedural) | A4.2 |
+| `pass` | **vazio** (pose procedural) | A6.1 |
+| `celebrate` | **vazio** (pose procedural) | A6.4–A6.6 |
+| — | pegar a bola do chão: pose procedural `PickUp` | B1 |
+
+Quando o bloco A estiver completo e ligado, os clipes do pacote Basquete deixam de ser usados
+e podem sair do projeto.
+
 ---
 
 ## A1. Locomoção sem bola (`free`) — 8 loops
