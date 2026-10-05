@@ -35,6 +35,11 @@ namespace Basket.Gameplay
         [Header("Release")]
         // Ball height above the feet while rising into a shot.
         public float shotPocketHeight = 2.1f;
+        // How far in front of the body a jumper / free throw leaves the hand (above the
+        // forehead). Was the dribble hold spot (0.45 m): the ball started inside the arms of a
+        // defender closing out at ~1.1 m and half the AI jumpers were blocked. Layups and dunks
+        // keep the hold spot (the ball is carried out toward the rim).
+        public float shotPocketForward = 0.15f;
         // Releasing within this many seconds of the jump apex costs nothing.
         public float perfectReleaseWindow = 0.05f;
 

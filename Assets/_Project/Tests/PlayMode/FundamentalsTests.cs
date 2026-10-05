@@ -28,6 +28,30 @@ public class FundamentalsTests
     }
 
     [UnityTest]
+    public IEnumerator JumpShot_LeavesTheHandAboveTheHead()
+    {
+        // The ball used to leave 0.45 m in front of the body (the dribble/hold spot), inside
+        // the arms of a defender closing out at ~1.1 m: AI-vs-AI 3v3 had blocks on half
+        // the jumpers. A jumper is released above the forehead.
+        Vector3 ballAtRelease = default, feetAtRelease = default, forward = default;
+        match.Start((TeamId.Home, TestMatch.ShootAtApex()));
+        yield return match.RunUntil(() =>
+        {
+            if (match.Shots.Count == 0) return false;
+            ballAtRelease = match.Sim.Ball.Position;
+            feetAtRelease = match.Players[0].FeetPosition;
+            forward = match.Players[0].transform.forward;
+            return true;
+        }, 3f);
+
+        Assert.AreEqual(1, match.Shots.Count);
+        Vector3 offset = ballAtRelease - feetAtRelease;
+        float ahead = Vector3.Dot(new Vector3(offset.x, 0f, offset.z), new Vector3(forward.x, 0f, forward.z).normalized);
+        Assert.LessOrEqual(ahead, 0.2f, "released above the head, not out in front");
+        Assert.GreaterOrEqual(offset.y, 2.0f, "released above the head");
+    }
+
+    [UnityTest]
     public IEnumerator JumpShot_TappedShoot_IsReportedEarly()
     {
         float heldSince = -1f;
@@ -189,7 +213,10 @@ public class FundamentalsTests
     [UnityTest]
     public IEnumerator Block_DefenderJumpingInFront_DeflectsTheShot()
     {
-        match.Court.defenderGap = 0.7f;
+        // In the shooter's face: since jumpers leave the hand above the head (shotPocketForward),
+        // a defender 0.7 m away sits right at the edge of his reach (the ball passes ~0.45 m from
+        // him) and the result depended on the frame.
+        match.Court.defenderGap = 0.5f;
         match.Start(
             (TeamId.Home, TestMatch.ShootAtApex()),
             // Jumps as soon as the shooter leaves the ground.

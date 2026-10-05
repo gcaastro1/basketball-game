@@ -126,7 +126,10 @@ namespace Basket.Gameplay
                 return;
             }
 
-            ball.SetHeldLocalOffset(Vector3.up * (config.shotPocketHeight - ballConfig.holdHeightAboveFeet));
+            Vector3 pocket = Vector3.up * (config.shotPocketHeight - ballConfig.holdHeightAboveFeet);
+            if (type[index] == ShotType.JumpShot || type[index] == ShotType.FreeThrow)
+                pocket -= player.transform.forward * (ballConfig.holdForwardOffset - config.shotPocketForward);
+            ball.SetHeldLocalOffset(pocket);
 
             bool landed = player.Motor.IsGrounded && time - startTime[index] > MinAirTime;
             bool atApex = player.Motor.Velocity.y <= 0f;

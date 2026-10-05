@@ -35,6 +35,7 @@ de troca.
 | D-027 | IA posicional: defesa individual com ajuda (nega a um passe da bola, recua para a linha de ajuda no lado fraco, presa ao seu homem) e zona (2-3 / 2-2 / 1-2 deslizando com a bola, um só defensor na bola), escolhida por posse (`zoneDefenseChance`); ataque espaçado longe da bola, na linha de 3 da quadra; a IA lê a linha de 3 com os cantos | Aceita (valores em `DefaultAIConfig`: **provisórios**) |
 | D-028 | Medidor de arremesso (estilo NBA 2K): janela verde em volta do topo do pulo; soltar no verde = arremesso perfeito (sem erro de mira); o verde cresce com o atributo do arremesso e encolhe com marcação, distância e movimento | Aceita (pedido do usuário; tamanhos em `ShotConfig`: **provisórios**) |
 | D-029 | Migração para Unreal Engine 5 (C++), servidor autoritativo; projeto Unity congelado como referência numérica | Aceita (pedido do usuário; plano em `docs/migracao-unreal/`) |
+| D-030 | Tocos: a mão do defensor termina na ponta dos dedos (+ raio da bola); jump shot e lance livre saem acima da cabeça (`shotPocketForward` 0,15 m); alvo: 5–10% dos arremessos marcados viram toco | Aceita (escolha do usuário; valores **provisórios**) |
 | P-001 | Modo B (controle do time) | **Pendente** — ponto de encaixe pronto: `ITeamStrategy` (e `IAgentController`) |
 | P-003 | Gacha definitivo (raridades, taxas, pity, custos, moedas) | **Provisória**: 3 níveis genéricos, 3/17/80%, pity 80 (soft 65, +6%), 50/50 com garantia, multi de 10 com garantia de nível 2 — tudo em `Data/Meta/StandardBanner.asset` |
 | P-002 | Semântica dos Limit Breaks | **Provisória**: 4 LBs (20→40, 40→50, 50→60, "Awakening" no 60 sem novo teto), tudo em `DefaultProgressionConfig` |
@@ -675,3 +676,26 @@ menos de um quadro: o instante da soltura precisa vir do cliente, com validaçã
 
 Online, moeda e tiragens de gacha não podem viver num save local editável. Falta escolher o
 backend. Até lá o meta continua offline, como na Unity.
+
+## D-030 — Tocos: alcance da mão e ponto de soltura
+
+**Contexto.** Na referência para a migração (Fase 0), o 3v3 IA×IA tinha toco em metade dos
+arremessos (14/21 na defesa individual). Instrumentado: 25 de 31 tocos aconteciam 0,02–0,09 s após
+a soltura, com o marcador a ~1,15 m (`contestStandoff`).
+
+**Causas.** (1) Defeito: `BlockMath.IsWithinArms` usava o raio do bloqueio como esfera em volta da
+ponta dos dedos, então a bola podia passar 0,45 m acima deles e ainda ser bloqueada. (2) A bola do
+jump shot saía do ponto de segurar/driblar, 0,45 m à frente do corpo, a 2,9 m: abaixo dos dedos do
+marcador que pula no ápice (~3,2 m) e já dentro do alcance dele.
+
+**Decisão.** (1) O topo do alcance é a ponta dos dedos + raio da bola (0,12 m); o raio continua sendo
+o alcance para os lados. (2) Opção escolhida pelo usuário: jump shot e lance livre saem **acima da
+cabeça**, `ShotConfig.shotPocketForward` = 0,15 m à frente do corpo; bandeja e enterrada continuam
+levando a bola à frente. A IA não mudou (pula para tocar em todo arremesso marcado). Alvo do usuário:
+**5–10%** dos arremessos marcados viram toco.
+
+**Consequências.** 3v3 individual: de ~50% para 18–28% de tocos; zona ~24%; 5v5 baixo, mas com poucos
+arremessos (duas execuções). Ainda acima do alvo: o resto é o marcador colado (contest 0,56–0,83) pulando no ápice
+em todo arremesso. Próximos passos possíveis, a decidir com o usuário: IA mais seletiva no pulo, ou
+reduzir `DefenseConfig.blockRadius` (0,45 m). `FundamentalsTests.Block_DefenderJumpingInFront` passou
+a usar o marcador a 0,5 m (a 0,7 m a bola passa a ~0,45 m dele, no limite do alcance).

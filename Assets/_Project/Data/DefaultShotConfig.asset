@@ -23,6 +23,7 @@ MonoBehaviour:
   maxDunkLungeSpeed: 6
   dunkBallDropSpeed: 4
   shotPocketHeight: 2.1
+  shotPocketForward: 0.15
   perfectReleaseWindow: 0.05
   calibratedMakeRadius: 0.124
   calibratedLayupMakeRadius: 0.141
