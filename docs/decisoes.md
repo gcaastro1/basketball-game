@@ -35,7 +35,7 @@ de troca.
 | D-027 | IA posicional: defesa individual com ajuda (nega a um passe da bola, recua para a linha de ajuda no lado fraco, presa ao seu homem) e zona (2-3 / 2-2 / 1-2 deslizando com a bola, um só defensor na bola), escolhida por posse (`zoneDefenseChance`); ataque espaçado longe da bola, na linha de 3 da quadra; a IA lê a linha de 3 com os cantos | Aceita (valores em `DefaultAIConfig`: **provisórios**) |
 | D-028 | Medidor de arremesso (estilo NBA 2K): janela verde em volta do topo do pulo; soltar no verde = arremesso perfeito (sem erro de mira); o verde cresce com o atributo do arremesso e encolhe com marcação, distância e movimento | Aceita (pedido do usuário; tamanhos em `ShotConfig`: **provisórios**) |
 | D-029 | Migração para Unreal Engine 5 (C++), servidor autoritativo; projeto Unity congelado como referência numérica | Aceita (pedido do usuário; plano em `docs/migracao-unreal/`) |
-| D-030 | Tocos: a mão do defensor termina na ponta dos dedos (+ raio da bola); jump shot e lance livre saem acima da cabeça (`shotPocketForward` 0,15 m); alvo: 5–10% dos arremessos marcados viram toco | Aceita (escolha do usuário; valores **provisórios**) |
+| D-030 | Tocos: a mão do defensor termina na ponta dos dedos (+ raio da bola); jump shot e lance livre saem acima da cabeça (`shotPocketForward` 0,15 m); a IA sorteia uma vez por arremesso se tenta o toco (`blockAttemptChance` 0,3, ×0,5–×2 pelo atributo Block); alvo: 5–10% dos arremessos marcados viram toco | Aceita (escolha do usuário; valores **provisórios**) |
 | P-001 | Modo B (controle do time) | **Pendente** — ponto de encaixe pronto: `ITeamStrategy` (e `IAgentController`) |
 | P-003 | Gacha definitivo (raridades, taxas, pity, custos, moedas) | **Provisória**: 3 níveis genéricos, 3/17/80%, pity 80 (soft 65, +6%), 50/50 com garantia, multi de 10 com garantia de nível 2 — tudo em `Data/Meta/StandardBanner.asset` |
 | P-002 | Semântica dos Limit Breaks | **Provisória**: 4 LBs (20→40, 40→50, 50→60, "Awakening" no 60 sem novo teto), tudo em `DefaultProgressionConfig` |
@@ -694,8 +694,21 @@ cabeça**, `ShotConfig.shotPocketForward` = 0,15 m à frente do corpo; bandeja e
 levando a bola à frente. A IA não mudou (pula para tocar em todo arremesso marcado). Alvo do usuário:
 **5–10%** dos arremessos marcados viram toco.
 
-**Consequências.** 3v3 individual: de ~50% para 18–28% de tocos; zona ~24%; 5v5 baixo, mas com poucos
-arremessos (duas execuções). Ainda acima do alvo: o resto é o marcador colado (contest 0,56–0,83) pulando no ápice
-em todo arremesso. Próximos passos possíveis, a decidir com o usuário: IA mais seletiva no pulo, ou
-reduzir `DefenseConfig.blockRadius` (0,45 m). `FundamentalsTests.Block_DefenderJumpingInFront` passou
+**Adendo — IA seletiva (opção escolhida pelo usuário).** O marcador da bola sorteia **uma vez por
+arremesso**, quando o arremessador sai do chão, se vai tentar o toco: `AIConfig.blockAttemptChance`
+= 0,3 no atributo Block neutro (×0,5 com Block 0, ×2 com Block 99). Sem a tentativa, ele fica no chão
+marcando de perto (a marcação continua piorando o arremesso). Um sorteio por quadro faria a IA pular em
+quase todo arremesso. Testes: `AIAgentControllerTests.Defender_DecidesOncePerShot_WhetherToGoForTheBlock`
+e `Defender_WhoDoesNotGoForTheBlock_StaysDownAndContests`.
+
+**Consequências.** Tocos nos arremessos marcados (contest ≥ 0,3), 3v3 + 5v5 numa execução:
+| | Jump shot | Enterrada | Bandeja | Total |
+|---|---|---|---|---|
+| Sem correção | ~50% de todos os arremessos | | | |
+| Alcance + soltura acima da cabeça | — | — | — | ~23% |
+| + IA seletiva | **2/24 (8%)** | 3/11 (27%) | 2/3 | 7/38 (18%) |
+
+Jump shots no alvo. As finalizações no aro continuam acima (no basquete real a maior parte dos tocos
+é no aro, mas 27% das enterradas é alto); amostra pequena, a decidir com o usuário.
+`FundamentalsTests.Block_DefenderJumpingInFront` passou
 a usar o marcador a 0,5 m (a 0,7 m a bola passa a ~0,45 m dele, no limite do alcance).

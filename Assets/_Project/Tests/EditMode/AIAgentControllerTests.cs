@@ -90,11 +90,52 @@ public class AIAgentControllerTests
     [Test]
     public void Defender_JumpsToBlockAShooterNearTheApex()
     {
-        var ai = new AIAgentController(Config());
+        var config = Config();
+        config.blockAttemptChance = 1f;
+        var ai = new AIAgentController(config);
         var p = new AIPerception(Vector3.zero, new Vector3(0f, 0f, 1f), Vector3.zero, opponentHasBall: true, selfHasBall: false,
             attackHoop: Hoop, defendHoop: Hoop, opponentVelocity: new Vector3(0f, 1f, 0f), opponentGrounded: false);
 
         Assert.IsTrue(ai.Decide(p).Jump);
+    }
+
+    private static AIPerception ShooterInTheAir(float verticalSpeed, bool grounded = false) =>
+        new AIPerception(Vector3.zero, new Vector3(0f, 0f, 1f), Vector3.zero, opponentHasBall: true, selfHasBall: false,
+            attackHoop: Hoop, defendHoop: Hoop, opponentVelocity: new Vector3(0f, verticalSpeed, 0f), opponentGrounded: grounded);
+
+    [Test]
+    public void Defender_WhoDoesNotGoForTheBlock_StaysDownAndContests()
+    {
+        // D-030: jumping at every contested shot blocked a quarter of the AI jumpers
+        // (target 5-10%). Without a block attempt the defender stays down, still close.
+        var config = Config();
+        config.blockAttemptChance = 0f;
+        var ai = new AIAgentController(config);
+
+        var cmd = ai.Decide(ShooterInTheAir(1f));
+        Assert.IsFalse(cmd.Jump);
+    }
+
+    [Test]
+    public void Defender_DecidesOncePerShot_WhetherToGoForTheBlock()
+    {
+        // Rolled when the shooter leaves the floor, not every frame (a per-frame roll would
+        // jump at almost every shot). Same answer for the whole jump; a new roll next shot.
+        var config = Config();
+        config.blockAttemptChance = 0.5f;
+        int attempts = 0;
+        for (int shot = 0; shot < 200; shot++)
+        {
+            var ai = new AIAgentController(config, new System.Random(shot));
+            ai.Decide(ShooterInTheAir(0f, grounded: true));
+            bool first = ai.Decide(ShooterInTheAir(3f)).Jump;   // rising fast: never jumps yet
+            Assert.IsFalse(first);
+            bool atApex = ai.Decide(ShooterInTheAir(1f)).Jump;
+            for (int frame = 0; frame < 5; frame++)
+                Assert.AreEqual(atApex, ai.Decide(ShooterInTheAir(0.5f)).Jump, "same decision for the whole jump");
+            if (atApex) attempts++;
+        }
+        Assert.That(attempts, Is.InRange(70, 130), "about half the shots at chance 0.5");
     }
 
     [Test]

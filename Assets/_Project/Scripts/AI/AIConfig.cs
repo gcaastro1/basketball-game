@@ -21,6 +21,11 @@ namespace Basket.AI
         public float blockRange = 1.6f;
         // ...and their vertical speed has dropped below this (reaction delay).
         public float blockTriggerVerticalSpeed = 2.0f;
+        // Chance (neutral Block attribute) that the ball's defender goes up for the block on a
+        // contested shot, rolled once when the shooter leaves the floor; otherwise he stays down
+        // and contests. Scaled by the Block attribute (x0.5 at 0, x2 at 99). Jumping at every
+        // shot blocked ~25% of AI jumpers; the target is 5-10% of contested shots (D-030).
+        [Range(0f, 1f)] public float blockAttemptChance = 0.3f;
         public float stealRange = 1.2f;
         // Average seconds between steal attempts while pressuring the handler.
         public float stealIntervalSeconds = 4f;
