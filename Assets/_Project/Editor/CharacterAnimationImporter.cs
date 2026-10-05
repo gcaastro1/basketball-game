@@ -135,6 +135,10 @@ namespace Basket.EditorTools
         public static bool IsLoop(string name)
         {
             string n = name.ToLowerInvariant();
+            // "run_turn" (docs/animacoes-lista.md A1.7/A1.8, A2.7/A2.8, A3.7/A3.8) is a
+            // running-while-turning loop, not a one-shot turn -- check it before the
+            // general "turn" exclusion below, which would otherwise catch it too.
+            if (n.Contains("run_turn")) return true;
             if (n.StartsWith("start") || n.Contains("_start") || n.Contains("_land") || n.Contains("_enter") || n.Contains("_exit")
                 || n.Contains("shoot") || n.Contains("shot") || n.Contains("throw") || n.Contains("lay_up") || n.Contains("layup")
                 || n.Contains("turn") || n.Contains("stop") || n.Contains("fake") || n.Contains("feint") || n.Contains("spin"))
