@@ -17,6 +17,22 @@ public class BlockMathTests
     }
 
     [Test]
+    public void BallOverTheFingertips_IsNotWithinArms()
+    {
+        // The radius is how far the hands reach sideways, not a sphere on top of the
+        // fingertips: a ball 0.3 m over a defender's fingertips flies over them.
+        Assert.IsFalse(BlockMath.IsWithinArms(new Vector3(0f, 2.45f + 0.3f, 0f), Vector3.zero, 1.8f, 2.45f, 0.45f));
+        Assert.IsFalse(BlockMath.IsWithinArms(new Vector3(0.2f, 2.45f + 0.2f, 0f), Vector3.zero, 1.8f, 2.45f, 0.45f));
+    }
+
+    [Test]
+    public void BallTouchingTheFingertips_IsWithinArms()
+    {
+        // Fingertips touch the ball while its centre is up to one ball radius above them.
+        Assert.IsTrue(BlockMath.IsWithinArms(new Vector3(0.3f, 2.45f + 0.1f, 0f), Vector3.zero, 1.8f, 2.45f, 0.45f));
+    }
+
+    [Test]
     public void JumpingRaisesTheArms()
     {
         var ball = new Vector3(0f, 3.2f, 0f);

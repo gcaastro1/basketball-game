@@ -129,9 +129,15 @@ Por tipo de arremesso (3v3 individual): jump 3/18 (média 6,9 m, marcação 0,44
 enterrada 2/3; lance livre 2/4.
 
 **Pontos a investigar antes de usar como gabarito** (não levar defeito para o Unreal):
-- **Tocos demais no 3v3 individual**: 11 em 23 arremessos. No basquete real fica perto de 5–10%.
-  Pode ser a janela de bloqueio (`blockWindowSeconds` 0,35 s, `blockRadius` 0,45 m) ou a IA
-  pulando em todo arremesso.
+- **Tocos demais no 3v3 individual**: 11 em 23 arremessos nesta execução (14/21 numa segunda).
+  Investigado em 2026-10-05: 25 de 31 tocos aconteciam 0,02–0,09 s após a soltura, com o marcador
+  a ~1,15 m (`contestStandoff`). Causa 1 (defeito, **corrigido**): `BlockMath.IsWithinArms`
+  tratava o raio como esfera em volta da ponta dos dedos, então bola até 0,45 m acima dos dedos
+  era bloqueada; agora o topo é a ponta dos dedos + raio da bola. Depois da correção: 3v3
+  individual 6–11 tocos em 21 arremessos, zona 6 em 15–16 (três execuções). Causa 2 (escolha de
+  jogo, **pendente com o usuário**): a bola sai 0,45 m à frente do arremessador a 2,9 m, abaixo
+  dos dedos do marcador que pula no ápice (~3,2 m), e a IA tenta o toco em todo arremesso marcado.
+  **Os números desta seção são de antes da correção**; refazer a referência depois da decisão.
 - **3v3 zona falhou** em `AIvsAI_3v3_PlaysBasketball(1.0)`: 15 arremessos contra o mínimo de 16
   (falha conhecida, sensível à seed). O individual (0.0) passou.
 
