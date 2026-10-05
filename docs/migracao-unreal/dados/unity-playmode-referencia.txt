@@ -1,0 +1,124 @@
+AI vs AI 120s (man): HOME 2 - 3 AWAY
+HOME FG 1/12  3P 1/8  FT 0/0  PASS 9/10  REB 4+8  STL 1  BLK 1  TO 1  PF 1
+AWAY FG 2/11  3P 1/7  FT 0/1  PASS 8/8  REB 2+7  STL 1  BLK 2  TO 1  PF 0
+SHOTS type: made/att  dist  |timing|  contest  errorRadius
+  JumpShot: 2/19  6,78m  0,050s  0,37  0,263m
+  Layup: 0/1  1,37m  0,000s  0,53  0,250m
+  Dunk: 1/3  0,68m  0,000s  0,67  0,000m
+  FreeThrow: 0/1  4,20m  0,099s  0,00  0,180m
+   4,9s sc  7,1 JumpShot by Home_0: 7,2 m, Late +0,074s (green +-12 ms), contest 0,00, error 0,24 m
+   9,3s sc 10,0 JumpShot by Home_1: 4,5 m, SlightlyLate +0,039s (green +-9 ms), contest 0,56, error 0,24 m
+  11,5s sc 10,8 JumpShot by Home_1: 2,9 m, Late +0,060s (green +-13 ms), contest 0,07, error 0,20 m
+  17,0s sc  7,4 JumpShot by Away_3: 5,2 m, Late +0,085s (green +-10 ms), contest 0,42, error 0,27 m
+  22,4s sc  7,6 JumpShot by Home_2: 8,6 m, Late +0,064s (green +-5 ms), contest 0,80, error 0,35 m
+  22,4s sc  7,6 BLOCK by Away_5
+  23,9s sc 10,5 Dunk by Away_3: 0,6 m, auto, contest 0,65, error 0,00 m
+  25,5s sc 10,5 FreeThrow by Away_3: 4,2 m, VeryLate +0,099s (green +-15 ms), contest 0,00, error 0,18 m
+  29,8s sc  9,2 JumpShot by Home_0: 7,0 m, Early -0,063s (green +-9 ms), contest 0,42, error 0,28 m
+  34,8s sc  8,2 JumpShot by Away_3: 7,0 m, SlightlyEarly -0,011s (green +-9 ms), contest 0,42, error 0,24 m
+  38,9s sc  9,1 JumpShot by Home_2: 7,1 m, SlightlyEarly -0,033s (green +-9 ms), contest 0,42, error 0,26 m
+  43,3s sc  8,8 JumpShot by Away_3: 7,0 m, Late +0,044s (green +-9 ms), contest 0,42, error 0,27 m
+  47,9s sc  8,6 JumpShot by Home_0: 7,0 m, Early -0,042s (green +-9 ms), contest 0,44, error 0,27 m
+  50,1s sc 11,0 Dunk by Home_1: 0,8 m, auto, contest 0,80, error 0,00 m
+  50,1s sc 11,0 BLOCK by Away_5
+  59,0s sc  3,1 JumpShot by Away_5: 8,4 m, SlightlyEarly -0,009s (green +-7 ms), contest 0,52, error 0,27 m
+  64,7s sc  7,7 JumpShot by Home_1: 7,2 m, Late +0,050s (green +-9 ms), contest 0,43, error 0,27 m
+  72,1s sc  6,3 JumpShot by Away_4: 8,8 m, VeryLate +0,089s (green +-8 ms), contest 0,36, error 0,32 m
+  74,6s sc 10,9 Layup by Away_5: 1,4 m, auto, contest 0,53, error 0,25 m
+  79,5s sc  7,7 JumpShot by Home_0: 7,2 m, Early -0,040s (green +-9 ms), contest 0,42, error 0,27 m
+  85,7s sc  7,7 JumpShot by Home_0: 5,3 m, Early -0,074s (green +-14 ms), contest 0,00, error 0,22 m
+  92,0s sc  6,8 JumpShot by Away_4: 7,1 m, SlightlyLate +0,013s (green +-8 ms), contest 0,55, error 0,26 m
+  97,6s sc  7,6 JumpShot by Home_0: 7,0 m, Early -0,066s (green +-9 ms), contest 0,42, error 0,28 m
+ 101,9s sc  8,9 JumpShot by Away_5: 7,0 m, Early -0,078s (green +-12 ms), contest 0,00, error 0,24 m
+ 104,1s sc 11,1 Dunk by Away_4: 0,6 m, auto, contest 0,57, error 0,00 m
+ 104,1s sc 11,1 BLOCK by Home_2
+ 114,0s sc  4,5 JumpShot by Away_5: 7,4 m, SlightlyLate +0,013s (green +-8 ms), contest 0,42, error 0,25 m
+AI vs AI 120s (zone): HOME 1 - 8 AWAY
+HOME FG 1/8  3P 0/4  FT 0/0  PASS 9/11  REB 3+3  STL 1  BLK 1  TO 8  PF 1
+AWAY FG 6/11  3P 2/5  FT 0/1  PASS 17/20  REB 2+4  STL 6  BLK 3  TO 4  PF 2
+SHOTS type: made/att  dist  |timing|  contest  errorRadius
+  JumpShot: 2/11  6,69m  0,051s  0,37  0,222m
+  Layup: 0/2  2,00m  0,005s  0,71  0,244m
+  Dunk: 5/6  0,51m  0,000s  0,51  0,000m
+  FreeThrow: 0/1  4,20m  0,035s  0,00  0,153m
+   9,4s sc 11,1 JumpShot by Home_0: 7,6 m, SlightlyLate +0,036s (green +-10 ms), contest 0,23, error 0,25 m
+  13,4s sc  9,3 JumpShot by Home_1: 7,2 m, Late +0,049s (green +-5 ms), contest 0,80, error 0,32 m
+  13,4s sc  9,3 BLOCK by Away_5
+  27,7s sc  9,3 Dunk by Home_2: 0,5 m, auto, contest 0,63, error 0,00 m
+  31,3s sc  8,9 Dunk by Away_4: 0,3 m, auto, contest 0,19, error 0,00 m
+  39,9s sc  4,9 JumpShot by Home_1: 8,1 m, SlightlyLate +0,031s (green +-10 ms), contest 0,13, error 0,24 m
+  42,3s sc 11,1 Dunk by Home_2: 0,9 m, auto, contest 0,82, error 0,00 m
+  42,3s sc 11,1 BLOCK by Away_4
+  50,1s sc  4,2 JumpShot by Away_4: 5,2 m, VeryEarly -0,100s (green +-11 ms), contest 0,32, error 0,27 m
+  52,8s sc 11,1 Layup by Away_5: 2,6 m, auto, contest 0,59, error 0,21 m
+  52,8s sc 11,1 BLOCK by Home_1
+  65,4s sc 10,5 Dunk by Away_4: 0,7 m, auto, contest 0,62, error 0,00 m
+  71,2s sc  9,9 JumpShot by Away_5: 7,1 m, VeryEarly -0,094s (green +-9 ms), contest 0,42, error 0,30 m
+  76,0s sc  8,6 JumpShot by Away_4: 7,0 m, Perfect -0,001s (green +-8 ms), contest 0,55, error 0,00 m
+  81,8s sc  7,9 Layup by Home_2: 1,4 m, auto, contest 0,82, error 0,28 m
+  81,8s sc  7,9 BLOCK by Away_4
+  85,0s sc  8,9 JumpShot by Away_4: 7,1 m, Late +0,054s (green +-9 ms), contest 0,42, error 0,28 m
+  87,2s sc 11,0 Dunk by Away_3: 0,5 m, auto, contest 0,53, error 0,00 m
+  93,2s sc  7,0 JumpShot by Away_4: 7,0 m, Perfect +0,011s (green +-12 ms), contest 0,00, error 0,00 m
+  99,4s sc  8,0 Dunk by Away_3: 0,2 m, auto, contest 0,25, error 0,00 m
+ 100,9s sc  8,0 FreeThrow by Away_3: 4,2 m, SlightlyEarly -0,035s (green +-15 ms), contest 0,00, error 0,15 m
+ 105,9s sc  8,8 JumpShot by Home_1: 7,0 m, Late +0,044s (green +-9 ms), contest 0,42, error 0,27 m
+ 108,0s sc 11,0 JumpShot by Home_2: 3,2 m, Early -0,067s (green +-10 ms), contest 0,42, error 0,23 m
+ 118,8s sc  2,0 JumpShot by Away_5: 7,1 m, Late +0,069s (green +-9 ms), contest 0,42, error 0,29 m
+AI vs AI 5v5 90s: HOME 9 - 6 AWAY
+HOME FG 4/8  3P 1/4  FT 0/0  PASS 6/8  REB 3+0  STL 1  BLK 0  TO 3  PF 2
+AWAY FG 3/5  3P 0/1  FT 0/0  PASS 16/19  REB 2+1  STL 1  BLK 0  TO 4  PF 0
+SHOTS type: made/att  dist  |timing|  contest  errorRadius
+  JumpShot: 1/7  5,95m  0,038s  0,11  0,196m
+  Dunk: 6/6  0,65m  0,000s  0,46  0,000m
+JumpShot by Home_2: 7,3 m, SlightlyEarly -0,038s (green +-12 ms), contest 0,00, error 0,22 m
+Dunk by Home_0: 0,7 m, auto, contest 0,64, error 0,00 m
+Dunk by Away_8: 0,3 m, auto, contest 0,05, error 0,00 m
+JumpShot by Home_2: 7,1 m, SlightlyEarly -0,032s (green +-11 ms), contest 0,00, error 0,22 m
+JumpShot by Home_1: 7,1 m, Early -0,086s (green +-11 ms), contest 0,05, error 0,27 m
+Dunk by Home_0: 0,9 m, auto, contest 0,63, error 0,00 m
+JumpShot by Home_1: 3,4 m, SlightlyLate +0,033s (green +-14 ms), contest 0,09, error 0,18 m
+Dunk by Home_1: 0,7 m, auto, contest 0,21, error 0,00 m
+JumpShot by Away_6: 2,7 m, SlightlyEarly -0,016s (green +-9 ms), contest 0,58, error 0,21 m
+Dunk by Away_6: 0,6 m, auto, contest 0,58, error 0,00 m
+JumpShot by Home_2: 7,1 m, Perfect +0,007s (green +-11 ms), contest 0,06, error 0,00 m
+JumpShot by Away_6: 7,0 m, Late +0,056s (green +-12 ms), contest 0,00, error 0,28 m
+Dunk by Away_8: 0,8 m, auto, contest 0,64, error 0,00 m
+Green releases: 6/6, made 6
+Live unguarded jumpers: 25/25 made, model expected 25,0
+Trajectory bias (crossing offset from rim center, aimed at center):
+  d=4,20 a=0 crossing=(+0,000, +0,000) |0,000| MADE
+  d=4,20 a=40 crossing=(+0,000, +0,000) |0,000| MADE
+  d=4,20 a=70 crossing=(+0,000, +0,000) |0,000| MADE
+  d=5,50 a=0 crossing=(+0,000, +0,000) |0,000| MADE
+  d=5,50 a=40 crossing=(+0,000, +0,000) |0,000| MADE
+  d=5,50 a=70 crossing=(+0,000, +0,000) |0,000| MADE
+  d=6,75 a=0 crossing=(+0,000, +0,000) |0,000| MADE
+  d=6,75 a=40 crossing=(+0,000, +0,000) |0,000| MADE
+  d=6,75 a=70 crossing=(+0,000, +0,000) |0,000| MADE
+  d=7,50 a=0 crossing=(+0,000, +0,000) |0,000| MADE
+  d=7,50 a=40 crossing=(+0,000, +0,000) |0,000| MADE
+  d=7,50 a=70 crossing=(+0,000, +0,000) |0,000| MADE
+Layup make rate vs aim offset (arc 0,9 m, 1.5 m, 8 directions each):
+  offset=0,03 m: 8/8
+  offset=0,06 m: 8/8
+  offset=0,09 m: 8/8
+  offset=0,12 m: 8/8
+  offset=0,15 m: 1/8
+  offset=0,20 m: 1/8
+  offset=0,25 m: 0/8
+Make rate vs aim offset (entry 47 deg: arc 1,21 m at 4.5 m, 1,81 m at 6.75 m; 8 directions each):
+  d=4,50 offset=0,03 m: 8/8 (100%)
+  d=4,50 offset=0,06 m: 8/8 (100%)
+  d=4,50 offset=0,09 m: 5/8 (63%)
+  d=4,50 offset=0,12 m: 3/8 (38%)
+  d=4,50 offset=0,15 m: 3/8 (38%)
+  d=4,50 offset=0,20 m: 0/8 (0%)
+  d=4,50 offset=0,25 m: 0/8 (0%)
+  d=6,75 offset=0,03 m: 8/8 (100%)
+  d=6,75 offset=0,06 m: 8/8 (100%)
+  d=6,75 offset=0,09 m: 8/8 (100%)
+  d=6,75 offset=0,12 m: 5/8 (63%)
+  d=6,75 offset=0,15 m: 0/8 (0%)
+  d=6,75 offset=0,20 m: 0/8 (0%)
+  d=6,75 offset=0,25 m: 0/8 (0%)

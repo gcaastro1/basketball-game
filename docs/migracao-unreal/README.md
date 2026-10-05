@@ -114,7 +114,7 @@ Ordem por dependência; prioridade 🔴 crítico, 🟠 importante, 🟡 secundá
 
 | Fase | Conteúdo | Prioridade | Quando |
 |---|---|---|---|
-| 0 | Referência Unity: congelar, exportar estatísticas, inventário e licenças dos assets — 🔄 números e inventário prontos; faltam commit/tag e 3 licenças | 🔴 | Outubro |
+| 0 | Referência Unity: congelar, exportar estatísticas, inventário e licenças dos assets — ✅ tag `unity-reference`; faltam só 3 licenças (Tripo, clipes de basquete, Kimodo) | 🔴 | Outubro |
 | 1 | Projeto UE5 C++, repositório + LFS, módulos, configurações leves, teste de fumaça e PIE 2 clientes | 🔴 | Outubro |
 | 2 | Núcleo de lógica pura em C++ (`BasketCore`) com os testes portados | 🔴 | Out–Nov |
 | 3 | Input (Enhanced Input), Character/CMC, câmera de transmissão — já em rede | 🔴 | Nov–Dez |

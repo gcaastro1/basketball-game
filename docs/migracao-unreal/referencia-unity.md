@@ -1,7 +1,7 @@
 # Referência Unity (oráculo da migração)
 
-Fase 0 (D-029). Números que o port para Unreal precisa reproduzir. Extraídos em 2026-10-05 do
-commit `74568df` (+ mudanças locais só visuais) com Unity 6000.6.2f1.
+Fase 0 (D-029). Números que o port para Unreal precisa reproduzir. **Referência congelada** na tag
+`unity-reference` (2026-10-05, Unity 6000.6.2f1), já com a correção dos tocos (D-030).
 
 **Conversão para o Unreal**: metros × 100 = cm; Unity (x, y, z) com Y para cima →
 Unreal (X = z, Y = x, Z = y) com Z para cima. Ex.: aro Unity (0; 3,05; 12,725) → Unreal (1272,5; 0; 305).
@@ -52,6 +52,18 @@ equivalentes entre PhysX e Chaos; o que deve bater são as **saídas** das seç�
 | Bola: quique (bounciness, combine Maximum) | 0,75 |
 | Bola: CCD | Contínuo em voo, discreto quando presa |
 | Raio de pegar a bola | 1,0 m (+0,15 m acima do alcance) |
+| Bola segurada / driblando | 1,0 m acima dos pés, 0,45 m à frente, 0,2 m para o lado da mão |
+| Soltura de jump shot e lance livre (D-030) | 2,1 m acima dos pés (+ pulo), **0,15 m à frente** |
+| Soltura de bandeja e enterrada | 2,1 m acima dos pés, 0,45 m à frente |
+
+### Bloqueio (`DefaultDefenseConfig`, `DefaultAIConfig`, D-030)
+
+| Item | Valor |
+|---|---|
+| Alcance da mão | Eixo vertical do corpo, da cabeça (1,8 m) à ponta dos dedos (alcance parado + pulo); 0,45 m para os lados; topo = ponta dos dedos + 0,12 m (raio da bola) |
+| Janela de bloqueio | 0,35 s após a soltura |
+| IA: tentar o toco | Sorteio **uma vez por arremesso**: 0,3 com o atributo Block neutro (×0,5 a ×2) |
+| IA: quando pular | Arremessador no ar, a ≤ 1,6 m, subindo a ≤ 2 m/s (antes do ápice, ajustado pelo QI defensivo) |
 
 ## 4. Modelo de precisão (lógica pura, `ShotAccuracyModel` + `DefaultShotConfig`)
 
@@ -105,48 +117,44 @@ qualquer outro número: se o arco analítico não acerta o centro, o resto não 
 | 0,09 m | 5/8 | 8/8 | 8/8 |
 | 0,12 m | 3/8 | 5/8 | 8/8 |
 | 0,15 m | 3/8 | 0/8 | 1/8 |
-| 0,20 m | 0/8 | 0/8 | 0/8 |
+| 0,20 m | 0/8 | 0/8 | 0–1/8 |
 | 0,25 m | 0/8 | 0/8 | 0/8 |
 
 Daí vêm os raios de acerto da seção 4 (≈0,124 m no jump, ≈0,141 m na bandeja). **Este é o teste
-de aceitação da física do aro no Unreal**: mesma tabela, ±1 em cada célula.
+de aceitação da física do aro no Unreal**: mesma tabela, ±1 em cada célula. (Igual antes e depois de
+D-030: a mira é calculada a partir do ponto de soltura.)
 
 **Arremesso real (`LiveShotTests`)**: 6/6 soltas no verde entraram; 25/25 jump shots livres
 entraram contra 25,0 esperados pelo modelo.
 
 ## 6. Simulações IA×IA (PlayMode)
 
-Uma execução local (2026-10-05). Os números variam entre execuções (ver `docs/proximos-passos.md`,
-"Pendências menores conhecidas"); servem como **faixa**, não valor exato.
+Uma execução com o código congelado. Os números variam bastante entre execuções (as partidas são
+curtas); use como **faixa**, não valor exato.
 
 | Simulação | Placar | Arremessos (FG) | Bolas de 3 | Passes | Roubos | Tocos | Erros (TO) |
 |---|---|---|---|---|---|---|---|
-| 3v3 individual, 120 s | 5–2 | 5/23 | 0/12 | 28/28 | 3 | **11** | 3 |
-| 3v3 zona, 120 s | 8–2 | 6/15 | 2/6 | 33/35 | 8 | 5 | 10 |
-| 5v5 quadra inteira, 90 s | 5–8 | 5/11 | 1/3 | 26/27 | 2 | 2 | 3 |
+| 3v3 individual, 120 s | 2–3 | 3/23 | 2/15 | 17/18 | 2 | 3 | 2 |
+| 3v3 zona, 120 s | 1–8 | 7/19 | 2/9 | 26/31 | 7 | 4 | 12 |
+| 5v5 quadra inteira, 90 s | 9–6 | 7/13 | 1/5 | 22/27 | 2 | 0 | 7 |
 
-Por tipo de arremesso (3v3 individual): jump 3/18 (média 6,9 m, marcação 0,44); bandeja 0/2;
-enterrada 2/3; lance livre 2/4.
+**Tocos em arremessos marcados** (contest ≥ 0,3; as três simulações juntas), alvo do usuário 5–10%
+nos arremessos de média e longa distância (D-030):
 
-**Pontos a investigar antes de usar como gabarito** (não levar defeito para o Unreal):
-- **Tocos demais no 3v3 individual**: 11 em 23 arremessos nesta execução (14/21 numa segunda).
-  Investigado em 2026-10-05: 25 de 31 tocos aconteciam 0,02–0,09 s após a soltura, com o marcador
-  a ~1,15 m (`contestStandoff`). Causa 1 (defeito, **corrigido**): `BlockMath.IsWithinArms`
-  tratava o raio como esfera em volta da ponta dos dedos, então bola até 0,45 m acima dos dedos
-  era bloqueada; agora o topo é a ponta dos dedos + raio da bola. Depois da correção: 3v3
-  individual 6–11 tocos em 21 arremessos, zona 6 em 15–16 (três execuções). Causa 2 (escolha de
-  jogo, **pendente com o usuário**): a bola sai 0,45 m à frente do arremessador a 2,9 m, abaixo
-  dos dedos do marcador que pula no ápice (~3,2 m), e a IA tenta o toco em todo arremesso marcado.
-  **Os números desta seção são de antes da correção**; refazer a referência depois da decisão.
-- **3v3 zona falhou** em `AIvsAI_3v3_PlaysBasketball(1.0)`: 15 arremessos contra o mínimo de 16
-  (falha conhecida, sensível à seed). O individual (0.0) passou.
+| Jump shot | Enterrada | Bandeja | Total |
+|---|---|---|---|
+| 2/24 (8%) | 3/11 (27%) | 2/3 | 7/38 (18%) |
+
+No aro a taxa é maior, como no basquete real (aceito pelo usuário).
+
+**Ponto conhecido (não investigado)**: aproveitamento baixo nos arremessos de quadra do 3v3
+individual nesta execução (3/23). O Unreal deve reproduzir a mesma faixa antes de qualquer ajuste de IA.
 
 ## 7. Saída bruta dos testes
 
-`dados/unity-playmode-2026-10-05.txt` (linhas de estatística filtradas do log). Resultado da
-execução: 10 testes, 9 passaram, 1 falhou (o 3v3 zona citado acima).
-Comando usado (Unity fechado):
+`dados/unity-playmode-referencia.txt` (linhas de estatística e de arremessos/tocos filtradas do log).
+Execução do código congelado: EditMode 310/310, PlayMode 64/64. Comando (Unity fechado):
 
 ```bash
-"C:/Program Files/Unity/Hub/Editor/6000.6.2f1/Editor/Unity.exe" -batchmode -nographics -projectPath "D:/Projetos/basket" -runTests -testPlatform PlayMode -testFilter "AISimulationTests|FullCourtTests|LiveShotTests|ShotCalibrationTests" -testResults playmode-results.xml -logFile playmode.log
+"C:/Program Files/Unity/Hub/Editor/6000.6.2f1/Editor/Unity.exe" -batchmode -nographics -projectPath "D:/Projetos/basket" -runTests -testPlatform PlayMode -testResults playmode-results.xml -logFile playmode.log
 ```
