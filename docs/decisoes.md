@@ -34,10 +34,13 @@ de troca.
 | D-026 | Quadra NBA (a desenhada no piso do ginásio MarpaStudio): 28,65 × 15,24 m, aro a 1,6 m do fundo, linha de 3 a 7,24 m com cantos retos a 6,71 m. Ginásio e bola são só visuais (`ArenaDresser`), por cima dos colisores do placeholder | Aceita (escolha do usuário; valores em dados: **provisórios**) |
 | D-027 | IA posicional: defesa individual com ajuda (nega a um passe da bola, recua para a linha de ajuda no lado fraco, presa ao seu homem) e zona (2-3 / 2-2 / 1-2 deslizando com a bola, um só defensor na bola), escolhida por posse (`zoneDefenseChance`); ataque espaçado longe da bola, na linha de 3 da quadra; a IA lê a linha de 3 com os cantos | Aceita (valores em `DefaultAIConfig`: **provisórios**) |
 | D-028 | Medidor de arremesso (estilo NBA 2K): janela verde em volta do topo do pulo; soltar no verde = arremesso perfeito (sem erro de mira); o verde cresce com o atributo do arremesso e encolhe com marcação, distância e movimento | Aceita (pedido do usuário; tamanhos em `ShotConfig`: **provisórios**) |
+| D-029 | Migração para Unreal Engine 5 (C++), servidor autoritativo; projeto Unity congelado como referência numérica | Aceita (pedido do usuário; plano em `docs/migracao-unreal/`) |
 | P-001 | Modo B (controle do time) | **Pendente** — ponto de encaixe pronto: `ITeamStrategy` (e `IAgentController`) |
 | P-003 | Gacha definitivo (raridades, taxas, pity, custos, moedas) | **Provisória**: 3 níveis genéricos, 3/17/80%, pity 80 (soft 65, +6%), 50/50 com garantia, multi de 10 com garantia de nível 2 — tudo em `Data/Meta/StandardBanner.asset` |
 | P-002 | Semântica dos Limit Breaks | **Provisória**: 4 LBs (20→40, 40→50, 50→60, "Awakening" no 60 sem novo teto), tudo em `DefaultProgressionConfig` |
 | P-004 | `GameBootstrap` assume que o time do jogador é Home ao calcular a recompensa de partida | **Provisória** |
+| P-005 | Modelo do multiplayer online | **Parcial**: 3v3, cada humano controla um jogador (usuário, 2026-10-05); servidor autoritativo, listen server no início. Pendente: vagas sem humano, dedicado × listen no lançamento, crossplay, julgamento da janela verde com latência |
+| P-006 | Backend da economia/gacha online | **Pendente** — até lá o meta roda offline |
 
 ---
 
@@ -637,3 +640,38 @@ de basquete.
 Animation Clips** fica (lista os clipes dos FBX). Trocar para clipes do Mixamo, se o usuário quiser, passa
 pelo binder com as janelas medidas.
 
+## D-029 — Migração para Unreal Engine 5
+
+**Contexto.** O usuário quer trabalhar com Unreal, mirar PC/console (talvez mobile depois) e ter
+multiplayer online; programa em C++; troca de hardware (GPU ≥ 8 GB) prevista até dezembro de 2026.
+
+**Opções.** (a) continuar na Unity; (b) migrar para UE4; (c) migrar para UE5 com os recursos pesados
+desligados.
+
+**Decisão.** (c). Lógica em C++ (Blueprint só para visual, UI e cola), servidor autoritativo desde a
+primeira fase, unidades nativas do Unreal (cm, Z para cima) convertidas no port. O projeto Unity fica
+congelado (tag `unity-reference`) e serve de oráculo numérico: estatísticas das simulações IA×IA,
+taxa de acerto por zona, tempos de voo.
+
+**Consequências.** Física da bola e do aro precisa ser recalibrada no Chaos contra a referência; a
+animação procedural por músculos do Humanoid não tem equivalente (vira clipes/Control Rig); CI em
+nuvem fica para depois (testes por linha de comando local). Fases e mapa: `docs/migracao-unreal/`.
+
+## P-005 — Modelo do multiplayer (pendente)
+
+Base fixada: servidor autoritativo; *listen server* no início (servidor dedicado exige engine
+compilado do código-fonte, depois do upgrade).
+
+**Decidido (usuário, 2026-10-05):** o modo online é **3v3, cada humano controla um jogador** (até 6
+humanos por partida). No Unreal: um PlayerController por humano, cada um dono de um Character; a IA
+do time (`TeamBrain`) continua no servidor para os jogadores sem humano.
+
+**Ainda pendente:** o que ocupa uma vaga sem humano (IA? partida não começa?); servidor dedicado ×
+listen no lançamento; crossplay entre plataformas; como julgar a janela verde do arremesso com
+latência. A janela livre tem ~25–29 ms no total e a marcada ~7–9 ms (`docs/migracao-unreal/referencia-unity.md`),
+menos de um quadro: o instante da soltura precisa vir do cliente, com validação no servidor.
+
+## P-006 — Backend da economia online (pendente)
+
+Online, moeda e tiragens de gacha não podem viver num save local editável. Falta escolher o
+backend. Até lá o meta continua offline, como na Unity.

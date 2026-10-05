@@ -11,6 +11,8 @@ está em **UTC-3**.
 4. `docs/decisoes.md` — decisões aceitas (D-xxx) e provisórias/pendentes (P-xxx).
 5. `docs/etapas/etapa-N-*.md` — o plano e o resultado de cada etapa já feita.
 6. `docs/proximos-passos.md` — as próximas tarefas, com os pontos de encaixe no código.
+7. `docs/migracao-unreal/` — **migração para Unreal 5 em andamento (D-029)**: o projeto Unity
+   está congelado como referência; trabalho novo segue as fases de lá.
 
 ## Regras do projeto
 
