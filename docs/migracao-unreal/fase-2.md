@@ -30,7 +30,7 @@ Essa fase não depende da GPU: cabe antes do upgrade.
 | 2 | `ThreePointLine`, `ScoringMath`, `HoopMath` | `Scoring/BasketScoring` | 10 (`Basket.Core.Scoring`) | ✅ |
 | 3 | `ShotAccuracyModel`, `ShotMath`, janela verde | `Shot/BasketShotAccuracy` | 23 (`Basket.Core.ShotAccuracy`) | ✅ |
 | 4 | `ContestMath`, `BlockMath` | `Defense/BasketDefense` | 13 (`Basket.Core.Defense`) | ✅ |
-| 5 | `GameClock`, `FoulMath`, `FoulRules`, `MatchState`, `MatchRules` | `Rules/…` | ~15 | ⬜ |
+| 5 | `GameClock`, `FoulMath`, `FoulRules`, `MatchState`, `MatchRules` | `Rules/BasketMatchTypes`, `BasketMatchRules`, `BasketClocks`, `BasketFouls`, `BasketMatchState` | 18 (`Basket.Core.Rules`) | ✅ |
 | 6 | `MatchManager` (árbitro) | `Rules/BasketReferee` | ~36 | ⬜ |
 | 7 | `PossessionLayout`, `PassTargeting`, `DribbleMath`, `PlayerMotorMath` | `Play/…` | ~12 | ⬜ |
 | 8 | `Attributes`, `CharacterStatsCalculator`, `CharacterProgression` | `Characters/…` | ~15 | ⬜ |
@@ -60,4 +60,5 @@ que é lógica pura (seção 4 e a trajetória da seção 5) coberto por um test
   (seção 5).
 - Dica de ambiente: com o editor aberto sobram ~2,9 GB de RAM e o build cai para 1 compilação por vez
   (~10 min); com o editor fechado, ~1,5 min.
-
+- 2026-10-06: peça 5 (regras, relógios, faltas, estado da partida); `Basket.*` 75/75. `FoulMath.ShootingContact`
+  recebe uma lista leve de jogadores (`FBasketPlayerSample`); o snapshot completo vem com o árbitro (peça 6).
