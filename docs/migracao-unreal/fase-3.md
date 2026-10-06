@@ -132,4 +132,31 @@ fase só existem os personagens dos humanos conectados.
   invisíveis de 3 m (como no Unity) e HUD de depuração lendo só o GameState.
   - Falta para fechar a fase: a checagem com janela (câmera, movimento relativo, sprint/guarda sem
     correções com latência, reinício posicionando os jogadores, HUD) e o `stat unit` na GTX 1050.
+- 2026-10-06: **Fase 3 concluída.** Checagem com janela (usuário, 2 jogadores, Listen Server): câmera,
+  movimento relativo à câmera, sprint/guarda/pulo, paredes, reinício posicionando os jogadores, HUD e
+  rede com emulação, tudo ok. Dois erros de port achados nessa checagem e corrigidos:
+  - **FOV**: o `fieldOfView` do Unity (55) é vertical; o do Unreal é horizontal. Usado direto, a câmera
+    ficou com 55° de largura em vez de ~85,6° (16:9) e a tabela saía do quadro no canto. Agora é
+    `VerticalFieldOfView`, convertido a cada quadro pela proporção da janela.
+  - **Cores**: os cubos/cilindros básicos usam o material quadriculado "World Grid", sem parâmetro
+    `Color`; pintar não fazia nada. Agora as instâncias saem do `BasicShapeMaterial`, e o teste pergunta
+    ao material-pai se o parâmetro existe.
+  - Com duas janelas de PIE a GTX 1050 estoura a VRAM (1,36 de 1,34 GB, frame 19 ms); usar janelas
+    menores até o upgrade.
+
+## Resultado
+
+| Teste | Resultado |
+|---|---|
+| Aceleração / freio | ✅ 0,15 s / ~0,11 s (`Basket.Game.Movement`) |
+| Sprint / guarda | ✅ 652 / 337 cm/s, guarda anula o sprint |
+| Pulo | ✅ 80 cm, ~0,81 s no ar, sem girar no ar |
+| Rede | ✅ 100 ms / 1% sem correções visíveis (usuário); `net-smoke` 5/5 |
+| Câmera | ✅ atrás e acima, tabela no quadro inclusive no canto; "para cima" anda para onde ela olha |
+| Árbitro | ✅ começa ao vivo com a posse do Home, relógio descendo no HUD do cliente, reinício posiciona |
+| Testes | ✅ `Basket.*` 166/166 |
+
+**Pendência pequena (visual):** a cena está clara demais (exposição automática desligada na Fase 1 +
+intensidades padrão de sol e céu); o piso marrom parece creme. Ajustar luz/exposição junto com o visual
+(Fase 12) ou antes, se atrapalhar.
 

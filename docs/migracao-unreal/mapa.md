@@ -11,13 +11,13 @@ Prioridade: 🔴 crítico · 🟠 importante · 🟡 secundário · 🟢 polimen
 | Testes EditMode | Automation Spec em `BasketCore` | C++ | 1–2 | 🔴 | Média | ✅ 131 testes |
 | `*Math`, `ShotAccuracyModel`, `FoulRules`, `GameClock` | Funções/structs C++ puros | C++ | 2 | 🔴 | Média | ✅ |
 | ScriptableObjects de config | `UPrimaryDataAsset` (+ `UCurveFloat`) | C++ + assets | 2 | 🔴 | Baixa | ⬜ |
-| `MatchManager` + `MatchRules` | Lógica pura + GameMode (servidor) + GameState (replicado) | C++ | 2–3 | 🔴 | Alta | 🔄 árbitro puro ✅ (`FBasketReferee`); falta ligar no GameMode/GameState |
-| `MatchSimulation.Tick` | GameMode/World Subsystem no servidor | C++ | 3 | 🔴 | Alta | ⬜ |
-| `IAgentController` + `PlayerCommand` | Interface C++; PlayerController e AIController produzem comandos | C++ | 3 | 🔴 | Média | ⬜ |
-| `GameBootstrap` | GameMode + GameInstance + Subsystems | C++ | 3 | 🔴 | Média | 🔄 esqueleto (GameMode, GameState, PlayerController) |
-| Input System (`.inputactions`) | Enhanced Input (Input Actions + Mapping Contexts) | Assets + C++ | 3 | 🔴 | Baixa | ⬜ |
-| `PlayerMotor` (CharacterController) | `ACharacter` + `UCharacterMovementComponent` (custom: sprint/guarda) | C++ | 3 | 🔴 | Média | ⬜ |
-| `CameraController` | Actor/componente de câmera próprio (local, não replicado) | C++ | 3 | 🔴 | Média | ⬜ |
+| `MatchManager` + `MatchRules` | Lógica pura + GameMode (servidor) + GameState (replicado) | C++ | 2–3 | 🔴 | Alta | ✅ árbitro no GameMode, estado replicado pelo GameState |
+| `MatchSimulation.Tick` | GameMode/World Subsystem no servidor | C++ | 3 | 🔴 | Alta | 🔄 árbitro ticado no GameMode; simulação completa com bola na Fase 4–5 |
+| `IAgentController` + `PlayerCommand` | Interface C++; PlayerController e AIController produzem comandos | C++ | 3 | 🔴 | Média | 🔄 humano via PlayerController + `FBasketContextInput`; IA na Fase 6 |
+| `GameBootstrap` | GameMode + GameInstance + Subsystems | C++ | 3 | 🔴 | Média | ✅ GameMode + GameState + PlayerController |
+| Input System (`.inputactions`) | Enhanced Input (Input Actions + Mapping Contexts) | Assets + C++ | 3 | 🔴 | Baixa | ✅ assets gerados por script |
+| `PlayerMotor` (CharacterController) | `ACharacter` + `UCharacterMovementComponent` (custom: sprint/guarda) | C++ | 3 | 🔴 | Média | ✅ medido contra o Unity |
+| `CameraController` | Actor/componente de câmera próprio (local, não replicado) | C++ | 3 | 🔴 | Média | ✅ |
 | `BallController` (Rigidbody) | Actor de bola, servidor autoritativo, voo analítico | C++ | 4 | 🔴 | **Alta** | ⬜ |
 | `HoopController` / `RimSurface` | Actor do aro: colisão + Physical Material | C++ | 4 | 🔴 | **Alta** | ⬜ |
 | Shot/Dribble/Pass/DefenseSystem | Actor Components no Character | C++ | 5 | 🔴 | Média | ⬜ |
@@ -28,7 +28,7 @@ Prioridade: 🔴 crítico · 🟠 importante · 🟡 secundário · 🟢 polimen
 | Habilidades (`AbilityDefinition`) | Gameplay Ability System **ou** sistema próprio (decidir na fase 7) | C++ | 7 | 🟠 | Alta | ⬜ |
 | Animação (Playables + procedural + `HandIK`) | Animation Blueprint, Blend Space, Montages, Two Bone IK / Control Rig | AnimBP + C++ | 8 | 🟠 | **Alta** | ⬜ |
 | Clipes FBX (Kimodo, Mixamo, UAL) | Reimport + IK Retargeter para o esqueleto escolhido | Editor | 8 | 🟠 | Média | ⬜ |
-| HUDs IMGUI (`DebugHud`, `ProfileHud`) | UMG; depuração com `stat`/Gameplay Debugger | UMG | 9 | 🟠 | Baixa | ⬜ |
+| HUDs IMGUI (`DebugHud`, `ProfileHud`) | UMG; depuração com `stat`/Gameplay Debugger | UMG | 9 | 🟠 | Baixa | 🔄 HUD de depuração (Canvas); UMG na Fase 9 |
 | 5v5 (`CourtConfig.fullCourt`) | Mesmos dados, nível de quadra inteira | C++ | 10 | 🟡 | Média | ⬜ |
 | Save versionado (`PlayerSave`, `SaveMigrator`) | `USaveGame` ou JSON próprio (offline) | C++ | 11 | 🟡 | Média | ⬜ |
 | Inventário, economia, gacha | GameInstance Subsystem; autoridade no backend (P-006) | C++ | 11 | 🟡 | Alta | ⬜ |
