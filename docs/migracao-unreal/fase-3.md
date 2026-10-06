@@ -98,3 +98,22 @@ fase só existem os personagens dos humanos conectados.
 - **Assets binários gerados por script**: se o script quebrar numa versão futura da engine, os assets
   continuam no LFS e podem ser editados no editor; o script é a receita, não a única cópia.
 - **Build com o editor aberto** fica lento (~10 min): fechar o editor nas compilações.
+
+## Progresso
+
+- 2026-10-06: **peças 1–3 prontas** (`Basket.*` 151/151, `net-smoke` 4/4).
+  - Peça 1: `FBasketInputBuffer`, `FBasketContextInput`, `BasketCameraMove`, `BasketCameraRig` no
+    `BasketCore` (12 testes). Sem direção de câmera, o Unity devolvia o direcional cru (que lá era
+    "olhando +Z"); aqui isso trocaria os eixos, então vale "olhando +X".
+  - Peça 2: assets em `/Game/Input` gerados por `tools/editor/create_input_assets.py` (reaproveita os
+    existentes ao rodar de novo); o PlayerController guarda só os caminhos (referências "soft"), senão
+    o gerador sai com erro na primeira execução.
+  - Peça 3: `UBasketMovementComponent` com sprint/guarda em flags preditas; medido num mundo de teste
+    (`FTestWorldWrapper`): 0,15 s até 450 cm/s, ~0,11 s para parar, 652 / 337 cm/s, pulo de 80 cm,
+    ~0,81 s no ar, sem girar no ar. Gravidade do projeto −981 cm/s².
+  - Aprendizados de teste: sem controlador o `ACharacter` só escolhe o modo de movimento inicial se
+    `bRunPhysicsWithNoController` já estiver ligado ao inicializar os componentes; o CMC mantém a
+    cápsula 1,9–2,4 cm acima do chão de propósito.
+  - Falta: checar no PIE com emulação de rede que sprint/guarda não geram correções (junto com a
+    câmera, peça 4).
+
