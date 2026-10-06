@@ -126,4 +126,10 @@ fase só existem os personagens dos humanos conectados.
     entram. `net-smoke` confere que o cliente vê a partida ao vivo com a posse do Home.
   - Falta: checagem com janela das peças 4–5 (câmera, movimento relativo, sprint/guarda sem
     correções com latência) e a peça 6 (quadra desenhada, cesta visual, HUD de depuração).
+- 2026-10-06: **peça 6 pronta — código da Fase 3 completo** (`Basket.*` 165/165, `net-smoke` 5/5).
+  Linha de 3 pintada (`BasketCourtLines`, testada contra a fronteira da pontuação), aro em anel e
+  linhas como malhas instanciadas (uma chamada de desenho cada), tabela e poste só visuais, paredes
+  invisíveis de 3 m (como no Unity) e HUD de depuração lendo só o GameState.
+  - Falta para fechar a fase: a checagem com janela (câmera, movimento relativo, sprint/guarda sem
+    correções com latência, reinício posicionando os jogadores, HUD) e o `stat unit` na GTX 1050.
 
