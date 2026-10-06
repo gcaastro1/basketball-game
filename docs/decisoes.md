@@ -36,6 +36,7 @@ de troca.
 | D-028 | Medidor de arremesso (estilo NBA 2K): janela verde em volta do topo do pulo; soltar no verde = arremesso perfeito (sem erro de mira); o verde cresce com o atributo do arremesso e encolhe com marcação, distância e movimento | Aceita (pedido do usuário; tamanhos em `ShotConfig`: **provisórios**) |
 | D-029 | Migração para Unreal Engine 5 (C++), servidor autoritativo; projeto Unity congelado como referência numérica | Aceita (pedido do usuário; plano em `docs/migracao-unreal/`) |
 | D-030 | Tocos: a mão do defensor termina na ponta dos dedos (+ raio da bola); jump shot e lance livre saem acima da cabeça (`shotPocketForward` 0,15 m); a IA sorteia uma vez por arremesso se tenta o toco (`blockAttemptChance` 0,3, ×0,5–×2 pelo atributo Block); alvo: 5–10% dos arremessos marcados viram toco | Aceita (escolha do usuário; valores **provisórios**) |
+| D-031 | Unreal: bola em voo analítico (replicado pelo lançamento) até o primeiro contato, Chaos depois; aro do Chaos aceito como está e modelo de arremesso recalibrado (raio efetivo medido por distância + `AimScale`) para as chances de acerto continuarem as do Unity | Aceita (opção B escolhida pelo usuário; curva medida: **dados**) |
 | P-001 | Modo B (controle do time) | **Pendente** — ponto de encaixe pronto: `ITeamStrategy` (e `IAgentController`) |
 | P-003 | Gacha definitivo (raridades, taxas, pity, custos, moedas) | **Provisória**: 3 níveis genéricos, 3/17/80%, pity 80 (soft 65, +6%), 50/50 com garantia, multi de 10 com garantia de nível 2 — tudo em `Data/Meta/StandardBanner.asset` |
 | P-002 | Semântica dos Limit Breaks | **Provisória**: 4 LBs (20→40, 40→50, 50→60, "Awakening" no 60 sem novo teto), tudo em `DefaultProgressionConfig` |
@@ -712,3 +713,33 @@ Jump shots no alvo. As finalizações no aro continuam acima (no basquete real a
 é no aro, mas 27% das enterradas é alto); amostra pequena, a decidir com o usuário.
 `FundamentalsTests.Block_DefenderJumpingInFront` passou
 a usar o marcador a 0,5 m (a 0,7 m a bola passa a ~0,45 m dele, no limite do alcance).
+
+## D-031 — Unreal: voo da bola e calibração do aro do Chaos
+
+**Contexto.** Na migração (Fase 4), a bola precisa ser lisa nos clientes e o aro tem de decidir as
+cestas como no Unity. A tabela "taxa de acerto × desvio da mira" do aro do Chaos saiu mais generosa
+que a do PhysX (4,5 m: 8 8 8 6 2 1 0 contra 8 8 5 3 3 0 0), mesmo passando a bola para a física no
+ponto do quadro anterior ao contato.
+
+**Decisão.** (1) Voo analítico (`BasketTrajectory::PositionAt`) replicado pelo lançamento até o
+primeiro contato; depois, corpo rígido do Chaos no servidor (`docs/migracao-unreal/fase-4.md`).
+(2) Opção B, escolhida pelo usuário: o aro fica como está e o **modelo** é recalibrado. O modelo trata o
+aro como um disco de raio r em volta da mira (chance = (r / erro)²). O raio efetivo de um aro é
+r² = 2·∫ taxa(desvio)·desvio d(desvio); nas tabelas do Unity isso dá 12,4–12,6 cm (o Unity usava 12,4)
+e 14,4 cm na bandeja (14,1), o que valida o método. No Chaos o raio **varia com a distância**:
+
+| Distância | 3,0 m | 4,5 m | 6,0 m | 7,24 m | 8,5 m | Bandeja (1,5 m) |
+|---|---|---|---|---|---|---|
+| Raio efetivo | 16,41 | 14,14 | 14,04 | 15,61 | 15,90 | 18,16 cm |
+
+Por isso, em vez de um fator único, `FBasketShotAccuracySettings` guarda a curva medida
+(`RimRadiusByDistance`, `RimLayupRadius`) e o desvio sorteado da mira é multiplicado por
+`BasketShotAccuracy::AimScale` = raio do aro / raio do modelo naquela distância. O modelo continua em
+"unidades do Unity" (12,4 / 14,1 cm e os mesmos erros), então todas as chances de acerto — e os testes
+da Core que as fixam — ficam iguais.
+
+**Consequências.** Mudou o aro, a geometria ou o material da bola: rodar `Basket.Game.Calibration`,
+que mede a curva de novo e falha se os dados estiverem a mais de 0,5 cm dela, e copiar os valores.
+O teste de aceitação arremessa 200 vezes de 4,5 m e 7,24 m com o erro do modelo e exige a taxa a até
+8 pontos da chance prevista.
+

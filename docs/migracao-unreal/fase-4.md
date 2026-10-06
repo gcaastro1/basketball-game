@@ -24,7 +24,7 @@ Cabe na GTX 1050: é física na CPU com formas simples.
 | Na mão | 1,0 m acima dos pés, 0,45 m à frente, 0,2 m para o lado da mão |
 | Calibração | mirando no centro entra 12/12; taxa × desvio da mira (seção 5): 4,5 m 8/8/5/3/3/0/0, 6,75 m 8/8/8/5/0/0/0, bandeja 8/8/8/8/1/0–1/0 |
 
-## Decisão central: modelo de voo (D-031, proposta)
+## Decisão central: modelo de voo (D-031, aceita)
 
 **Voo analítico até o primeiro contato, física do Chaos depois.**
 
@@ -50,7 +50,7 @@ mirado — o que a calibração do Unity media era o aro decidindo a partir dess
 |---|---|---|---|
 | 1 | `ABasketBall`: estados, na mão, voo analítico, passagem para física no contato, replicação | `Basket` | mundo de teste: voo segue `PositionAt`; contato liga a física com a velocidade certa; chão encerra a soltura viva |
 | 2 | Cesta física: anel de cápsulas + tabela com colisão e material físico; detecção da cesta (`BasketScoring::IsScoringCrossing`) → árbitro | `Basket` | bola solta no centro entra e o árbitro conta; 12 arremessos mirando no centro entram (referência 12/12) |
-| 3 | **Calibração** do aro no Chaos contra a tabela da referência (±1 por célula) | `Basket` + dados | teste roda a tabela inteira; constantes físicas registradas (D-031) |
+| 3 | **Calibração** (opção B, D-031): o aro do Chaos fica como está; mede-se o raio efetivo por distância e o modelo escala a mira para manter as chances do Unity | `Basket` + `BasketCore` (dados) | raio medido = dados (±0,5 cm); 200 arremessos com o erro do modelo a até 8 pontos da chance prevista |
 | 4 | Posse: pegar por proximidade (alcance, 0,25 s de graça), bola solta, reinício entrega a bola; status da bola → árbitro (shot clock, buzzer) | `Basket` + `BasketCore` | mundo de teste: pega dentro do alcance, não pega fora/acima; shot clock só corre com posse |
 | 5 | Rede: cliente vê o mesmo voo; `net-smoke` estendido; checagem com janela | `Basket` | `net-smoke` (cliente vê a bola mudar de dono); PIE com emulação |
 
@@ -60,7 +60,7 @@ mirado — o que a calibração do Unity media era o aro decidindo a partir dess
 |---|---|
 | Voo | posição do voo = `PositionAt` (± 0,5 cm) em servidor e cliente |
 | Mirando no centro | 12/12 cestas de 4,2 / 5,5 / 6,75 / 7,5 m, a 0°, 40° e 70° |
-| Tabela de acertos | cada célula a ±1 da referência (4,5 m, 6,75 m e bandeja) |
+| Calibração (D-031) | raio efetivo do aro = curva nos dados (±0,5 cm); taxa real a ±8 pontos da chance do modelo (4,5 e 7,24 m) |
 | Cesta | conta 2 ou 3 (1 ou 2 no 3x3) pelo ponto de soltura; não conta de baixo para cima |
 | Posse | pega até 1 m e até o alcance + 15 cm; quem soltou espera 0,25 s; shot clock corre só com posse |
 | Rede | o cliente vê o voo liso e a mesma cesta; `net-smoke` verde |
@@ -89,4 +89,11 @@ mirado — o que a calibração do Unity media era o aro decidindo a partir dess
   passo fixo de 50 Hz (o do Unity), então a calibração é reprodutível sem ele.
 - Ambiente: builds de 18–40 min nesta fase com a RAM comprometida acima da física (19 de 15,9 GB) e o HD
   paginando; fechar programas pesados antes de compilar.
-
+- 2026-10-06: **peça 3 pronta (opção B, D-031)** — a tabela do Chaos não fecha com a do PhysX (4,5 m:
+  8 8 8 6 2 0 0 contra 8 8 5 3 3 0 0; passar a bola à física no ponto do quadro anterior ajudou pouco).
+  O usuário escolheu manter o aro e recalibrar o modelo. Raio efetivo medido (r² = 2·∫ taxa·desvio):
+  16,4 / 14,1 / 14,0 / 15,6 / 15,9 cm de 3 / 4,5 / 6 / 7,24 / 8,5 m, bandeja 18,2 cm (Unity: 12,4 e 14,1).
+  A curva foi para `FBasketShotAccuracySettings` e o desvio da mira é escalado por `AimScale`.
+  Aceitação: 200 arremessos livres — 4,5 m 56,0% (modelo 50,1%; antes da correção 69,5%), 7,24 m 31,5%
+  (modelo 37,9%; antes 55,5%). O Chaos varia ~0,15 cm de uma execução para outra (14,14 → 14,04 a
+  4,5 m), dentro da tolerância. `Basket.*` 177/177; build de 4,5 min com a RAM livre.
