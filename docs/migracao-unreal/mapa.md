@@ -7,14 +7,14 @@ Prioridade: 🔴 crítico · 🟠 importante · 🟡 secundário · 🟢 polimen
 
 | Sistema (Unity) | Unreal | Tecnologia | Fase | Prior. | Complex. | Status |
 |---|---|---|---|---|---|---|
-| Assemblies (`Basket.*.asmdef`) | Módulos (`BasketCore`, `Basket`) | C++ / `.Build.cs` | 1 | 🔴 | Baixa | ⬜ |
-| Testes EditMode | Automation Spec em `BasketCore` | C++ | 1–2 | 🔴 | Média | ⬜ |
+| Assemblies (`Basket.*.asmdef`) | Módulos (`BasketCore`, `Basket`) | C++ / `.Build.cs` | 1 | 🔴 | Baixa | ✅ |
+| Testes EditMode | Automation Spec em `BasketCore` | C++ | 1–2 | 🔴 | Média | 🔄 infra pronta (`Basket.Core.Units`) |
 | `*Math`, `ShotAccuracyModel`, `FoulRules`, `GameClock` | Funções/structs C++ puros | C++ | 2 | 🔴 | Média | ⬜ |
 | ScriptableObjects de config | `UPrimaryDataAsset` (+ `UCurveFloat`) | C++ + assets | 2 | 🔴 | Baixa | ⬜ |
 | `MatchManager` + `MatchRules` | Lógica pura + GameMode (servidor) + GameState (replicado) | C++ | 2–3 | 🔴 | Alta | ⬜ |
 | `MatchSimulation.Tick` | GameMode/World Subsystem no servidor | C++ | 3 | 🔴 | Alta | ⬜ |
 | `IAgentController` + `PlayerCommand` | Interface C++; PlayerController e AIController produzem comandos | C++ | 3 | 🔴 | Média | ⬜ |
-| `GameBootstrap` | GameMode + GameInstance + Subsystems | C++ | 3 | 🔴 | Média | ⬜ |
+| `GameBootstrap` | GameMode + GameInstance + Subsystems | C++ | 3 | 🔴 | Média | 🔄 esqueleto (GameMode, GameState, PlayerController) |
 | Input System (`.inputactions`) | Enhanced Input (Input Actions + Mapping Contexts) | Assets + C++ | 3 | 🔴 | Baixa | ⬜ |
 | `PlayerMotor` (CharacterController) | `ACharacter` + `UCharacterMovementComponent` (custom: sprint/guarda) | C++ | 3 | 🔴 | Média | ⬜ |
 | `CameraController` | Actor/componente de câmera próprio (local, não replicado) | C++ | 3 | 🔴 | Média | ⬜ |
