@@ -1,0 +1,76 @@
+# Fase 4 — Bola, aro físico e cesta
+
+Repositório: `gcaastro1/basketball-unreal`. Pré-requisito: Fase 3 concluída (166 testes).
+
+## Objetivo
+
+A bola existe e o aro é físico: a bola fica na mão de quem tem a posse, voa quando lançada, bate no
+aro e na tabela, cai, quica e é pega; quando passa pelo aro de cima para baixo, o árbitro conta os
+pontos. **O aro no Chaos tem que reproduzir a tabela de acertos da referência do Unity** (a maior
+incerteza técnica da migração). O lançamento pelo jogador (arremesso com medidor, passe) é da Fase 5;
+aqui os lançamentos vêm de código (testes e um comando de depuração).
+
+Cabe na GTX 1050: é física na CPU com formas simples.
+
+## Referência no Unity
+
+| Item | Valor (`referencia-unity.md`) |
+|---|---|
+| Bola | Ø 24 cm, 0,62 kg, quique 0,75 (combine *Maximum*), drag 0,05, angular drag 0,3, CCD em voo |
+| Aro | anel de 16 cápsulas, raio 22,86 cm, tubo de 1 cm; tabela 183 × 107 × 5 cm |
+| Física | gravidade −9,81, passo fixo 50 Hz, solver 6 / 1 |
+| Estados | `Free`, `Held`, `Passing`, `Shooting`; soltura "viva" até tocar o chão ou ser pega |
+| Pegar | por **proximidade**, não por colisão (CharacterController × Rigidbody não dispara colisão confiável): até 1,0 m na horizontal, abaixo do alcance + 0,15 m; quem soltou não pega por 0,25 s |
+| Na mão | 1,0 m acima dos pés, 0,45 m à frente, 0,2 m para o lado da mão |
+| Calibração | mirando no centro entra 12/12; taxa × desvio da mira (seção 5): 4,5 m 8/8/5/3/3/0/0, 6,75 m 8/8/8/5/0/0/0, bandeja 8/8/8/8/1/0–1/0 |
+
+## Decisão central: modelo de voo (D-031, proposta)
+
+**Voo analítico até o primeiro contato, física do Chaos depois.**
+
+- **Na mão** (`Held`): a bola acompanha quem tem a posse; replica só *quem* é o dono.
+- **Em voo** (`Shooting`/`Passing`): o servidor replica **ponto de lançamento, velocidade e instante**
+  (tempo do servidor); servidor e clientes calculam a posição com `BasketTrajectory::PositionAt`.
+  Liso nos clientes, barato de replicar e idêntico em todas as máquinas. O servidor varre (*sweep*) o
+  trecho de cada quadro contra o cenário e os jogadores.
+- **No primeiro contato** (aro, tabela, chão, jogador): o servidor liga a física do Chaos com a
+  velocidade analítica daquele instante. A partir daí (`Free`) a bola é corpo rígido no servidor e os
+  clientes recebem a posição replicada com suavização.
+
+Por que não física do começo ao fim, como no Unity: replicar um corpo rígido em voo dá trajetórias que
+"pulam" no cliente com latência, e o arremesso é o momento que mais precisa ser liso e igual para os
+seis jogadores. Por que não analítico até o fim: o aro, a tabela e o rebote precisam de física de
+verdade. O efeito no acerto: o arco analítico não tem o drag de 0,05 do Unity, mas a mira já é feita
+contra o arco analítico (`ComputeArcVelocity`), então a bola cruza o plano do aro exatamente no ponto
+mirado — o que a calibração do Unity media era o aro decidindo a partir desse ponto.
+
+## Peças
+
+| Ordem | Peça | Onde | Testes |
+|---|---|---|---|
+| 1 | `ABasketBall`: estados, na mão, voo analítico, passagem para física no contato, replicação | `Basket` | mundo de teste: voo segue `PositionAt`; contato liga a física com a velocidade certa; chão encerra a soltura viva |
+| 2 | Cesta física: anel de cápsulas + tabela com colisão e material físico; detecção da cesta (`BasketScoring::IsScoringCrossing`) → árbitro | `Basket` | bola solta no centro entra e o árbitro conta; 12 arremessos mirando no centro entram (referência 12/12) |
+| 3 | **Calibração** do aro no Chaos contra a tabela da referência (±1 por célula) | `Basket` + dados | teste roda a tabela inteira; constantes físicas registradas (D-031) |
+| 4 | Posse: pegar por proximidade (alcance, 0,25 s de graça), bola solta, reinício entrega a bola; status da bola → árbitro (shot clock, buzzer) | `Basket` + `BasketCore` | mundo de teste: pega dentro do alcance, não pega fora/acima; shot clock só corre com posse |
+| 5 | Rede: cliente vê o mesmo voo; `net-smoke` estendido; checagem com janela | `Basket` | `net-smoke` (cliente vê a bola mudar de dono); PIE com emulação |
+
+## Saída verificável
+
+| Teste | Critério |
+|---|---|
+| Voo | posição do voo = `PositionAt` (± 0,5 cm) em servidor e cliente |
+| Mirando no centro | 12/12 cestas de 4,2 / 5,5 / 6,75 / 7,5 m, a 0°, 40° e 70° |
+| Tabela de acertos | cada célula a ±1 da referência (4,5 m, 6,75 m e bandeja) |
+| Cesta | conta 2 ou 3 (1 ou 2 no 3x3) pelo ponto de soltura; não conta de baixo para cima |
+| Posse | pega até 1 m e até o alcance + 15 cm; quem soltou espera 0,25 s; shot clock corre só com posse |
+| Rede | o cliente vê o voo liso e a mesma cesta; `net-smoke` verde |
+| Testes | `Basket.*` todos verdes |
+
+## Riscos
+
+- **O Chaos não vai bater de primeira com o PhysX** (quique, atrito, contato com cápsulas finas). A
+  peça 3 existe para isso; se a tabela não fechar ajustando material e geometria, a alternativa é um
+  aro mais simples com resposta de contato própria — decisão a levar ao usuário antes.
+- **Passo da física**: o Chaos com passo variável dá resultados diferentes a cada execução. Usar
+  *substepping* com passo fixo (como os 50 Hz do Unity) para a calibração ser reprodutível.
+- **Tubo de 1 cm e bola rápida**: CCD ligado na bola em `Free`.
