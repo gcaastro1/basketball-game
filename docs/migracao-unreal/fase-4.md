@@ -74,3 +74,19 @@ mirado — o que a calibração do Unity media era o aro decidindo a partir dess
 - **Passo da física**: o Chaos com passo variável dá resultados diferentes a cada execução. Usar
   *substepping* com passo fixo (como os 50 Hz do Unity) para a calibração ser reprodutível.
 - **Tubo de 1 cm e bola rápida**: CCD ligado na bola em `Free`.
+
+## Progresso
+
+- 2026-10-06: **peça 1 pronta** — `ABasketBall` (na mão, voo analítico replicado pelo lançamento,
+  Chaos depois do primeiro contato, soltura viva até o chão). Os testes acharam dois erros: a bola nova
+  aplicava o estado "solta" padrão e ia para a origem do mundo; a varredura do primeiro quadro partia de
+  onde a bola estava antes do lançamento.
+- 2026-10-06: **peça 2 pronta** — aro com 16 cápsulas (`BasketRim`), tabela com colisão, material físico
+  da bola (quique 0,75 combinando pelo máximo, atrito 0,6), cesta detectada no GameMode e contada pelo
+  árbitro, toque no aro zera o shot clock. **Aro do Chaos: 12/12 mirando no centro, como no Unity.**
+  `Basket.*` 172/172. Faltou a dependência `PhysicsCore` (erro de link no fim de um build de 40 min).
+- Substepping do Chaos não ligado: no 5.8 ele é marcado como experimental. Os testes avançam o mundo com
+  passo fixo de 50 Hz (o do Unity), então a calibração é reprodutível sem ele.
+- Ambiente: builds de 18–40 min nesta fase com a RAM comprometida acima da física (19 de 15,9 GB) e o HD
+  paginando; fechar programas pesados antes de compilar.
+
