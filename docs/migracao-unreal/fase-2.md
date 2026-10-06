@@ -31,7 +31,7 @@ Essa fase não depende da GPU: cabe antes do upgrade.
 | 3 | `ShotAccuracyModel`, `ShotMath`, janela verde | `Shot/BasketShotAccuracy` | 23 (`Basket.Core.ShotAccuracy`) | ✅ |
 | 4 | `ContestMath`, `BlockMath` | `Defense/BasketDefense` | 13 (`Basket.Core.Defense`) | ✅ |
 | 5 | `GameClock`, `FoulMath`, `FoulRules`, `MatchState`, `MatchRules` | `Rules/BasketMatchTypes`, `BasketMatchRules`, `BasketClocks`, `BasketFouls`, `BasketMatchState` | 18 (`Basket.Core.Rules`) | ✅ |
-| 6 | `MatchManager` (árbitro) | `Rules/BasketReferee` | ~36 | ⬜ |
+| 6 | `MatchManager` (árbitro) | `Rules/BasketReferee` | 36 (`Basket.Core.Referee`) | ✅ |
 | 7 | `PossessionLayout`, `PassTargeting`, `DribbleMath`, `PlayerMotorMath` | `Play/…` | ~12 | ⬜ |
 | 8 | `Attributes`, `CharacterStatsCalculator`, `CharacterProgression` | `Characters/…` | ~15 | ⬜ |
 
@@ -62,3 +62,5 @@ que é lógica pura (seção 4 e a trajetória da seção 5) coberto por um test
   (~10 min); com o editor fechado, ~1,5 min.
 - 2026-10-06: peça 5 (regras, relógios, faltas, estado da partida); `Basket.*` 75/75. `FoulMath.ShootingContact`
   recebe uma lista leve de jogadores (`FBasketPlayerSample`); o snapshot completo vem com o árbitro (peça 6).
+- 2026-10-06: peça 6 (árbitro `FBasketReferee`); `Basket.*` 111/111. O teste de fim de partida agora usa o caminho
+  real (atingir a pontuação) em vez da chamada interna `EndWith` que o Unity usava.
