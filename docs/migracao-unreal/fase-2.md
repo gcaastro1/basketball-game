@@ -32,7 +32,7 @@ Essa fase não depende da GPU: cabe antes do upgrade.
 | 4 | `ContestMath`, `BlockMath` | `Defense/BasketDefense` | 13 (`Basket.Core.Defense`) | ✅ |
 | 5 | `GameClock`, `FoulMath`, `FoulRules`, `MatchState`, `MatchRules` | `Rules/BasketMatchTypes`, `BasketMatchRules`, `BasketClocks`, `BasketFouls`, `BasketMatchState` | 18 (`Basket.Core.Rules`) | ✅ |
 | 6 | `MatchManager` (árbitro) | `Rules/BasketReferee` | 36 (`Basket.Core.Referee`) | ✅ |
-| 7 | `PossessionLayout`, `PassTargeting`, `DribbleMath`, `PlayerMotorMath` | `Play/…` | ~12 | ⬜ |
+| 7 | `PossessionLayout`, `PassTargeting` | `Play/BasketPlayLayout` | 10 (`Basket.Core.PlayLayout`) | ✅ |
 | 8 | `Attributes`, `CharacterStatsCalculator`, `CharacterProgression` | `Characters/…` | ~15 | ⬜ |
 
 Fora desta fase: IA de time (`TeamBrain` e cia., 33 testes) e o meta (inventário, gacha, save, ~40
@@ -46,6 +46,13 @@ do backend (P-006, Fase 11).
   cada máquina avalia a parábola (`BasketTrajectory::PositionAt`), que não precisa de compensação.
   Decisão do modelo de voo da bola: Fase 4.
 - **`PositionAt` / `VelocityAt`** são novos: o voo analítico que os clientes vão reproduzir.
+- **`PlayerMotorMath` não foi portado.** O movimento é do Character Movement Component (Fase 1), com
+  modelo próprio de aceleração/atrito e predição de rede. Vira alvo de teste na Fase 3: do parado a
+  450 cm/s em ~0,15 s (4,5 m/s ÷ 30 m/s²) e de 450 cm/s a zero em ~0,11 s (÷ 40 m/s²).
+- **`DribbleMath` não foi portado.** É só visual (altura da bola quicando); o drible vem da animação
+  na Fase 8, que decide se essa conta ainda é útil.
+- **Habilidades em tempo de jogo (`PlayerAbilities`, 6 testes) ficam para a Fase 7**, que decide entre
+  o Gameplay Ability System e um sistema próprio.
 
 ## Saída verificável
 
@@ -64,3 +71,4 @@ que é lógica pura (seção 4 e a trajetória da seção 5) coberto por um test
   recebe uma lista leve de jogadores (`FBasketPlayerSample`); o snapshot completo vem com o árbitro (peça 6).
 - 2026-10-06: peça 6 (árbitro `FBasketReferee`); `Basket.*` 111/111. O teste de fim de partida agora usa o caminho
   real (atingir a pontuação) em vez da chamada interna `EndWith` que o Unity usava.
+- 2026-10-06: peça 7 (layout de reinício e alvo do passe); `Basket.*` 121/121.
