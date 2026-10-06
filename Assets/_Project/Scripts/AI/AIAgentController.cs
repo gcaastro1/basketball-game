@@ -21,6 +21,9 @@ namespace Basket.AI
         private float releaseOffsetSeconds;
         private float shotStartTime;
         private float nextStealTime;
+        // Block attempt rolled once per shot, when the shooter leaves the floor (D-030).
+        private bool shooterWasGrounded = true;
+        private bool goForBlock;
         private readonly TeamBrain brain;
         private MatchSnapshot snapshot;
         private int selfIndex = -1;
@@ -289,7 +292,14 @@ namespace Basket.AI
             // Defensive IQ: better defenders wait for the shooter's apex instead of jumping early.
             float trigger = config.blockTriggerVerticalSpeed
                             * (snapshot != null ? Attributes.Centered(snapshot.GetAttribute(selfIndex, AttributeId.DefensiveIQ), 1.8f, 0.5f) : 1f);
-            bool block = onBall && p.SelfGrounded && !p.OpponentGrounded
+            if (shooterWasGrounded && !p.OpponentGrounded)
+            {
+                float chance = config.blockAttemptChance
+                               * (snapshot != null ? Attributes.Centered(snapshot.GetAttribute(selfIndex, AttributeId.Block), 0.5f, 2f) : 1f);
+                goForBlock = rng.NextDouble() < chance;
+            }
+            shooterWasGrounded = p.OpponentGrounded;
+            bool block = onBall && goForBlock && p.SelfGrounded && !p.OpponentGrounded
                          && p.OpponentVelocity.y <= trigger
                          && toHandler <= config.blockRange;
 

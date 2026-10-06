@@ -34,10 +34,14 @@ de troca.
 | D-026 | Quadra NBA (a desenhada no piso do ginásio MarpaStudio): 28,65 × 15,24 m, aro a 1,6 m do fundo, linha de 3 a 7,24 m com cantos retos a 6,71 m. Ginásio e bola são só visuais (`ArenaDresser`), por cima dos colisores do placeholder | Aceita (escolha do usuário; valores em dados: **provisórios**) |
 | D-027 | IA posicional: defesa individual com ajuda (nega a um passe da bola, recua para a linha de ajuda no lado fraco, presa ao seu homem) e zona (2-3 / 2-2 / 1-2 deslizando com a bola, um só defensor na bola), escolhida por posse (`zoneDefenseChance`); ataque espaçado longe da bola, na linha de 3 da quadra; a IA lê a linha de 3 com os cantos | Aceita (valores em `DefaultAIConfig`: **provisórios**) |
 | D-028 | Medidor de arremesso (estilo NBA 2K): janela verde em volta do topo do pulo; soltar no verde = arremesso perfeito (sem erro de mira); o verde cresce com o atributo do arremesso e encolhe com marcação, distância e movimento | Aceita (pedido do usuário; tamanhos em `ShotConfig`: **provisórios**) |
+| D-029 | Migração para Unreal Engine 5 (C++), servidor autoritativo; projeto Unity congelado como referência numérica | Aceita (pedido do usuário; plano em `docs/migracao-unreal/`) |
+| D-030 | Tocos: a mão do defensor termina na ponta dos dedos (+ raio da bola); jump shot e lance livre saem acima da cabeça (`shotPocketForward` 0,15 m); a IA sorteia uma vez por arremesso se tenta o toco (`blockAttemptChance` 0,3, ×0,5–×2 pelo atributo Block); alvo: 5–10% dos arremessos marcados viram toco | Aceita (escolha do usuário; valores **provisórios**) |
 | P-001 | Modo B (controle do time) | **Pendente** — ponto de encaixe pronto: `ITeamStrategy` (e `IAgentController`) |
 | P-003 | Gacha definitivo (raridades, taxas, pity, custos, moedas) | **Provisória**: 3 níveis genéricos, 3/17/80%, pity 80 (soft 65, +6%), 50/50 com garantia, multi de 10 com garantia de nível 2 — tudo em `Data/Meta/StandardBanner.asset` |
 | P-002 | Semântica dos Limit Breaks | **Provisória**: 4 LBs (20→40, 40→50, 50→60, "Awakening" no 60 sem novo teto), tudo em `DefaultProgressionConfig` |
 | P-004 | `GameBootstrap` assume que o time do jogador é Home ao calcular a recompensa de partida | **Provisória** |
+| P-005 | Modelo do multiplayer online | **Parcial**: 3v3, cada humano controla um jogador (usuário, 2026-10-05); servidor autoritativo, listen server no início. Pendente: vagas sem humano, dedicado × listen no lançamento, crossplay, julgamento da janela verde com latência |
+| P-006 | Backend da economia/gacha online | **Pendente** — até lá o meta roda offline |
 
 ---
 
@@ -637,3 +641,74 @@ de basquete.
 Animation Clips** fica (lista os clipes dos FBX). Trocar para clipes do Mixamo, se o usuário quiser, passa
 pelo binder com as janelas medidas.
 
+## D-029 — Migração para Unreal Engine 5
+
+**Contexto.** O usuário quer trabalhar com Unreal, mirar PC/console (talvez mobile depois) e ter
+multiplayer online; programa em C++; troca de hardware (GPU ≥ 8 GB) prevista até dezembro de 2026.
+
+**Opções.** (a) continuar na Unity; (b) migrar para UE4; (c) migrar para UE5 com os recursos pesados
+desligados.
+
+**Decisão.** (c). Lógica em C++ (Blueprint só para visual, UI e cola), servidor autoritativo desde a
+primeira fase, unidades nativas do Unreal (cm, Z para cima) convertidas no port. O projeto Unity fica
+congelado (tag `unity-reference`) e serve de oráculo numérico: estatísticas das simulações IA×IA,
+taxa de acerto por zona, tempos de voo.
+
+**Consequências.** Física da bola e do aro precisa ser recalibrada no Chaos contra a referência; a
+animação procedural por músculos do Humanoid não tem equivalente (vira clipes/Control Rig); CI em
+nuvem fica para depois (testes por linha de comando local). Fases e mapa: `docs/migracao-unreal/`.
+
+## P-005 — Modelo do multiplayer (pendente)
+
+Base fixada: servidor autoritativo; *listen server* no início (servidor dedicado exige engine
+compilado do código-fonte, depois do upgrade).
+
+**Decidido (usuário, 2026-10-05):** o modo online é **3v3, cada humano controla um jogador** (até 6
+humanos por partida). No Unreal: um PlayerController por humano, cada um dono de um Character; a IA
+do time (`TeamBrain`) continua no servidor para os jogadores sem humano.
+
+**Ainda pendente:** o que ocupa uma vaga sem humano (IA? partida não começa?); servidor dedicado ×
+listen no lançamento; crossplay entre plataformas; como julgar a janela verde do arremesso com
+latência. A janela livre tem ~25–29 ms no total e a marcada ~7–9 ms (`docs/migracao-unreal/referencia-unity.md`),
+menos de um quadro: o instante da soltura precisa vir do cliente, com validação no servidor.
+
+## P-006 — Backend da economia online (pendente)
+
+Online, moeda e tiragens de gacha não podem viver num save local editável. Falta escolher o
+backend. Até lá o meta continua offline, como na Unity.
+
+## D-030 — Tocos: alcance da mão e ponto de soltura
+
+**Contexto.** Na referência para a migração (Fase 0), o 3v3 IA×IA tinha toco em metade dos
+arremessos (14/21 na defesa individual). Instrumentado: 25 de 31 tocos aconteciam 0,02–0,09 s após
+a soltura, com o marcador a ~1,15 m (`contestStandoff`).
+
+**Causas.** (1) Defeito: `BlockMath.IsWithinArms` usava o raio do bloqueio como esfera em volta da
+ponta dos dedos, então a bola podia passar 0,45 m acima deles e ainda ser bloqueada. (2) A bola do
+jump shot saía do ponto de segurar/driblar, 0,45 m à frente do corpo, a 2,9 m: abaixo dos dedos do
+marcador que pula no ápice (~3,2 m) e já dentro do alcance dele.
+
+**Decisão.** (1) O topo do alcance é a ponta dos dedos + raio da bola (0,12 m); o raio continua sendo
+o alcance para os lados. (2) Opção escolhida pelo usuário: jump shot e lance livre saem **acima da
+cabeça**, `ShotConfig.shotPocketForward` = 0,15 m à frente do corpo; bandeja e enterrada continuam
+levando a bola à frente. A IA não mudou (pula para tocar em todo arremesso marcado). Alvo do usuário:
+**5–10%** dos arremessos marcados viram toco.
+
+**Adendo — IA seletiva (opção escolhida pelo usuário).** O marcador da bola sorteia **uma vez por
+arremesso**, quando o arremessador sai do chão, se vai tentar o toco: `AIConfig.blockAttemptChance`
+= 0,3 no atributo Block neutro (×0,5 com Block 0, ×2 com Block 99). Sem a tentativa, ele fica no chão
+marcando de perto (a marcação continua piorando o arremesso). Um sorteio por quadro faria a IA pular em
+quase todo arremesso. Testes: `AIAgentControllerTests.Defender_DecidesOncePerShot_WhetherToGoForTheBlock`
+e `Defender_WhoDoesNotGoForTheBlock_StaysDownAndContests`.
+
+**Consequências.** Tocos nos arremessos marcados (contest ≥ 0,3), 3v3 + 5v5 numa execução:
+| | Jump shot | Enterrada | Bandeja | Total |
+|---|---|---|---|---|
+| Sem correção | ~50% de todos os arremessos | | | |
+| Alcance + soltura acima da cabeça | — | — | — | ~23% |
+| + IA seletiva | **2/24 (8%)** | 3/11 (27%) | 2/3 | 7/38 (18%) |
+
+Jump shots no alvo. As finalizações no aro continuam acima (no basquete real a maior parte dos tocos
+é no aro, mas 27% das enterradas é alto); amostra pequena, a decidir com o usuário.
+`FundamentalsTests.Block_DefenderJumpingInFront` passou
+a usar o marcador a 0,5 m (a 0,7 m a bola passa a ~0,45 m dele, no limite do alcance).

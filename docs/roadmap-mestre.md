@@ -23,5 +23,8 @@ conflitavam). Origem: `docs/auditoria/2026-09-25-auditoria-e-avaliacao.md`, seç
 | 9 História | Capítulos/diálogos/partidas-objetivo data-driven | Capítulo de teste | — |
 | 10 Polish | VFX anime, câmera cinemática, UI final, áudio, otimização | — | — |
 
+**Migração para Unreal (D-029, 2026-10-05):** o projeto Unity está congelado como referência;
+o trabalho novo segue as fases de `docs/migracao-unreal/README.md`.
+
 Decisões: `docs/decisoes.md`. Arquitetura: `docs/arquitetura.md`.
 Próximas tarefas: `docs/proximos-passos.md`. Guia para sessões do Claude: `CLAUDE.md`.

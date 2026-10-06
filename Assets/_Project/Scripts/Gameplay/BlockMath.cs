@@ -5,8 +5,14 @@ namespace Basket.Gameplay
     public static class BlockMath
     {
         // Raised arms modelled as a vertical segment from head to fingertips.
-        public static bool IsWithinArms(Vector3 ball, Vector3 defenderFeet, float headHeight, float reach, float radius)
+        // `radius` is how far the hands reach sideways; the top is the fingertips plus one
+        // ball radius (the fingertips touch the ball's underside). A sphere around the
+        // fingertips used to let a ball pass 0.45 m over them and still be blocked: most AI
+        // jumpers were blocked right out of the hand (AI-vs-AI 3v3: 14 blocks in 21 shots).
+        public static bool IsWithinArms(Vector3 ball, Vector3 defenderFeet, float headHeight, float reach, float radius,
+            float fingertipMargin = 0.12f)
         {
+            if (ball.y > defenderFeet.y + reach + fingertipMargin) return false;
             float y = Mathf.Clamp(ball.y, defenderFeet.y + headHeight, defenderFeet.y + reach);
             Vector3 closest = new Vector3(defenderFeet.x, y, defenderFeet.z);
             return (ball - closest).sqrMagnitude <= radius * radius;
