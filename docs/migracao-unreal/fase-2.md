@@ -33,7 +33,7 @@ Essa fase não depende da GPU: cabe antes do upgrade.
 | 5 | `GameClock`, `FoulMath`, `FoulRules`, `MatchState`, `MatchRules` | `Rules/BasketMatchTypes`, `BasketMatchRules`, `BasketClocks`, `BasketFouls`, `BasketMatchState` | 18 (`Basket.Core.Rules`) | ✅ |
 | 6 | `MatchManager` (árbitro) | `Rules/BasketReferee` | 36 (`Basket.Core.Referee`) | ✅ |
 | 7 | `PossessionLayout`, `PassTargeting` | `Play/BasketPlayLayout` | 10 (`Basket.Core.PlayLayout`) | ✅ |
-| 8 | `Attributes`, `CharacterStatsCalculator`, `CharacterProgression` | `Characters/…` | ~15 | ⬜ |
+| 8 | `Attributes`, `CharacterStatsCalculator`, `CharacterProgression` | `Characters/BasketAttributes`, `BasketProgression` | 10 (`Basket.Core.Characters`) | ✅ |
 
 Fora desta fase: IA de time (`TeamBrain` e cia., 33 testes) e o meta (inventário, gacha, save, ~40
 testes). São lógica pura, mas a IA só faz sentido com o jogo rodando (Fase 6) e o meta online depende
@@ -72,3 +72,22 @@ que é lógica pura (seção 4 e a trajetória da seção 5) coberto por um test
 - 2026-10-06: peça 6 (árbitro `FBasketReferee`); `Basket.*` 111/111. O teste de fim de partida agora usa o caminho
   real (atingir a pontuação) em vez da chamada interna `EndWith` que o Unity usava.
 - 2026-10-06: peça 7 (layout de reinício e alvo do passe); `Basket.*` 121/121.
+- 2026-10-06: peça 8 (atributos, stats, progressão); `Basket.*` **131/131**. **Fase 2 concluída.**
+  `XpToNextLevel` usa `FMath::RoundToInt` (meio para cima); o Unity arredondava meio para o par. Só muda
+  quando `100 · L^1,5` termina exatamente em ,5, o que não acontece nos níveis 1–60.
+
+## Resultado
+
+| Suíte | Testes |
+|---|---|
+| `Basket.Core.Units` | 3 |
+| `Basket.Core.Trajectory` | 8 |
+| `Basket.Core.Scoring` | 10 |
+| `Basket.Core.ShotAccuracy` | 23 |
+| `Basket.Core.Defense` | 13 |
+| `Basket.Core.Rules` | 18 |
+| `Basket.Core.Referee` | 36 |
+| `Basket.Core.PlayLayout` | 10 |
+| `Basket.Core.Characters` | 10 |
+| **Total** | **131** |
+
