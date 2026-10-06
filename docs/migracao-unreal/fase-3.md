@@ -116,4 +116,14 @@ fase só existem os personagens dos humanos conectados.
     cápsula 1,9–2,4 cm acima do chão de propósito.
   - Falta: checar no PIE com emulação de rede que sprint/guarda não geram correções (junto com a
     câmera, peça 4).
+- 2026-10-06: **peças 4 e 5 prontas** (`Basket.*` 160/160, `net-smoke` 5/5).
+  - Peça 4: `FBasketCameraFollow` (suavização do Unity, giro só no plano), `FBasketCourtSettings`
+    (meia quadra 3x3 na mesma posição do Unity), `ABasketPlayerCameraManager` (local, não replicado),
+    movimento relativo à câmera.
+  - Peça 5: árbitro no `ABasketGameMode` (servidor) com as regras FIBA 3x3; `ABasketGameState`
+    replica placar, fase, relógios, período, posse; reinícios posicionam os jogadores com
+    `BasketPlayLayout::RestartLayout` (puro, testado). Times alternam Home/Away conforme os humanos
+    entram. `net-smoke` confere que o cliente vê a partida ao vivo com a posse do Home.
+  - Falta: checagem com janela das peças 4–5 (câmera, movimento relativo, sprint/guarda sem
+    correções com latência) e a peça 6 (quadra desenhada, cesta visual, HUD de depuração).
 
