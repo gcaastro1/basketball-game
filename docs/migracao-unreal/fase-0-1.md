@@ -93,9 +93,22 @@ Diferenças em relação ao plano acima:
 |---|---|
 | 1. Compila | ✅ `Build.bat BasketEditor`, sem avisos (~10 min por build no HD) |
 | 2. Testes `Basket.*` na linha de comando | ✅ 3/3 (`Basket.Core.Units`) |
-| 3. Dois jogadores, servidor listen | ✅ sem janela: `tools/net-smoke.ps1` 4/4 (cliente entra, ganha personagem, recebe a quadra). Com janela (PIE, os dois andando): **falta, precisa do usuário** |
-| 4. Network Emulation 100 ms / 1% | **falta** (PIE) |
-| 5. `stat unit` na GTX 1050 | **falta** (PIE) |
+| 3. Dois jogadores, servidor listen | ✅ sem janela: `tools/net-smoke.ps1` 4/4. Com janela (PIE, 2 jogadores, usuário em 2026-10-06): cada um anda e vê o outro; no cliente o outro é `ROLE_SimulatedProxy` sobre a quadra replicada |
+| 4. Network Emulation | ✅ só nos clientes, 40–60 ms por direção (~100 ms ida e volta) e 1% de perda: movimento liso, sem correções visíveis |
+| 5. `stat unit` na GTX 1050 | ✅ linha de base abaixo |
+
+**Linha de base (PIE, 1 jogador, servidor listen, Gameplay Debugger aberto, 1314×711, GTX 1050 2 GB):**
+
+| Frame | Game | GPU | Draws | Prims | VRAM | Memória |
+|---|---|---|---|---|---|---|
+| 11,8 ms (~85 FPS) | 11,8 ms | 6,1 ms | 259 | 8 236 | **1,32 / 1,42 GB** | 4,0 GB |
+
+- **VRAM é o gargalo**: com a cena vazia, o editor já usa 1,32 GB dos 1,42 GB disponíveis. Ginásio e
+  personagens reais só depois do upgrade, ou com texturas limitadas (`assets-e-licencas.md`).
+- O tempo de Game (11,8 ms) inclui o editor e o Gameplay Debugger; GPU folgada (6 ms). Medir de novo em
+  jogo autônomo (Standalone) quando houver conteúdo.
+- "Input 188 ms" apareceu em vermelho na medição dentro do editor; reavaliar em Standalone antes de
+  concluir algo.
 | 6. Clone limpo compila | ✅ clone do GitHub + `Build.bat` sem avisos (~4 min) |
 
 **Atenção, disco C:** o cache de dados derivados (Zen) da engine fica em

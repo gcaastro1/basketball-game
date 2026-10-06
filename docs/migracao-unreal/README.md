@@ -115,7 +115,7 @@ Ordem por dependência; prioridade 🔴 crítico, 🟠 importante, 🟡 secundá
 | Fase | Conteúdo | Prioridade | Quando |
 |---|---|---|---|
 | 0 | Referência Unity: congelar, exportar estatísticas, inventário e licenças dos assets — ✅ tag `unity-reference`; faltam só 3 licenças (Tripo, clipes de basquete, Kimodo) | 🔴 | Outubro |
-| 1 | Projeto UE5 C++, repositório + LFS, módulos, configurações leves, teste de fumaça e PIE 2 clientes — 🔄 projeto em `D:\Projetos\basket-unreal` (UE 5.8.3): build, testes e rede sem janela ok; faltam os testes com janela | 🔴 | Outubro |
+| 1 | Projeto UE5 C++, repositório + LFS, módulos, configurações leves, teste de fumaça e PIE 2 clientes — ✅ `gcaastro1/basketball-unreal` (UE 5.8.3): build, testes, rede com e sem janela, emulação de rede e linha de base de desempenho | 🔴 | Outubro |
 | 2 | Núcleo de lógica pura em C++ (`BasketCore`) com os testes portados | 🔴 | Out–Nov |
 | 3 | Input (Enhanced Input), Character/CMC, câmera de transmissão — já em rede | 🔴 | Nov–Dez |
 | 4 | Bola, aro físico (Chaos), pontuação; recalibração contra o oráculo | 🔴 | Após upgrade |
