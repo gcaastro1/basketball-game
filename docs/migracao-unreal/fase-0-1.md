@@ -77,7 +77,7 @@ Mesma regra das assemblies: `Basket` depende de `BasketCore`, nunca o contrário
 
 ### Resultado (2026-10-05)
 
-Projeto em `D:\Projetos\basket-unreal` (repositório git local, ainda sem remoto), UE 5.8.3 em
+Projeto em `D:\Projetos\basket-unreal` (repositório privado `gcaastro1/basketball-unreal`), UE 5.8.3 em
 `D:\UE_5.8`, VS 2022 Build Tools (MSVC 14.44.35229: a pasta se chama 14.44.35207, mas o compilador já
 tem a correção que a 5.8 exige), Windows SDK 10.0.26100.
 
@@ -96,9 +96,10 @@ Diferenças em relação ao plano acima:
 | 3. Dois jogadores, servidor listen | ✅ sem janela: `tools/net-smoke.ps1` 4/4 (cliente entra, ganha personagem, recebe a quadra). Com janela (PIE, os dois andando): **falta, precisa do usuário** |
 | 4. Network Emulation 100 ms / 1% | **falta** (PIE) |
 | 5. `stat unit` na GTX 1050 | **falta** (PIE) |
-| 6. Clone limpo compila | **falta** (depois do repositório no GitHub) |
+| 6. Clone limpo compila | ✅ clone do GitHub + `Build.bat` sem avisos (~4 min) |
 
 **Atenção, disco C:** o cache de dados derivados (Zen) da engine fica em
 `%LOCALAPPDATA%\UnrealEngine\Common\Zen`, no C: (SSD de 240 GB com ~25 GB livres). Ele cresce com
-shaders e assets; mover para outro disco antes de importar assets.
+shaders e assets. **Movido** para `D:\UnrealDDC` pela variável de usuário `UE-LocalDataCachePath`
+(lida em `ZenServerInterface.cpp`); vale para programas abertos depois da mudança.
 
