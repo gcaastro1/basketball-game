@@ -117,4 +117,10 @@ folga; o ganho é limitado e aparece no log.
   passe de 6 m pede ~3,4 m de antecipação e cai atrás do recebedor (o teste usa meia velocidade). O teste
   da espera de 0,25 s (Fase 4) passou a derrubar a bola da mão: quem passa nunca toca o próprio passe no
   ar. `Basket.*` 211 (208 + 3 de calibração), `net-smoke` 13/13.
+- 2026-10-07: **peça 5 pronta** — roubo: E sem a bola pede ao servidor; vale com o portador a até 1,3 m e
+  de frente, sem estar arremessando, 1 s entre tentativas; chance 12% (20% se o portador anda); a bola sai
+  na direção do defensor. Errar pode virar falta de reach-in (4%). Os testes acharam um defeito: um
+  jogador conseguia ficar em pé sobre a bola solta, e aí o movimento dele esperava a bola e a bola na mão
+  esperava o movimento (ciclo de tick); a bola agora não serve de chão. `Basket.*` 218 (215 + 3 de
+  calibração), `net-smoke` 13/13.
 
