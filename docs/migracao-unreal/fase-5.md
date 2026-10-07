@@ -102,4 +102,12 @@ folga; o ganho é limitado e aparece no log.
   atraso (`-PktLag=100`) e os dois jogadores arremessando sozinhos no topo (`-BasketAutoShoot`): **13/13**;
   o arremesso do cliente: cliente +0,2 ms × servidor −0,5 ms, folga 109 ms, aceito, erro 0, cesta.
   `Basket.*` 201 (198 rodados + 3 de calibração sem mudança).
+- 2026-10-07: **peça 3 pronta** — marcação na soltura (o adversário que mais atrapalha; também ao vivo no
+  medidor: o verde encolhe quando o defensor chega), toco automático (adversário no ar, até 0,35 s após a
+  soltura, bola entre a cabeça e a ponta dos dedos), falta no arremesso (contato na soltura, 35%) e lance
+  livre (cobrador na linha, os outros no garrafão, ninguém se mexe, só o cobrador arremessa; vale 1 no 3x3).
+  Números do teste: defensor a 1 m na frente → contest 0,50, verde de ±13,6 para ±8,9 ms. O primeiro teste
+  do toco falhou porque o defensor já tinha pegado a bola desviada quando a checagem rodou — o toco em si
+  aconteceu 4 quadros após a soltura. `Basket.*` 204 (201 + 3 de calibração), `net-smoke` 13/13. Fora:
+  efeito dos atributos (Força, Defesa) no contest — Fase 7.
 
