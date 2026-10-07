@@ -104,3 +104,20 @@ mirado — o que a calibração do Unity media era o aro decidindo a partir dess
   outro time) e o shot clock só corre com posse. `IsHoldingBall` do personagem passa a valer em todas as
   máquinas. Fora desta peça: raio de interceptação do passe e lance livre (chegam com arremesso e passe,
   Fase 5). `Basket.*` 186/186.
+- 2026-10-06: **peça 5 pronta (código)** — rede: o cliente registra o que vê da bola (`LogBasketBall`) e o
+  placar entra na linha do `GameState`. `tools/net-smoke.ps1` passa `?BasketSmokeShot` ao servidor: com os
+  dois jogadores dentro, quem tem a bola arremessa no centro do aro. **12/12**: o cliente vê a bola na mão
+  do próprio jogador e na do outro, o voo (lançamento replicado), a passagem para a física, a cesta e o
+  placar. Na primeira execução o jogador do servidor, sozinho, perdeu a bola no shot clock de 12 s antes de
+  o cliente entrar, e quem arremessou foi o cliente: as checagens agora não dependem de qual time
+  arremessa. O comando de console `BasketShoot` (no servidor) faz o mesmo arremesso na checagem com janela.
+
+## Checagem com janela (usuário)
+
+1. Abrir o editor, **Net Mode: Play As Listen Server**, **2 jogadores**, Play.
+2. A bola aparece na mão do armador (a cada reinício ela volta para o ataque).
+3. Na janela do **servidor**, abrir o console (`~`) e digitar `BasketShoot`: quem tem a bola arremessa no aro.
+4. Conferir nas **duas** janelas: o voo liso e igual, a bola quicando no aro/chão depois do contato, a cesta
+   no placar do HUD e a bola entregue ao outro time.
+5. Opcional: repetir com a emulação de rede (Average) ligada.
+

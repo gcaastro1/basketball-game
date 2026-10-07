@@ -18,8 +18,8 @@ Prioridade: 🔴 crítico · 🟠 importante · 🟡 secundário · 🟢 polimen
 | Input System (`.inputactions`) | Enhanced Input (Input Actions + Mapping Contexts) | Assets + C++ | 3 | 🔴 | Baixa | ✅ assets gerados por script |
 | `PlayerMotor` (CharacterController) | `ACharacter` + `UCharacterMovementComponent` (custom: sprint/guarda) | C++ | 3 | 🔴 | Média | ✅ medido contra o Unity |
 | `CameraController` | Actor/componente de câmera próprio (local, não replicado) | C++ | 3 | 🔴 | Média | ✅ |
-| `BallController` (Rigidbody) | Actor de bola, servidor autoritativo, voo analítico | C++ | 4 | 🔴 | **Alta** | ⬜ |
-| `HoopController` / `RimSurface` | Actor do aro: colisão + Physical Material | C++ | 4 | 🔴 | **Alta** | ⬜ |
+| `BallController` (Rigidbody) | Actor de bola, servidor autoritativo, voo analítico | C++ | 4 | 🔴 | **Alta** | ✅ `ABasketBall` + `BasketPossession` (D-031) |
+| `HoopController` / `RimSurface` | Actor do aro: colisão + Physical Material | C++ | 4 | 🔴 | **Alta** | ✅ cápsulas `BasketRim` + `WatchHoop` no GameMode; recalibrado (D-031) |
 | Shot/Dribble/Pass/DefenseSystem | Actor Components no Character | C++ | 5 | 🔴 | Média | ⬜ |
 | `ShotMeterView` | Widget UMG lendo o componente de arremesso | UMG + C++ | 5 | 🔴 | Baixa | ⬜ |
 | `AIAgentController`, `OpponentAIStateMachine` | AIController (servidor) + utility em C++ | C++ | 5–6 | 🟠 | Média | ⬜ |
