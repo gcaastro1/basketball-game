@@ -97,3 +97,10 @@ mirado — o que a calibração do Unity media era o aro decidindo a partir dess
   Aceitação: 200 arremessos livres — 4,5 m 56,0% (modelo 50,1%; antes da correção 69,5%), 7,24 m 31,5%
   (modelo 37,9%; antes 55,5%). O Chaos varia ~0,15 cm de uma execução para outra (14,14 → 14,04 a
   4,5 m), dentro da tolerância. `Basket.*` 177/177; build de 4,5 min com a RAM livre.
+- 2026-10-06: **peça 4 pronta** — posse: `BasketPossession` (Core) com a regra de pegar do Unity (1 m na
+  horizontal, de 20 cm abaixo dos pés até o alcance de 2,4 m + 15 cm, só bola solta ou passe, quem soltou
+  espera 0,25 s; o mais perto pega) e o status da bola para o árbitro. O GameMode cria a bola, entrega ao
+  armador do ataque em todo reinício, avisa o árbitro de quem tem a bola (roubo = pega depois de toque do
+  outro time) e o shot clock só corre com posse. `IsHoldingBall` do personagem passa a valer em todas as
+  máquinas. Fora desta peça: raio de interceptação do passe e lance livre (chegam com arremesso e passe,
+  Fase 5). `Basket.*` 186/186.
