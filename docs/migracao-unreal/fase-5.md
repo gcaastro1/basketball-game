@@ -95,3 +95,11 @@ folga; o ganho é limitado e aparece no log.
   bandeja sai no topo; enterrada correndo perto do aro entra. Alcance parado corrigido para 2,45 m. A bola
   passa a ser atualizada depois do movimento de quem a segura (sem um quadro de atraso). O anfitrião do
   listen server já arremessa com o Espaço; os clientes remotos chegam na peça 2. `Basket.*` 196/196.
+- 2026-10-07: **peça 2 pronta** — o pulo do arremesso vai nos movimentos preditos (`FLAG_Custom_2`): o
+  cliente pula na hora e conhece o próprio topo. Ao largar o botão ele mede soltura − topo e manda ao
+  servidor, que compara com a própria medida (D-032: meia ida e volta + 50 ms, até 150 ms). Medidor no HUD
+  (enche até o topo, faixa verde, nota por 1 s depois da soltura). `net-smoke` com o cliente a 100 ms de
+  atraso (`-PktLag=100`) e os dois jogadores arremessando sozinhos no topo (`-BasketAutoShoot`): **13/13**;
+  o arremesso do cliente: cliente +0,2 ms × servidor −0,5 ms, folga 109 ms, aceito, erro 0, cesta.
+  `Basket.*` 201 (198 rodados + 3 de calibração sem mudança).
+
