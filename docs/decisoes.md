@@ -42,7 +42,7 @@ de troca.
 | P-002 | Semântica dos Limit Breaks | **Provisória**: 4 LBs (20→40, 40→50, 50→60, "Awakening" no 60 sem novo teto), tudo em `DefaultProgressionConfig` |
 | P-004 | `GameBootstrap` assume que o time do jogador é Home ao calcular a recompensa de partida | **Provisória** |
 | P-005 | Modelo do multiplayer online | **Parcial**: 3v3, cada humano controla um jogador (usuário, 2026-10-05); servidor autoritativo, listen server no início. Pendente: vagas sem humano, dedicado × listen no lançamento, crossplay, julgamento da janela verde com latência |
-| D-032 | Verde do medidor online: o cliente mede o erro de tempo da soltura e o servidor confere contra a latência daquele jogador (meia ida e volta + 50 ms, até 150 ms); fora da folga vale o tempo do servidor | **Proposta** (aguarda o usuário; `docs/migracao-unreal/fase-5.md`) |
+| D-032 | Verde do medidor online: o cliente mede o erro de tempo da soltura e o servidor confere contra a latência daquele jogador (meia ida e volta + 50 ms, até 150 ms); fora da folga vale o tempo do servidor | Aceita (opção A, escolha do usuário, 2026-10-07; folga **provisória**) |
 | P-006 | Backend da economia/gacha online | **Pendente** — até lá o meta roda offline |
 
 ---
@@ -743,4 +743,24 @@ da Core que as fixam — ficam iguais.
 que mede a curva de novo e falha se os dados estiverem a mais de 0,5 cm dela, e copiar os valores.
 O teste de aceitação arremessa 200 vezes de 4,5 m e 7,24 m com o erro do modelo e exige a taxa a até
 8 pontos da chance prevista.
+
+## D-032 — Verde do medidor online: o cliente mede, o servidor confere
+
+**Contexto.** A janela verde (D-028) tem 25–29 ms no total sem marcação e 7–9 ms marcada: menos de
+um quadro a 60 FPS e bem menos que a latência online (50–100 ms só a ida). Julgada pelo instante em
+que o comando chega ao servidor, toda soltura online sairia atrasada (pendência de P-005).
+
+**Decisão (opção A, escolhida pelo usuário).** O pulo é predito no cliente, então o cliente mede
+`erro de tempo = soltura − topo do pulo` no próprio relógio e o manda com o comando de soltura. O
+servidor mede o mesmo erro no relógio dele e aceita o do cliente se a diferença couber na latência
+daquele jogador: meia ida e volta + 50 ms, no máximo 150 ms (valores **provisórios**, em dados). Fora
+da folga vale o tempo do servidor, e o caso vai para o log. Sorteio do erro, lançamento e cesta
+continuam no servidor.
+
+**Alternativas recusadas.** (B) julgar pela chegada do comando: à prova de trapaça, mas o verde some
+online. (C) alargar a janela no online: muda o medidor.
+
+**Consequências.** Um trapaceiro pode, no máximo, transformar uma soltura atrasada dentro da folga em
+verde; o ganho é limitado e aparece no log. Implementação e testes: Fase 5, peça 2
+(`docs/migracao-unreal/fase-5.md`).
 

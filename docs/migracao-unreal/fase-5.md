@@ -28,13 +28,13 @@ usam jogadores comandados por código.
 | Roubo | `DefenseSystem.TrySteal` | alcance, de frente para o portador, recarga entre tentativas, chance base + bônus se o portador corre; falha pode virar falta (reach-in) |
 | Faltas | `MatchSimulation` + `FoulMath` (já em `BasketFouls`) | contato no arremesso (`ShootingContact`) com chance → falta com lances livres; o árbitro já resolve o resto |
 
-## Decisão central: o verde com latência (D-032, proposta — decisão do usuário)
+## Decisão central: o verde com latência (D-032, aceita: opção A)
 
 A janela verde inteira tem 25–29 ms livre e 7–9 ms marcada: menos de um quadro a 60 FPS, e bem menos
 que a latência de uma partida online (50–100 ms ida). Se o servidor julgar pelo instante em que o
 comando **chega**, todo arremesso online sai atrasado e o verde fica impossível (é a pendência de P-005).
 
-**Proposta (opção A): o cliente mede, o servidor confere.**
+**Opção A, escolhida pelo usuário: o cliente mede, o servidor confere.**
 
 - O pulo já é predito no cliente (CMC), então o cliente sabe o instante do próprio topo do pulo.
   Ao largar o botão ele mede `TimingError = soltura − topo` **no tempo dele** e manda junto com o
