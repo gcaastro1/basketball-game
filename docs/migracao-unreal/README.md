@@ -115,11 +115,11 @@ Ordem por dependência; prioridade 🔴 crítico, 🟠 importante, 🟡 secundá
 | Fase | Conteúdo | Prioridade | Quando |
 |---|---|---|---|
 | 0 | Referência Unity: congelar, exportar estatísticas, inventário e licenças dos assets — ✅ tag `unity-reference`; faltam só 3 licenças (Tripo, clipes de basquete, Kimodo) | 🔴 | Outubro |
-| 1 | Projeto UE5 C++, repositório + LFS, módulos, configurações leves, teste de fumaça e PIE 2 clientes | 🔴 | Outubro |
-| 2 | Núcleo de lógica pura em C++ (`BasketCore`) com os testes portados | 🔴 | Out–Nov |
-| 3 | Input (Enhanced Input), Character/CMC, câmera de transmissão — já em rede | 🔴 | Nov–Dez |
-| 4 | Bola, aro físico (Chaos), pontuação; recalibração contra o oráculo | 🔴 | Após upgrade |
-| 5 | Arremesso + medidor, drible, passe, defesa (componentes) | 🔴 | Após upgrade |
+| 1 | Projeto UE5 C++, repositório + LFS, módulos, configurações leves, teste de fumaça e PIE 2 clientes — ✅ `gcaastro1/basketball-unreal` (UE 5.8.3): build, testes, rede com e sem janela, emulação de rede e linha de base de desempenho | 🔴 | Outubro |
+| 2 | Núcleo de lógica pura em C++ (`BasketCore`) com os testes portados — ✅ 131 testes (`fase-2.md`) | 🔴 | Out–Nov |
+| 3 | Input (Enhanced Input), Character/CMC, câmera de transmissão — já em rede — ✅ 166 testes, checagem com janela ok (`fase-3.md`) | 🔴 | Nov–Dez |
+| 4 | Bola, aro físico (Chaos), pontuação; recalibração contra o oráculo — código completo: 186 testes, `net-smoke` 12/12, aro recalibrado (D-031); falta a checagem com janela (`fase-4.md`) | 🔴 | Outubro |
+| 5 | Arremesso + medidor, drible, passe, defesa (componentes) — código completo: 223 testes, `net-smoke` 13/13, verde online pela D-032; falta a checagem com janela (`fase-5.md`) | 🔴 | Outubro |
 | **Vertical slice** | Fases 3–5 + IA 1v1 simples + HUD de placar, 1v1 online (2 clientes) | 🔴 | Avaliar antes de seguir |
 | 6 | IA de time 3v3 (utility própria no servidor) | 🟠 | |
 | 7 | Personagens, atributos, habilidades (avaliar Gameplay Ability System) | 🟠 | |
