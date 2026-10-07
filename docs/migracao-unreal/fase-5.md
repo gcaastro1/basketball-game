@@ -89,4 +89,9 @@ folga; o ganho é limitado e aparece no log.
 
 ## Progresso
 
-(vazio)
+- 2026-10-07: **peça 1 pronta** — `UBasketShotComponent` (servidor) e `BasketShotMotion` (Core). Soltar no
+  topo do pulo = verde = 12/12 cestas de 3, 5,5 e 7,24 m, com as meias-larguras do verde iguais às do
+  Unity (±14,5 / 13,6 / 12,1 ms); soltura atrasada = erro do modelo; cair com a bola força a soltura;
+  bandeja sai no topo; enterrada correndo perto do aro entra. Alcance parado corrigido para 2,45 m. A bola
+  passa a ser atualizada depois do movimento de quem a segura (sem um quadro de atraso). O anfitrião do
+  listen server já arremessa com o Espaço; os clientes remotos chegam na peça 2. `Basket.*` 196/196.
