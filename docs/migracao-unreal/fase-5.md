@@ -123,4 +123,25 @@ folga; o ganho é limitado e aparece no log.
   jogador conseguia ficar em pé sobre a bola solta, e aí o movimento dele esperava a bola e a bola na mão
   esperava o movimento (ciclo de tick); a bola agora não serve de chão. `Basket.*` 218 (215 + 3 de
   calibração), `net-smoke` 13/13.
+- 2026-10-07: **peça 6 pronta (código da Fase 5 completo)** — drible visual, calculado em cada máquina a
+  partir do movimento de quem tem a bola (nada replicado): começa quando anda, continua parado, 1,2
+  quiques/s até 85 cm abaixo da mão, volta às mãos no arremesso. `Basket.*` 223 (220 + 3 de calibração),
+  `net-smoke` 13/13. Build de 34 min nesta peça (cabeçalho do personagem, incluído por quase tudo).
+
+## Checagem com janela (peça 7, usuário) — fecha também a da Fase 4
+
+1. Abrir o editor; **Net Mode: Play As Listen Server**, **2 jogadores**; Play. (Opcional: emulação de
+   rede **Average** para ver com latência.)
+2. **Posse e drible:** a bola começa na mão do armador; andando, ela quica na mão (também na outra
+   janela); parado, continua quicando.
+3. **Arremesso (Espaço / X ou Quadrado):** segurar e soltar no topo do pulo. O medidor aparece à direita
+   do centro; soltar na faixa verde mostra **PERFECT** e a bola não erra a mira. Conferir nas duas
+   janelas: voo liso e igual, quique no aro, placar no HUD, bola para o outro time.
+4. **Bandeja e enterrada:** perto do aro a bola sai sozinha no topo; correndo (Shift) bem perto, enterrada.
+5. **Passe (E):** com o analógico/WASD apontando para o companheiro (com 2 jogadores, o outro time não
+   recebe: sem companheiro o passe não sai — normal com 1×1).
+6. **Defesa (outro jogador):** de frente para quem tem a bola, **E** tenta o roubo; pular (Espaço) na
+   frente de um arremesso pode dar **toco**; falta no arremesso leva ao **lance livre** (todos parados,
+   só o cobrador arremessa).
+7. Avisar o que estiver estranho (tempo do verde com latência, bola atravessando alguém, câmera…).
 
