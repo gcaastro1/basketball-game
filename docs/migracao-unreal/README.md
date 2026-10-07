@@ -119,7 +119,7 @@ Ordem por dependência; prioridade 🔴 crítico, 🟠 importante, 🟡 secundá
 | 2 | Núcleo de lógica pura em C++ (`BasketCore`) com os testes portados — ✅ 131 testes (`fase-2.md`) | 🔴 | Out–Nov |
 | 3 | Input (Enhanced Input), Character/CMC, câmera de transmissão — já em rede — ✅ 166 testes, checagem com janela ok (`fase-3.md`) | 🔴 | Nov–Dez |
 | 4 | Bola, aro físico (Chaos), pontuação; recalibração contra o oráculo — código completo: 186 testes, `net-smoke` 12/12, aro recalibrado (D-031); falta a checagem com janela (`fase-4.md`) | 🔴 | Outubro |
-| 5 | Arremesso + medidor, drible, passe, defesa (componentes) | 🔴 | Após upgrade |
+| 5 | Arremesso + medidor, drible, passe, defesa (componentes) — plano em `fase-5.md`; verde com latência: D-032 (proposta) | 🔴 | Outubro |
 | **Vertical slice** | Fases 3–5 + IA 1v1 simples + HUD de placar, 1v1 online (2 clientes) | 🔴 | Avaliar antes de seguir |
 | 6 | IA de time 3v3 (utility própria no servidor) | 🟠 | |
 | 7 | Personagens, atributos, habilidades (avaliar Gameplay Ability System) | 🟠 | |

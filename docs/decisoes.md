@@ -42,6 +42,7 @@ de troca.
 | P-002 | Semântica dos Limit Breaks | **Provisória**: 4 LBs (20→40, 40→50, 50→60, "Awakening" no 60 sem novo teto), tudo em `DefaultProgressionConfig` |
 | P-004 | `GameBootstrap` assume que o time do jogador é Home ao calcular a recompensa de partida | **Provisória** |
 | P-005 | Modelo do multiplayer online | **Parcial**: 3v3, cada humano controla um jogador (usuário, 2026-10-05); servidor autoritativo, listen server no início. Pendente: vagas sem humano, dedicado × listen no lançamento, crossplay, julgamento da janela verde com latência |
+| D-032 | Verde do medidor online: o cliente mede o erro de tempo da soltura e o servidor confere contra a latência daquele jogador (meia ida e volta + 50 ms, até 150 ms); fora da folga vale o tempo do servidor | **Proposta** (aguarda o usuário; `docs/migracao-unreal/fase-5.md`) |
 | P-006 | Backend da economia/gacha online | **Pendente** — até lá o meta roda offline |
 
 ---
