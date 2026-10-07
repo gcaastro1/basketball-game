@@ -110,4 +110,11 @@ folga; o ganho é limitado e aparece no log.
   do toco falhou porque o defensor já tinha pegado a bola desviada quando a checagem rodou — o toco em si
   aconteceu 4 quadros após a soltura. `Basket.*` 204 (201 + 3 de calibração), `net-smoke` 13/13. Fora:
   efeito dos atributos (Força, Defesa) no contest — Fase 7.
+- 2026-10-07: **peça 4 pronta** — passe: E com a bola manda a direção do analógico; o servidor escolhe o
+  companheiro mais alinhado (o mais perto sem analógico), joga nas mãos dele com antecipação para quem corre
+  (no máximo 2 m, como no Unity) e protege o passe dos jogadores a até 1,8 m da soltura; os outros só
+  interceptam a até 50 cm da linha. Os testes acharam um limite do próprio Unity: a toda velocidade, um
+  passe de 6 m pede ~3,4 m de antecipação e cai atrás do recebedor (o teste usa meia velocidade). O teste
+  da espera de 0,25 s (Fase 4) passou a derrubar a bola da mão: quem passa nunca toca o próprio passe no
+  ar. `Basket.*` 211 (208 + 3 de calibração), `net-smoke` 13/13.
 
